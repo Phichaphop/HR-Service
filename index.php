@@ -10,15 +10,13 @@ require_once __DIR__ . '/db/Localization.php';
 
 // Check if database and tables exist
 if (!checkDatabaseExists() || !checkTablesExist()) {
-    header('Location: ' . BASE_PATH . '/views/admin/db_manager.php');
+    header('Location: ' . BASE_PATH . '/HR-Service/views/admin/db_manager.php');
     exit();
 }
 
 // Require authentication
 AuthController::requireAuth();
 
-// Get user session data
-session_start();
 $user_id = $_SESSION['user_id'];
 $user_name = $_SESSION['full_name_th'];
 $user_role = $_SESSION['role'];
@@ -104,7 +102,7 @@ $sidebar_bg = $is_dark ? 'bg-gray-900' : 'bg-blue-600';
 
                 <!-- Employees (Admin/Officer only) -->
                 <?php if (in_array($user_role, ['admin', 'officer'])): ?>
-                <a href="/views/admin/employees.php" class="flex items-center px-4 py-3 rounded-lg hover:bg-white hover:bg-opacity-10 transition">
+                <a href="/HR-Service/views/admin/employees.php" class="flex items-center px-4 py-3 rounded-lg hover:bg-white hover:bg-opacity-10 transition">
                     <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                     </svg>
@@ -113,7 +111,7 @@ $sidebar_bg = $is_dark ? 'bg-gray-900' : 'bg-blue-600';
                 <?php endif; ?>
 
                 <!-- My Requests (All) -->
-                <a href="/views/employee/my_requests.php" class="flex items-center px-4 py-3 rounded-lg hover:bg-white hover:bg-opacity-10 transition">
+                <a href="/HR-Service/views/employee/my_requests.php" class="flex items-center px-4 py-3 rounded-lg hover:bg-white hover:bg-opacity-10 transition">
                     <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                     </svg>
@@ -122,7 +120,7 @@ $sidebar_bg = $is_dark ? 'bg-gray-900' : 'bg-blue-600';
 
                 <!-- Request Management (Admin/Officer) -->
                 <?php if (in_array($user_role, ['admin', 'officer'])): ?>
-                <a href="/views/admin/request_management.php" class="flex items-center px-4 py-3 rounded-lg hover:bg-white hover:bg-opacity-10 transition">
+                <a href="/HR-Service/views/admin/request_management.php" class="flex items-center px-4 py-3 rounded-lg hover:bg-white hover:bg-opacity-10 transition">
                     <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
                     </svg>
@@ -132,7 +130,7 @@ $sidebar_bg = $is_dark ? 'bg-gray-900' : 'bg-blue-600';
 
                 <!-- Locker Management (Admin/Officer) -->
                 <?php if (in_array($user_role, ['admin', 'officer'])): ?>
-                <a href="/views/admin/locker_management.php" class="flex items-center px-4 py-3 rounded-lg hover:bg-white hover:bg-opacity-10 transition">
+                <a href="/HR-Service/views/admin/locker_management.php" class="flex items-center px-4 py-3 rounded-lg hover:bg-white hover:bg-opacity-10 transition">
                     <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                     </svg>
@@ -142,7 +140,7 @@ $sidebar_bg = $is_dark ? 'bg-gray-900' : 'bg-blue-600';
 
                 <!-- Documents (Admin/Officer) -->
                 <?php if (in_array($user_role, ['admin', 'officer'])): ?>
-                <a href="/views/admin/documents.php" class="flex items-center px-4 py-3 rounded-lg hover:bg-white hover:bg-opacity-10 transition">
+                <a href="/HR-Service/views/admin/documents.php" class="flex items-center px-4 py-3 rounded-lg hover:bg-white hover:bg-opacity-10 transition">
                     <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
@@ -154,13 +152,13 @@ $sidebar_bg = $is_dark ? 'bg-gray-900' : 'bg-blue-600';
                 <?php if ($user_role === 'admin'): ?>
                 <div class="mt-6 pt-6 border-t border-white border-opacity-20">
                     <p class="px-4 text-xs font-semibold opacity-75 mb-2">ADMIN</p>
-                    <a href="/views/admin/master_data.php" class="flex items-center px-4 py-3 rounded-lg hover:bg-white hover:bg-opacity-10 transition">
+                    <a href="/HR-Service/views/admin/master_data.php" class="flex items-center px-4 py-3 rounded-lg hover:bg-white hover:bg-opacity-10 transition">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
                         </svg>
                         <span>Master Data</span>
                     </a>
-                    <a href="/views/admin/company_settings.php" class="flex items-center px-4 py-3 rounded-lg hover:bg-white hover:bg-opacity-10 transition">
+                    <a href="/HR-Service/views/admin/company_settings.php" class="flex items-center px-4 py-3 rounded-lg hover:bg-white hover:bg-opacity-10 transition">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                         </svg>
@@ -171,7 +169,7 @@ $sidebar_bg = $is_dark ? 'bg-gray-900' : 'bg-blue-600';
 
                 <!-- Settings -->
                 <div class="mt-6 pt-6 border-t border-white border-opacity-20">
-                    <a href="/views/settings.php" class="flex items-center px-4 py-3 rounded-lg hover:bg-white hover:bg-opacity-10 transition">
+                    <a href="/HR-Service/views/settings.php" class="flex items-center px-4 py-3 rounded-lg hover:bg-white hover:bg-opacity-10 transition">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -304,28 +302,28 @@ $sidebar_bg = $is_dark ? 'bg-gray-900' : 'bg-blue-600';
             <div class="<?php echo $card_bg; ?> rounded-lg shadow-lg p-6 theme-transition">
                 <h3 class="text-lg font-bold <?php echo $text_class; ?> mb-4">Quick Actions</h3>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <button onclick="window.location.href='<?php echo BASE_PATH; ?>/views/employee/request_leave.php'" class="flex flex-col items-center p-4 border-2 <?php echo $is_dark ? 'border-gray-700 hover:border-blue-500 hover:bg-gray-700' : 'border-gray-200 hover:border-blue-500 hover:bg-blue-50'; ?> rounded-lg transition">
+                    <button onclick="window.location.href='<?php echo BASE_PATH; ?>/HR-Service/views/employee/request_leave.php'" class="flex flex-col items-center p-4 border-2 <?php echo $is_dark ? 'border-gray-700 hover:border-blue-500 hover:bg-gray-700' : 'border-gray-200 hover:border-blue-500 hover:bg-blue-50'; ?> rounded-lg transition">
                         <svg class="w-8 h-8 text-blue-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                         </svg>
                         <span class="text-sm font-medium <?php echo $text_class; ?> text-center">Request Leave</span>
                     </button>
 
-                    <button onclick="window.location.href='<?php echo BASE_PATH; ?>/views/employee/request_certificate.php'" class="flex flex-col items-center p-4 border-2 <?php echo $is_dark ? 'border-gray-700 hover:border-blue-500 hover:bg-gray-700' : 'border-gray-200 hover:border-blue-500 hover:bg-blue-50'; ?> rounded-lg transition">
+                    <button onclick="window.location.href='<?php echo BASE_PATH; ?>/HR-Service/views/employee/request_certificate.php'" class="flex flex-col items-center p-4 border-2 <?php echo $is_dark ? 'border-gray-700 hover:border-blue-500 hover:bg-gray-700' : 'border-gray-200 hover:border-blue-500 hover:bg-blue-50'; ?> rounded-lg transition">
                         <svg class="w-8 h-8 text-green-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
                         </svg>
                         <span class="text-sm font-medium <?php echo $text_class; ?> text-center">Certificate</span>
                     </button>
 
-                    <button onclick="window.location.href='<?php echo BASE_PATH; ?>/views/employee/request_idcard.php'" class="flex flex-col items-center p-4 border-2 <?php echo $is_dark ? 'border-gray-700 hover:border-blue-500 hover:bg-gray-700' : 'border-gray-200 hover:border-blue-500 hover:bg-blue-50'; ?> rounded-lg transition">
+                    <button onclick="window.location.href='<?php echo BASE_PATH; ?>/HR-Service/views/employee/request_idcard.php'" class="flex flex-col items-center p-4 border-2 <?php echo $is_dark ? 'border-gray-700 hover:border-blue-500 hover:bg-gray-700' : 'border-gray-200 hover:border-blue-500 hover:bg-blue-50'; ?> rounded-lg transition">
                         <svg class="w-8 h-8 text-purple-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"></path>
                         </svg>
                         <span class="text-sm font-medium <?php echo $text_class; ?> text-center">ID Card</span>
                     </button>
 
-                    <button onclick="window.location.href='<?php echo BASE_PATH; ?>/views/employee/my_requests.php'" class="flex flex-col items-center p-4 border-2 <?php echo $is_dark ? 'border-gray-700 hover:border-blue-500 hover:bg-gray-700' : 'border-gray-200 hover:border-blue-500 hover:bg-blue-50'; ?> rounded-lg transition">
+                    <button onclick="window.location.href='<?php echo BASE_PATH; ?>/HR-Service/views/employee/my_requests.php'" class="flex flex-col items-center p-4 border-2 <?php echo $is_dark ? 'border-gray-700 hover:border-blue-500 hover:bg-gray-700' : 'border-gray-200 hover:border-blue-500 hover:bg-blue-50'; ?> rounded-lg transition">
                         <svg class="w-8 h-8 text-orange-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                         </svg>

@@ -7,9 +7,8 @@ require_once __DIR__ . '/../../db/Localization.php';
 // Require admin or officer role
 AuthController::requireRole(['admin', 'officer']);
 
-session_start();
 $user_role = $_SESSION['role'];
-$theme_color = $_SESSION['theme_color'];
+$theme_mode = $_SESSION['theme_mode'] ?? 'light';
 $language = $_SESSION['language'];
 
 // Get filters
@@ -58,7 +57,7 @@ $conn->close();
         <!-- Header -->
         <div class="flex items-center justify-between mb-6">
             <div>
-                <a href="/index.php" class="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-block">
+                <a href="/HR-Service/index.php" class="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-block">
                     ← <?php echo __('dashboard'); ?>
                 </a>
                 <h1 class="text-3xl font-bold text-gray-800"><?php echo __('employees'); ?></h1>
@@ -297,21 +296,21 @@ $conn->close();
 
     <script>
         function viewEmployee(id) {
-            window.location.href = '/views/admin/employee_detail.php?id=' + id;
+            window.location.href = '/HR-Service/views/admin/employee_detail.php?id=' + id;
         }
 
         function editEmployee(id) {
-            window.location.href = '/views/admin/employee_edit.php?id=' + id;
+            window.location.href = '/HR-Service/views/admin/employee_edit.php?id=' + id;
         }
 
         function deleteEmployee(id) {
             if (confirm('Are you sure you want to delete this employee?')) {
-                window.location.href = '/api/employee_delete.php?id=' + id;
+                window.location.href = '/HR-Service/api/employee_delete.php?id=' + id;
             }
         }
 
         function openAddModal() {
-            window.location.href = '/views/admin/employee_add.php';
+            window.location.href = '/HR-Service/views/admin/employee_add.php';
         }
     </script>
 </body>

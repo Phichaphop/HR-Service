@@ -94,7 +94,6 @@ class Localization {
      */
     public static function getMasterData($table, $id, $lang = null) {
         if ($lang === null) {
-            session_start();
             $lang = $_SESSION['language'] ?? DEFAULT_LANGUAGE;
         }
         
