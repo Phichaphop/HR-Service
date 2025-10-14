@@ -1,6 +1,7 @@
 -- ===================================
 -- HR SERVICE DATABASE SCHEMA
 -- This file contains all table creation statements
+-- NO DELIMITER - NO TRIGGERS (created separately)
 -- ===================================
 
 -- Disable foreign key checks for clean installation
@@ -507,7 +508,7 @@ CREATE TABLE skill_test_requests (
 
 CREATE TABLE document_submissions (
     submission_id INT PRIMARY KEY AUTO_INCREMENT,
-    employee_id VARCHAR(6),
+    employee_id VARCHAR(8),
     employee_name VARCHAR(200),
     position VARCHAR(200),
     position_level VARCHAR(100),
@@ -540,39 +541,3 @@ CREATE INDEX idx_leave_status ON leave_requests(status);
 CREATE INDEX idx_cert_status ON certificate_requests(status);
 CREATE INDEX idx_doc_type ON online_documents(doc_type_id);
 CREATE INDEX idx_doc_submit_status ON document_submissions(status);
-
--- ===================================
--- TRIGGERS FOR AUTO-CALCULATION
--- ===================================
-
--- Trigger to calculate age and year_of_service on INSERT
-DELIMITER $
-
-CREATE TRIGGER calculate_employee_fields_insert
-BEFORE INSERT ON employees
-FOR EACH ROW
-BEGIN
-    IF NEW.birthday IS NOT NULL THEN
-        SET NEW.age = TIMESTAMPDIFF(YEAR, NEW.birthday, CURDATE());
-    END IF;
-    
-    IF NEW.date_of_hire IS NOT NULL THEN
-        SET NEW.year_of_service = TIMESTAMPDIFF(YEAR, NEW.date_of_hire, CURDATE());
-    END IF;
-END$
-
--- Trigger to calculate age and year_of_service on UPDATE
-CREATE TRIGGER calculate_employee_fields_update
-BEFORE UPDATE ON employees
-FOR EACH ROW
-BEGIN
-    IF NEW.birthday IS NOT NULL THEN
-        SET NEW.age = TIMESTAMPDIFF(YEAR, NEW.birthday, CURDATE());
-    END IF;
-    
-    IF NEW.date_of_hire IS NOT NULL THEN
-        SET NEW.year_of_service = TIMESTAMPDIFF(YEAR, NEW.date_of_hire, CURDATE());
-    END IF;
-END$
-
-DELIMITER ;

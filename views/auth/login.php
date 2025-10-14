@@ -1,10 +1,17 @@
 <?php
+session_start();
+
 require_once __DIR__ . '/../../config/db_config.php';
 require_once __DIR__ . '/../../controllers/AuthController.php';
 
 // Check if database and tables exist
 if (!checkDatabaseExists() || !checkTablesExist()) {
     header('Location: /HR-Service/views/admin/db_manager.php');
+    exit();
+}
+
+if (isset($_SESSION['user_id'])) {
+    header('Location: ../../index.php');
     exit();
 }
 

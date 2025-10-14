@@ -50,7 +50,7 @@ class AuthController {
                 $stmt->close();
                 $conn->close();
                 
-                return ['success' => true, 'message' => 'Login successful', 'redirect' => '/index.php'];
+                return ['success' => true, 'message' => 'Login successful', 'redirect' => '../../index.php'];
             } else {
                 $stmt->close();
                 $conn->close();
