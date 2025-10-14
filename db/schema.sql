@@ -256,7 +256,7 @@ CREATE TABLE doc_type_master (
 -- ===================================
 
 CREATE TABLE employees (
-    employee_id VARCHAR(6) PRIMARY KEY,
+    employee_id VARCHAR(8) PRIMARY KEY,
     prefix_id INT,
     full_name_th VARCHAR(200),
     full_name_en VARCHAR(200),
