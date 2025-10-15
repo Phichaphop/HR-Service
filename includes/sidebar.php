@@ -83,7 +83,6 @@ $sidebar_text = 'text-white';
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                 </svg>
                 <span>My Requests</span>
-                <span class="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">3</span>
             </a>
 
             <!-- Request Management (Admin/Officer) -->

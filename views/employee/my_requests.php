@@ -5,10 +5,7 @@ require_once __DIR__ . '/../../db/Localization.php';
 
 AuthController::requireAuth();
 
-session_start();
 $user_id = $_SESSION['user_id'];
-$theme_color = $_SESSION['theme_color'];
-$language = $_SESSION['language'];
 
 // Get filter
 $status_filter = $_GET['status'] ?? '';
@@ -17,17 +14,18 @@ $type_filter = $_GET['type'] ?? '';
 // Get all requests from different tables
 $conn = getDbConnection();
 
-function getRequests($conn, $user_id, $table, $type_name, $status_filter) {
+function getRequests($conn, $user_id, $table, $type_name, $status_filter)
+{
     $where = "employee_id = ?";
     $params = [$user_id];
     $types = "s";
-    
+
     if ($status_filter) {
         $where .= " AND status = ?";
         $params[] = $status_filter;
         $types .= "s";
     }
-    
+
     $sql = "SELECT *, '$type_name' as request_type FROM $table WHERE $where ORDER BY created_at DESC";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param($types, ...$params);
@@ -62,33 +60,21 @@ if (!$type_filter || $type_filter === 'skill') {
 $conn->close();
 
 // Sort by date
-usort($all_requests, function($a, $b) {
+usort($all_requests, function ($a, $b) {
     return strtotime($b['created_at']) - strtotime($a['created_at']);
 });
 
 $total_requests = count($all_requests);
+
+include __DIR__ . '/../../includes/header.php';
+include __DIR__ . '/../../includes/sidebar.php';
+
 ?>
-<!DOCTYPE html>
-<html lang="<?php echo $language; ?>">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Requests - <?php echo __('app_title'); ?></title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        :root {
-            --theme-color: <?php echo $theme_color; ?>;
-        }
-        .theme-bg {
-            background-color: var(--theme-color);
-        }
-    </style>
-</head>
-<body class="bg-gray-50">
-    
-    <div class="container mx-auto px-4 py-6">
-        <!-- Header -->
-        <div class="flex items-center justify-between mb-6">
+
+<div class="lg:ml-64">
+    <div class="container mx-auto px-4 py-6 max-w-3xl">
+
+        <div class="mb-6">
             <div>
                 <a href="/index.php" class="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-block">
                     ← <?php echo __('dashboard'); ?>
@@ -197,7 +183,7 @@ $total_requests = count($all_requests);
                         'Cancelled' => 'bg-red-100 text-red-800 border-red-300'
                     ];
                     $status_color = $status_colors[$req['status']] ?? 'bg-gray-100 text-gray-800 border-gray-300';
-                    
+
                     $type_icons = [
                         'Leave' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
                         'Certificate' => 'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z',
@@ -209,7 +195,7 @@ $total_requests = count($all_requests);
                     ];
                     $icon_path = $type_icons[$req['request_type']] ?? 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2';
                     ?>
-                    
+
                     <div class="bg-white rounded-lg shadow-lg hover:shadow-xl transition overflow-hidden">
                         <div class="p-6">
                             <div class="flex items-start justify-between mb-4">
@@ -257,19 +243,19 @@ $total_requests = count($all_requests);
                             <?php endif; ?>
 
                             <div class="flex space-x-2">
-                                <button onclick="viewDetails(<?php echo $req['request_id']; ?>, '<?php echo $req['request_type']; ?>')" 
-                                        class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
+                                <button onclick="viewDetails(<?php echo $req['request_id']; ?>, '<?php echo $req['request_type']; ?>')"
+                                    class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
                                     View Details
                                 </button>
                                 <?php if ($req['status'] === 'New'): ?>
-                                    <button onclick="cancelRequest(<?php echo $req['request_id']; ?>, '<?php echo $req['request_type']; ?>')" 
-                                            class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition text-sm font-medium">
+                                    <button onclick="cancelRequest(<?php echo $req['request_id']; ?>, '<?php echo $req['request_type']; ?>')"
+                                        class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition text-sm font-medium">
                                         Cancel
                                     </button>
                                 <?php endif; ?>
                                 <?php if ($req['status'] === 'Complete' && !$req['satisfaction_score']): ?>
-                                    <button onclick="rateSatisfaction(<?php echo $req['request_id']; ?>, '<?php echo $req['request_type']; ?>')" 
-                                            class="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition text-sm font-medium">
+                                    <button onclick="rateSatisfaction(<?php echo $req['request_id']; ?>, '<?php echo $req['request_type']; ?>')"
+                                        class="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition text-sm font-medium">
                                         Rate
                                     </button>
                                 <?php endif; ?>
@@ -299,5 +285,6 @@ $total_requests = count($all_requests);
             alert('Rate satisfaction for: ' + type + ' #' + id);
         }
     </script>
-</body>
-</html>
+    </body>
+
+    </html>

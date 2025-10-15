@@ -130,88 +130,99 @@ class Employee {
         ];
     }
     
-    /**
-     * Create new employee
-     * @param array $data
-     * @return array
-     */
-    public static function create($data) {
-        $conn = getDbConnection();
-        
-        if (!$conn) {
-            return ['success' => false, 'message' => 'Database connection failed'];
-        }
-        
-        // Validate employee_id uniqueness
-        $stmt = $conn->prepare("SELECT employee_id FROM employees WHERE employee_id = ?");
-        $stmt->bind_param("s", $data['employee_id']);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        
-        if ($result->num_rows > 0) {
-            $stmt->close();
-            $conn->close();
-            return ['success' => false, 'message' => 'Employee ID already exists'];
-        }
-        $stmt->close();
-        
-        // Hash password
-        $password_hash = password_hash($data['password'], PASSWORD_DEFAULT);
-        
-        $sql = "INSERT INTO employees (
-            employee_id, prefix_id, full_name_th, full_name_en, function_id, division_id, 
-            department_id, section_id, operation_id, position_id, position_level_id, 
-            labour_cost_id, hiring_type_id, customer_zone_id, contribution_level_id, 
-            sex_id, nationality_id, birthday, education_level_id, phone_no, 
-            address_village, address_subdistrict, address_district, address_province, 
-            date_of_hire, status_id, username, password, role_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param(
-            "siisiiiiiiiiiiiisississsssiss",
-            $data['employee_id'],
-            $data['prefix_id'],
-            $data['full_name_th'],
-            $data['full_name_en'],
-            $data['function_id'],
-            $data['division_id'],
-            $data['department_id'],
-            $data['section_id'],
-            $data['operation_id'],
-            $data['position_id'],
-            $data['position_level_id'],
-            $data['labour_cost_id'],
-            $data['hiring_type_id'],
-            $data['customer_zone_id'],
-            $data['contribution_level_id'],
-            $data['sex_id'],
-            $data['nationality_id'],
-            $data['birthday'],
-            $data['education_level_id'],
-            $data['phone_no'],
-            $data['address_village'],
-            $data['address_subdistrict'],
-            $data['address_district'],
-            $data['address_province'],
-            $data['date_of_hire'],
-            $data['status_id'],
-            $data['username'],
-            $password_hash,
-            $data['role_id']
-        );
-        
-        if ($stmt->execute()) {
-            $stmt->close();
-            $conn->close();
-            return ['success' => true, 'message' => 'Employee created successfully', 'employee_id' => $data['employee_id']];
-        } else {
-            $error = $stmt->error;
-            $stmt->close();
-            $conn->close();
-            return ['success' => false, 'message' => 'Failed to create employee: ' . $error];
-        }
+/**
+ * Create new employee
+ * @param array $data Employee data
+ * @return array Result
+ */
+public static function create($data) {
+    $conn = getDbConnection();
+    
+    if (!$conn) {
+        return ['success' => false, 'message' => 'Database connection failed'];
     }
+    
+    // Check if employee_id already exists
+    $stmt = $conn->prepare("SELECT employee_id FROM employees WHERE employee_id = ?");
+    $stmt->bind_param("s", $data['employee_id']);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows > 0) {
+        $stmt->close();
+        $conn->close();
+        return ['success' => false, 'message' => 'Employee ID already exists'];
+    }
+    $stmt->close();
+    
+    // Check if username already exists
+    $stmt = $conn->prepare("SELECT username FROM employees WHERE username = ?");
+    $stmt->bind_param("s", $data['username']);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows > 0) {
+        $stmt->close();
+        $conn->close();
+        return ['success' => false, 'message' => 'Username already exists'];
+    }
+    $stmt->close();
+    
+    // Insert new employee
+    $sql = "INSERT INTO employees (
+        employee_id, prefix_id, full_name_th, full_name_en, sex_id, birthday,
+        nationality_id, education_level_id, phone_no, address_village, address_subdistrict,
+        address_district, address_province, function_id, division_id, department_id,
+        section_id, operation_id, position_id, position_level_id, labour_cost_id,
+        hiring_type_id, customer_zone_id, contribution_level_id, date_of_hire,
+        status_id, username, password, role_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    
+    $stmt = $conn->prepare($sql);
+    
+    $stmt->bind_param("siisississsiiiiiiiiiiiissi",
+        $data['employee_id'],
+        $data['prefix_id'],
+        $data['full_name_th'],
+        $data['full_name_en'],
+        $data['sex_id'],
+        $data['birthday'],
+        $data['nationality_id'],
+        $data['education_level_id'],
+        $data['phone_no'],
+        $data['address_village'],
+        $data['address_subdistrict'],
+        $data['address_district'],
+        $data['address_province'],
+        $data['function_id'],
+        $data['division_id'],
+        $data['department_id'],
+        $data['section_id'],
+        $data['operation_id'],
+        $data['position_id'],
+        $data['position_level_id'],
+        $data['labour_cost_id'],
+        $data['hiring_type_id'],
+        $data['customer_zone_id'],
+        $data['contribution_level_id'],
+        $data['date_of_hire'],
+        $data['status_id'],
+        $data['username'],
+        $data['password'],
+        $data['role_id']
+    );
+    
+    if ($stmt->execute()) {
+        $stmt->close();
+        $conn->close();
+        return ['success' => true, 'message' => 'Employee created successfully'];
+    } else {
+        $error = $stmt->error;
+        $stmt->close();
+        $conn->close();
+        return ['success' => false, 'message' => 'Failed to create employee: ' . $error];
+    }
+}
     
     /**
      * Update employee
