@@ -180,7 +180,7 @@ public static function create($data) {
     
     $stmt = $conn->prepare($sql);
     
-    $stmt->bind_param("siisississsiiiiiiiiiiiissi",
+    $stmt->bind_param("siisississsiiiiiiiiiiiississs",
         $data['employee_id'],
         $data['prefix_id'],
         $data['full_name_th'],

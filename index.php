@@ -131,4 +131,7 @@ include __DIR__ . '/includes/sidebar.php';
         </main>
     </div>
 </body>
+
+<?php include __DIR__ . '/includes/footer.php'; ?>
+
 </html>

@@ -541,3 +541,49 @@ CREATE INDEX idx_leave_status ON leave_requests(status);
 CREATE INDEX idx_cert_status ON certificate_requests(status);
 CREATE INDEX idx_doc_type ON online_documents(doc_type_id);
 CREATE INDEX idx_doc_submit_status ON document_submissions(status);
+
+-- ===================================
+-- เพิ่มตารางประเภทหนังสือรับรอง
+-- ===================================
+
+CREATE TABLE certificate_types (
+    cert_type_id INT PRIMARY KEY AUTO_INCREMENT,
+    type_name_th VARCHAR(200) NOT NULL,
+    type_name_en VARCHAR(200),
+    type_name_my VARCHAR(200),
+    template_content TEXT,
+    is_active TINYINT(1) DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- แก้ไขตาราง certificate_requests เพื่อเพิ่มประเภท
+ALTER TABLE certificate_requests 
+ADD COLUMN cert_type_id INT AFTER certificate_no,
+ADD FOREIGN KEY (cert_type_id) REFERENCES certificate_types(cert_type_id);
+
+-- ข้อมูลตัวอย่างประเภทหนังสือรับรอง
+INSERT INTO certificate_types (type_name_th, type_name_en, type_name_my, template_content) VALUES
+('หนังสือรับรองการทำงาน', 'Employment Certificate', 'အလုပ်အကိုင်အတည်ပြုလွှာ', 
+'ขอรับรองว่า {employee_name} รหัสพนักงาน {employee_id} ดำรงตำแหน่ง {position} สังกัด {division} ได้เข้าทำงานกับบริษัทฯ ตั้งแต่วันที่ {date_of_hire} จนถึงปัจจุบัน โดยมีฐานเงินเดือน {base_salary} บาทต่อเดือน'),
+
+('หนังสือรับรองเงินเดือน', 'Salary Certificate', 'လစာအတည်ပြုလွှာ', 
+'ขอรับรองว่า {employee_name} รหัสพนักงาน {employee_id} ปัจจุบันทำงานในตำแหน่ง {position} มีฐานเงินเดือน {base_salary} บาทต่อเดือน'),
+
+('หนังสือรับรองการเป็นพนักงาน', 'Employee Status Certificate', 'ဝန်ထမ်းအဆင့်အတည်ပြုလွှာ',
+'ขอรับรองว่า {employee_name} รหัสพนักงาน {employee_id} เป็นพนักงานของบริษัทฯ ในตำแหน่ง {position} สังกัด {division}');
+
+-- สร้างตาราง document_delivery สำหรับระบบลงชื่อส่งเอกสาร
+CREATE TABLE document_delivery (
+    delivery_id INT PRIMARY KEY AUTO_INCREMENT,
+    employee_id VARCHAR(8) NOT NULL,
+    delivery_type ENUM('ส่ง', 'รับ') DEFAULT 'ส่ง',
+    service_type ENUM('คนเดียว', 'กลุ่ม') DEFAULT 'คนเดียว',
+    document_category_id INT,
+    remarks TEXT,
+    satisfaction_score INT CHECK (satisfaction_score BETWEEN 1 AND 5),
+    delivery_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES employees(employee_id),
+    FOREIGN KEY (document_category_id) REFERENCES service_category_master(category_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
