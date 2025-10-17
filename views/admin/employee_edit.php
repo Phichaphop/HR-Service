@@ -66,9 +66,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'date_of_hire' => $_POST['date_of_hire'] ?? '',
         'status_id' => $_POST['status_id'] ?? 1,
     ];
-    
+
     $result = Employee::update($employee_id, $data);
-    
+
     if ($result['success']) {
         header('Location: ' . BASE_PATH . '/views/admin/employee_detail.php?id=' . $employee_id . '&success=1&message=' . urlencode('Employee updated successfully'));
         exit();
@@ -102,6 +102,7 @@ $conn->close();
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $language; ?>" class="<?php echo $is_dark ? 'dark' : ''; ?>">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -118,13 +119,14 @@ $conn->close();
         }
     </style>
 </head>
+
 <body class="<?php echo $bg_class; ?> theme-transition">
-    
+
     <div class="container mx-auto px-4 py-6 max-w-5xl">
         <!-- Header -->
         <div class="mb-6">
-            <a href="<?php echo BASE_PATH; ?>/views/admin/employee_detail.php?id=<?php echo $employee_id; ?>" 
-               class="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm mb-3 transition">
+            <a href="<?php echo BASE_PATH; ?>/views/admin/employee_detail.php?id=<?php echo $employee_id; ?>"
+                class="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm mb-3 transition">
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                 </svg>
@@ -145,7 +147,7 @@ $conn->close();
         <?php endif; ?>
 
         <form method="POST" action="" id="editForm" class="space-y-6">
-            
+
             <!-- Personal Information -->
             <div class="<?php echo $card_bg; ?> rounded-lg shadow-lg p-6 theme-transition">
                 <h2 class="text-xl font-bold <?php echo $text_class; ?> mb-4">Personal Information</h2>
@@ -156,8 +158,8 @@ $conn->close();
                         <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2">
                             Prefix <span class="text-red-500">*</span>
                         </label>
-                        <select name="prefix_id" required 
-                                class="w-full px-4 py-3 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
+                        <select name="prefix_id" required
+                            class="w-full px-4 py-3 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
                             <?php foreach ($prefixes as $prefix): ?>
                                 <option value="<?php echo $prefix['prefix_id']; ?>" <?php echo $employee['prefix_id'] == $prefix['prefix_id'] ? 'selected' : ''; ?>>
                                     <?php echo get_master('prefix_master', $prefix['prefix_id']); ?>
@@ -171,8 +173,8 @@ $conn->close();
                         <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2">
                             Sex <span class="text-red-500">*</span>
                         </label>
-                        <select name="sex_id" required 
-                                class="w-full px-4 py-3 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
+                        <select name="sex_id" required
+                            class="w-full px-4 py-3 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
                             <?php foreach ($sexes as $sex): ?>
                                 <option value="<?php echo $sex['sex_id']; ?>" <?php echo $employee['sex_id'] == $sex['sex_id'] ? 'selected' : ''; ?>>
                                     <?php echo get_master('sex_master', $sex['sex_id']); ?>
@@ -186,10 +188,10 @@ $conn->close();
                         <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2">
                             Birthday <span class="text-red-500">*</span>
                         </label>
-                        <input type="date" name="birthday" required 
-                               value="<?php echo $employee['birthday']; ?>"
-                               max="<?php echo date('Y-m-d'); ?>"
-                               class="w-full px-4 py-3 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
+                        <input type="date" name="birthday" required
+                            value="<?php echo $employee['birthday']; ?>"
+                            max="<?php echo date('Y-m-d'); ?>"
+                            class="w-full px-4 py-3 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
                     </div>
 
                     <!-- Full Name (Thai) -->
@@ -197,9 +199,9 @@ $conn->close();
                         <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2">
                             Full Name (Thai) <span class="text-red-500">*</span>
                         </label>
-                        <input type="text" name="full_name_th" required 
-                               value="<?php echo htmlspecialchars($employee['full_name_th']); ?>"
-                               class="w-full px-4 py-3 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
+                        <input type="text" name="full_name_th" required
+                            value="<?php echo htmlspecialchars($employee['full_name_th']); ?>"
+                            class="w-full px-4 py-3 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
                     </div>
 
                     <!-- Full Name (English) -->
@@ -207,9 +209,9 @@ $conn->close();
                         <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2">
                             Full Name (English) <span class="text-red-500">*</span>
                         </label>
-                        <input type="text" name="full_name_en" required 
-                               value="<?php echo htmlspecialchars($employee['full_name_en']); ?>"
-                               class="w-full px-4 py-3 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
+                        <input type="text" name="full_name_en" required
+                            value="<?php echo htmlspecialchars($employee['full_name_en']); ?>"
+                            class="w-full px-4 py-3 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
                     </div>
 
                     <!-- Nationality -->
@@ -217,8 +219,8 @@ $conn->close();
                         <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2">
                             Nationality <span class="text-red-500">*</span>
                         </label>
-                        <select name="nationality_id" required 
-                                class="w-full px-4 py-3 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
+                        <select name="nationality_id" required
+                            class="w-full px-4 py-3 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
                             <?php foreach ($nationalities as $nationality): ?>
                                 <option value="<?php echo $nationality['nationality_id']; ?>" <?php echo $employee['nationality_id'] == $nationality['nationality_id'] ? 'selected' : ''; ?>>
                                     <?php echo get_master('nationality_master', $nationality['nationality_id']); ?>
@@ -232,8 +234,8 @@ $conn->close();
                         <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2">
                             Education Level <span class="text-red-500">*</span>
                         </label>
-                        <select name="education_level_id" required 
-                                class="w-full px-4 py-3 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
+                        <select name="education_level_id" required
+                            class="w-full px-4 py-3 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
                             <?php foreach ($education_levels as $edu): ?>
                                 <option value="<?php echo $edu['education_id']; ?>" <?php echo $employee['education_level_id'] == $edu['education_id'] ? 'selected' : ''; ?>>
                                     <?php echo get_master('education_level_master', $edu['education_id']); ?>
@@ -247,27 +249,35 @@ $conn->close();
                         <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2">
                             Phone Number <span class="text-red-500">*</span>
                         </label>
-                        <input type="tel" name="phone_no" required 
-                               value="<?php echo htmlspecialchars($employee['phone_no']); ?>"
-                               class="w-full px-4 py-3 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
+                        <input
+                            type="tel"
+                            name="phone_no"
+                            required
+                            value="<?php
+                                    echo !empty($employee['phone_no']) && $employee['phone_no'] != '0'
+                                        ? htmlspecialchars($employee['phone_no'])
+                                        : '';
+                                    ?>"
+                            class="w-full px-4 py-3 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
+
                     </div>
 
                     <!-- Address -->
                     <div class="md:col-span-3">
                         <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2">Address</label>
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <input type="text" name="address_village" placeholder="Village" 
-                                   value="<?php echo htmlspecialchars($employee['address_village'] ?? ''); ?>"
-                                   class="px-4 py-3 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
-                            <input type="text" name="address_subdistrict" placeholder="Subdistrict" 
-                                   value="<?php echo htmlspecialchars($employee['address_subdistrict'] ?? ''); ?>"
-                                   class="px-4 py-3 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
-                            <input type="text" name="address_district" placeholder="District" 
-                                   value="<?php echo htmlspecialchars($employee['address_district'] ?? ''); ?>"
-                                   class="px-4 py-3 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
-                            <input type="text" name="address_province" placeholder="Province" 
-                                   value="<?php echo htmlspecialchars($employee['address_province'] ?? ''); ?>"
-                                   class="px-4 py-3 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
+                            <input type="text" name="address_village" placeholder="Village"
+                                value="<?php echo htmlspecialchars($employee['address_village'] ?? ''); ?>"
+                                class="px-4 py-3 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
+                            <input type="text" name="address_subdistrict" placeholder="Subdistrict"
+                                value="<?php echo htmlspecialchars($employee['address_subdistrict'] ?? ''); ?>"
+                                class="px-4 py-3 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
+                            <input type="text" name="address_district" placeholder="District"
+                                value="<?php echo htmlspecialchars($employee['address_district'] ?? ''); ?>"
+                                class="px-4 py-3 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
+                            <input type="text" name="address_province" placeholder="Province"
+                                value="<?php echo htmlspecialchars($employee['address_province'] ?? ''); ?>"
+                                class="px-4 py-3 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
                         </div>
                     </div>
                 </div>
@@ -405,9 +415,9 @@ $conn->close();
 
                     <div>
                         <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2">Date of Hire <span class="text-red-500">*</span></label>
-                        <input type="date" name="date_of_hire" required 
-                               value="<?php echo $employee['date_of_hire']; ?>"
-                               class="w-full px-4 py-3 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
+                        <input type="date" name="date_of_hire" required
+                            value="<?php echo $employee['date_of_hire']; ?>"
+                            class="w-full px-4 py-3 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
                     </div>
 
                     <div>
@@ -425,15 +435,15 @@ $conn->close();
 
             <!-- Action Buttons -->
             <div class="flex flex-col md:flex-row gap-4">
-                <button type="submit" 
-                        class="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">
+                <button type="submit"
+                    class="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">
                     <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                     </svg>
                     Update Employee
                 </button>
-                <a href="<?php echo BASE_PATH; ?>/views/admin/employee_detail.php?id=<?php echo $employee_id; ?>" 
-                   class="flex-1 px-6 py-3 bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-800 dark:text-white rounded-lg font-medium transition text-center">
+                <a href="<?php echo BASE_PATH; ?>/views/admin/employee_detail.php?id=<?php echo $employee_id; ?>"
+                    class="flex-1 px-6 py-3 bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-800 dark:text-white rounded-lg font-medium transition text-center">
                     Cancel
                 </a>
             </div>
@@ -448,4 +458,5 @@ $conn->close();
         });
     </script>
 </body>
+
 </html>

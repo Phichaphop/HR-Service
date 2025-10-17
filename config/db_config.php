@@ -5,10 +5,10 @@
  */
 
 // Database Connection Parameters
-define('DB_SERVER', 'localhost');
-define('DB_NAME', 'db_hr_service');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+define('DB_SERVER', 'localhost'); //sql206.infinityfree.com
+define('DB_NAME', 'if0_39800794_db');
+define('DB_USER', 'root'); //if0_39800794
+define('DB_PASS', ''); //Hmaf0JJFMfHcK8h
 define('DB_CHARSET', 'utf8mb4');
 
 // SMTP Configuration for Email
@@ -30,7 +30,7 @@ define('BASE_PATH', '/HR-Service'); // Change to your folder name or '' for root
 define('BASE_URL', 'http://localhost' . BASE_PATH);
 
 // File Upload Settings
-define('UPLOAD_MAX_SIZE', 5242880); // 5MB in bytes
+define('UPLOAD_MAX_SIZE', 5242880); // 5MB
 define('ALLOWED_IMAGE_TYPES', ['image/jpeg', 'image/png', 'image/gif']);
 define('ALLOWED_DOC_TYPES', ['application/pdf']);
 define('UPLOAD_PATH_PROFILE', __DIR__ . '/../uploads/profiles/');
@@ -38,15 +38,15 @@ define('UPLOAD_PATH_DOCUMENTS', __DIR__ . '/../uploads/documents/');
 define('UPLOAD_PATH_COMPANY', __DIR__ . '/../uploads/company/');
 
 // Session Settings
-define('SESSION_TIMEOUT', 3600); // 1 hour in seconds
+define('SESSION_TIMEOUT', 3600); // 1 hour
 
 // Security Settings
-define('SUPER_ADMIN_CODE', 'HRSA2024'); // Change this to a secure code
+define('SUPER_ADMIN_CODE', 'HRSA2024');
 
 // Timezone
 date_default_timezone_set('Asia/Bangkok');
 
-// Error Reporting (Change to 0 in production)
+// Error Reporting
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
@@ -55,48 +55,52 @@ ini_set('display_errors', 1);
  * @return mysqli|false
  */
 function getDbConnection() {
-    $conn = new mysqli(DB_SERVER, DB_USER, DB_PASS, DB_NAME);
-    
-    if ($conn->connect_error) {
-        return false;
+    $conn = @new mysqli(DB_SERVER, DB_USER, DB_PASS, DB_NAME);
+
+    if ($conn->connect_errno) {
+        // ถ้าไม่พบฐานข้อมูล ให้ redirect ไปหน้าสร้าง
+        if ($conn->connect_errno == 1049) { // Unknown database
+            header("Location: " . BASE_URL . "/setup_database.php");
+            exit();
+        }
+
+        // ข้อผิดพลาดอื่น ๆ
+        die("❌ Database connection failed: " . $conn->connect_error);
     }
-    
+
     $conn->set_charset(DB_CHARSET);
     return $conn;
 }
 
 /**
  * Check if database exists
- * @return bool
  */
 function checkDatabaseExists() {
-    $conn = new mysqli(DB_SERVER, DB_USER, DB_PASS);
-    
-    if ($conn->connect_error) {
-        return false;
+    $conn = @new mysqli(DB_SERVER, DB_USER, DB_PASS);
+
+    if ($conn->connect_errno) {
+        die("❌ Database connection failed: " . $conn->connect_error);
     }
-    
+
     $result = $conn->query("SHOW DATABASES LIKE '" . DB_NAME . "'");
     $exists = $result && $result->num_rows > 0;
-    
+
     $conn->close();
     return $exists;
 }
 
 /**
  * Check if main tables exist
- * @return bool
  */
 function checkTablesExist() {
     $conn = getDbConnection();
-    
+
     if (!$conn) {
         return false;
     }
-    
-    // Check for critical tables
+
     $critical_tables = ['roles', 'employees', 'localization_master'];
-    
+
     foreach ($critical_tables as $table) {
         $result = $conn->query("SHOW TABLES LIKE '$table'");
         if (!$result || $result->num_rows === 0) {
@@ -104,13 +108,13 @@ function checkTablesExist() {
             return false;
         }
     }
-    
+
     $conn->close();
     return true;
 }
 
 /**
- * Create directory if it doesn't exist
+ * Create directories if missing
  */
 function createUploadDirectories() {
     $dirs = [
@@ -118,7 +122,7 @@ function createUploadDirectories() {
         UPLOAD_PATH_DOCUMENTS,
         UPLOAD_PATH_COMPANY
     ];
-    
+
     foreach ($dirs as $dir) {
         if (!file_exists($dir)) {
             mkdir($dir, 0755, true);

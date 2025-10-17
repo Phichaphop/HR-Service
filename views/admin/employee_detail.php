@@ -364,6 +364,14 @@ include __DIR__ . '/../../includes/sidebar.php';
                                     Edit Employee
                                 </a>
 
+                                <button onclick="openResetPasswordModal()"
+                                    class="block w-full px-4 py-3 bg-yellow-600 hover:bg-yellow-700 text-white text-center rounded-lg transition">
+                                    <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+                                    </svg>
+                                    Reset Password
+                                </button>
+
                                 <button onclick="confirmDelete()"
                                     class="block w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white text-center rounded-lg transition">
                                     <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -379,15 +387,9 @@ include __DIR__ . '/../../includes/sidebar.php';
         </div>
     </div>
 
+    <?php include __DIR__ . '/../../includes/footer.php'; ?>
+
     <script>
-        function toggleMobileMenu() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('mobileMenuOverlay');
-
-            sidebar.classList.toggle('-translate-x-full');
-            overlay.classList.toggle('hidden');
-        }
-
         function confirmDelete() {
             if (confirm('Are you sure you want to delete this employee?\n\nEmployee: <?php echo addslashes($employee['full_name_en']); ?>\nID: <?php echo $employee_id; ?>\n\nThis action cannot be undone!')) {
                 window.location.href = '<?php echo BASE_PATH; ?>/api/employee_delete.php?id=<?php echo $employee_id; ?>';

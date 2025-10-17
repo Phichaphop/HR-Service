@@ -64,6 +64,14 @@ include __DIR__ . '/../../includes/sidebar.php';
 
                     <div class="flex gap-2">
 
+                        <button onclick="window.location.href='<?php echo BASE_PATH; ?>/views/admin/import_employees.php'"
+                            class="hidden md:flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition shadow-lg">
+                            <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            Import CSV
+                        </button>
+
                         <button onclick="exportData()"
                             class="hidden md:flex items-center px-6 py-3 bg-white text-green-600 rounded-lg font-medium hover:bg-green-50 transition shadow-lg">
                             <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -222,7 +230,16 @@ include __DIR__ . '/../../includes/sidebar.php';
                                                 <p class="text-sm font-medium <?php echo $text_class; ?>">
                                                     <?php echo $language === 'en' ? htmlspecialchars($emp['full_name_en']) : htmlspecialchars($emp['full_name_th']); ?>
                                                 </p>
-                                                <p class="text-xs <?php echo $is_dark ? 'text-gray-400' : 'text-gray-500'; ?>"><?php echo htmlspecialchars($emp['phone_no']); ?></p>
+                                                <p class="text-xs <?php echo $is_dark ? 'text-gray-400' : 'text-gray-500'; ?>">
+                                                    <?php
+                                                    echo htmlspecialchars(
+                                                        !empty($emp['phone_no']) && $emp['phone_no'] != '0'
+                                                            ? $emp['phone_no']
+                                                            : 'xxx-xxx-xxxx'
+                                                    );
+                                                    ?>
+                                                </p>
+
                                             </div>
                                         </div>
                                     </td>
