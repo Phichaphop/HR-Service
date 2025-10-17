@@ -47,14 +47,25 @@ if (!$conn) {
 // Determine the primary key column name
 $id_column = ($table === 'document_submissions') ? 'submission_id' : 'request_id';
 
-// Get request details
-$sql = "SELECT * FROM $table WHERE $id_column = ?";
+// Build query with JOIN for certificate_requests
+if ($table === 'certificate_requests') {
+    $sql = "SELECT cr.*, ct.type_name_th as cert_type_name
+            FROM $table cr
+            LEFT JOIN certificate_types ct ON cr.cert_type_id = ct.cert_type_id
+            WHERE cr.$id_column = ?";
+} else {
+    $sql = "SELECT * FROM $table WHERE $id_column = ?";
+}
+
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $request_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
 if ($row = $result->fetch_assoc()) {
+    // Add the actual ID to response (for consistency)
+    $row['request_id'] = $row[$id_column];
+    
     // Get employee details
     $emp_sql = "SELECT employee_id, full_name_th, full_name_en FROM employees WHERE employee_id = ?";
     $emp_stmt = $conn->prepare($emp_sql);

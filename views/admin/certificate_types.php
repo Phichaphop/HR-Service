@@ -31,27 +31,28 @@ include __DIR__ . '/../../includes/sidebar.php';
 ?>
 
 <div class="flex-1 lg:ml-64 p-6">
-    <div class="mb-8">
-        <div class="flex items-center justify-between mb-4">
-            <div>
-                <h1 class="text-3xl font-bold <?php echo $text_class; ?> flex items-center">
-                    <svg class="w-8 h-8 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+        <!-- Page Header -->
+        <div class="mb-6 bg-gradient-to-r from-green-600 to-teal-600 rounded-lg shadow-lg p-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <svg class="w-10 h-10 text-white mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
-                    จัดการประเภทหนังสือรับรอง
-                </h1>
-                <p class="<?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?> mt-1">
-                    เพิ่ม ลบ แก้ไข ประเภทหนังสือรับรอง
-                </p>
-            </div>
-            <button onclick="openAddModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg shadow-lg transition flex items-center">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div>
+                        <h1 class="text-3xl font-bold text-white">จัดการประเภทหนังสือรับรอง</h1>
+                        <p class="text-green-100 mt-1">เพิ่ม ลบ แก้ไข ประเภทหนังสือรับรอง</p>
+                    </div>
+                </div>
+                <button onclick="openAddModal()" 
+                        class="hidden md:flex items-center px-6 py-3 bg-white text-green-600 rounded-lg font-medium hover:bg-green-50 transition shadow-lg">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                </svg>
-                เพิ่มประเภทใหม่
-            </button>
+                    </svg>
+                    Add Certificate Type
+                </button>
+            </div>
         </div>
-    </div>
 
     <!-- Certificate Types Table -->
     <div class="<?php echo $card_bg; ?> rounded-lg shadow-sm border <?php echo $border_class; ?> overflow-hidden">
