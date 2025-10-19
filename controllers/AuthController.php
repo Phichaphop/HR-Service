@@ -128,13 +128,27 @@ class AuthController {
     }
     
     /**
-     * Require specific role (redirect if unauthorized)
+     * Require specific role (JSON response for API)
      * @param array $allowed_roles
+     * @param bool $json_response Return JSON instead of redirect
      */
-    public static function requireRole($allowed_roles) {
-        self::requireAuth();
+    public static function requireRole($allowed_roles, $json_response = false) {
+        if (!self::isAuthenticated()) {
+            if ($json_response) {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Not authenticated'], JSON_UNESCAPED_UNICODE);
+                exit();
+            }
+            header('Location: ' . BASE_PATH . '/views/auth/login.php');
+            exit();
+        }
         
         if (!self::hasRole($allowed_roles)) {
+            if ($json_response) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Unauthorized'], JSON_UNESCAPED_UNICODE);
+                exit();
+            }
             header('Location: ' . BASE_PATH . '/views/errors/403.php');
             exit();
         }

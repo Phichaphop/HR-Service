@@ -41,21 +41,76 @@ include __DIR__ . '/../../includes/sidebar.php';
             <div class="space-y-4">
                 <div>
                     <h3 class="font-semibold <?php echo $text_class; ?> mb-2">CSV Format Requirements:</h3>
-                    <ul class="list-disc list-inside space-y-1 text-sm <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?>">
-                        <li><strong>Column 1:</strong> Employee ID (max 8 characters, must be unique)</li>
-                        <li><strong>Column 2:</strong> Full Name (Thai)</li>
-                        <li><strong>Column 3:</strong> Username (must be unique)</li>
-                        <li><strong>Column 4:</strong> Password (minimum 6 characters)</li>
-                        <li><strong>Column 5:</strong> Role (admin, officer, or employee)</li>
-                    </ul>
+                    <p class="text-sm <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-2">
+                        ระบบรองรับ 2 รูปแบบ:
+                    </p>
+                    
+                    <div class="space-y-3">
+                        <!-- Simple Format -->
+                        <div class="p-3 <?php echo $is_dark ? 'bg-gray-700' : 'bg-blue-50'; ?> rounded">
+                            <p class="font-medium text-blue-600 dark:text-blue-400 mb-1">📋 รูปแบบง่าย (5 Columns - ขั้นต่ำ)</p>
+                            <ul class="list-disc list-inside space-y-1 text-xs <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?>">
+                                <li><strong>Employee ID</strong> - รหัสพนักงาน (ต้องไม่ซ้ำ)</li>
+                                <li><strong>Full Name (Thai)</strong> - ชื่อ-นามสกุล ภาษาไทย</li>
+                                <li><strong>Username</strong> - ชื่อผู้ใช้ (ต้องไม่ซ้ำ)</li>
+                                <li><strong>Password</strong> - รหัสผ่าน (ขั้นต่ำ 6 ตัว)</li>
+                                <li><strong>Role</strong> - บทบาท (admin/officer/employee)</li>
+                            </ul>
+                            <p class="text-xs mt-2 text-blue-600 dark:text-blue-400">
+                                ⚠️ ฟิลด์อื่นๆ จะใช้ค่า default
+                            </p>
+                        </div>
+                        
+                        <!-- Full Format -->
+                        <div class="p-3 <?php echo $is_dark ? 'bg-gray-700' : 'bg-green-50'; ?> rounded">
+                            <p class="font-medium text-green-600 dark:text-green-400 mb-1">📊 รูปแบบเต็ม (29 Columns - แนะนำ)</p>
+                            <div class="grid grid-cols-2 gap-2 text-xs <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?>">
+                                <ul class="list-disc list-inside space-y-0.5">
+                                    <li>Employee ID</li>
+                                    <li>Prefix (คำนำหน้า)</li>
+                                    <li>Full Name (Thai)</li>
+                                    <li>Full Name (English)</li>
+                                    <li>Sex (เพศ)</li>
+                                    <li>Birthday (วันเกิด)</li>
+                                    <li>Nationality (สัญชาติ)</li>
+                                    <li>Education (การศึกษา)</li>
+                                    <li>Phone (เบอร์โทร)</li>
+                                    <li>Village (หมู่บ้าน)</li>
+                                    <li>Subdistrict (ตำบล)</li>
+                                    <li>District (อำเภอ)</li>
+                                    <li>Province (จังหวัด)</li>
+                                    <li>Function (สายงาน)</li>
+                                </ul>
+                                <ul class="list-disc list-inside space-y-0.5">
+                                    <li>Division (แผนก)</li>
+                                    <li>Department (ฝ่าย)</li>
+                                    <li>Section (ส่วน)</li>
+                                    <li>Operation (ปฏิบัติการ)</li>
+                                    <li>Position (ตำแหน่ง)</li>
+                                    <li>Position Level (ระดับ)</li>
+                                    <li>Labour Cost (ประเภทแรง)</li>
+                                    <li>Hiring Type (ประเภทการจ้าง)</li>
+                                    <li>Zone (โซน)</li>
+                                    <li>Contribution (การมีส่วนร่วม)</li>
+                                    <li>Date of Hire (วันเริ่มงาน)</li>
+                                    <li>Status (สถานะ)</li>
+                                    <li>Username</li>
+                                    <li>Password</li>
+                                    <li>Role</li>
+                                </ul>
+                            </div>
+                            <p class="text-xs mt-2 text-green-600 dark:text-green-400">
+                                ✅ Import ข้อมูลครบทุกฟิลด์
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="p-4 <?php echo $is_dark ? 'bg-gray-700' : 'bg-gray-50'; ?> rounded-lg">
-                    <p class="text-sm font-medium <?php echo $text_class; ?> mb-2">Example CSV format:</p>
+                    <p class="text-sm font-medium <?php echo $text_class; ?> mb-2">ตัวอย่างรูปแบบง่าย:</p>
                     <pre class="text-xs <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> overflow-x-auto">Employee ID,Full Name (Thai),Username,Password,Role
-EMP001,สมชาย ใจดี,somchai.j,password123,employee
-EMP002,สมหญิง รักงาน,somying.r,securepass456,officer
-EMP003,วิชัย ดีมาก,wichai.d,mypass789,admin</pre>
+EMP001,นายสมชาย ใจดี,somchai.j,password123,employee
+EMP002,นางสาวมาลี สวย,malee.s,secure456,officer</pre>
                 </div>
 
                 <div class="flex items-start p-4 bg-yellow-50 dark:bg-yellow-900 rounded-lg">
@@ -84,16 +139,79 @@ EMP003,วิชัย ดีมาก,wichai.d,mypass789,admin</pre>
                         <li><strong>Notepad++:</strong> Encoding → Encode in UTF-8</li>
                     </ol>
                 </div>
-
-                <div class="flex gap-4">
-                    <button onclick="downloadTemplate()" 
-                            class="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition flex items-center justify-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        Download CSV Template
-                    </button>
+                
+                <div class="p-4 bg-purple-50 dark:bg-purple-900 rounded-lg">
+                    <p class="text-sm font-medium text-purple-800 dark:text-purple-200 mb-2">📚 รองรับทั้งภาษาไทยและอังกฤษ</p>
+                    <p class="text-xs text-purple-700 dark:text-purple-300 mb-2">
+                        สำหรับฟิลด์ Master Data (ตำแหน่ง, แผนก, ฯลฯ) สามารถใช้ชื่อภาษาไทยหรือภาษาอังกฤษได้
+                    </p>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="p-2 bg-white dark:bg-gray-800 rounded">
+                            <p class="font-medium text-purple-800 dark:text-purple-300">ภาษาไทย ✅</p>
+                            <p class="text-purple-600 dark:text-purple-400">ฝ่ายผลิต, พนักงานทั่วไป, ชาย</p>
+                        </div>
+                        <div class="p-2 bg-white dark:bg-gray-800 rounded">
+                            <p class="font-medium text-purple-800 dark:text-purple-300">English ✅</p>
+                            <p class="text-purple-600 dark:text-purple-400">Production, General Worker, Male</p>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- แทนที่ส่วน Download Template Button -->
+<div class="mb-4">
+    <label class="block text-sm font-medium <?php echo $text_class; ?> mb-3">
+        เลือกประเภท Template:
+    </label>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <label class="flex items-start p-4 border-2 rounded-lg cursor-pointer transition hover:border-blue-500 hover:<?php echo $is_dark ? 'bg-gray-700' : 'bg-blue-50'; ?> <?php echo $border_class; ?>">
+            <input type="radio" name="template_type" value="simple" checked class="mt-1 sr-only peer">
+            <div class="flex-1 peer-checked:font-semibold">
+                <div class="flex items-center mb-2">
+                    <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span class="<?php echo $text_class; ?> font-medium">Simple (5 คอลัมน์)</span>
+                </div>
+                <p class="text-xs <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?>">
+                    รหัส, ชื่อ, Username, Password, Role<br>
+                    <strong>แนะนำ:</strong> ใช้สำหรับสร้างพนักงานเร็ว
+                </p>
+            </div>
+            <svg class="w-6 h-6 text-blue-600 hidden peer-checked:block" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+        </label>
+        
+        <label class="flex items-start p-4 border-2 rounded-lg cursor-pointer transition hover:border-blue-500 hover:<?php echo $is_dark ? 'bg-gray-700' : 'bg-blue-50'; ?> <?php echo $border_class; ?>">
+            <input type="radio" name="template_type" value="full" class="mt-1 sr-only peer">
+            <div class="flex-1 peer-checked:font-semibold">
+                <div class="flex items-center mb-2">
+                    <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <span class="<?php echo $text_class; ?> font-medium">Full (29 คอลัมน์)</span>
+                </div>
+                <p class="text-xs <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?>">
+                    ข้อมูลครบถ้วน รวมตำแหน่ง, แผนก, ที่อยู่<br>
+                    <strong>ใช้เมื่อ:</strong> มีข้อมูลพนักงานครบถ้วน
+                </p>
+            </div>
+            <svg class="w-6 h-6 text-blue-600 hidden peer-checked:block" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+        </label>
+    </div>
+</div>
+
+<div class="flex gap-4">
+    <button onclick="downloadTemplate()" 
+            class="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition flex items-center justify-center">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+        Download CSV Template
+    </button>
+</div>
             </div>
         </div>
 
@@ -197,19 +315,32 @@ function displayFileName(input) {
         fileName.textContent = '📄 ' + input.files[0].name;
     }
 }
-
 function downloadTemplate() {
-    // Add BOM for UTF-8 to ensure Thai characters work in Excel
+    const templateType = document.querySelector('input[name="template_type"]:checked')?.value || 'simple';
+    
     const BOM = '\uFEFF';
-    const template = BOM + 'Employee ID,Full Name (Thai),Username,Password,Role\n' +
-                    'EMP001,สมชาย ใจดี,somchai.j,password123,employee\n' +
-                    'EMP002,สมหญิง รักงาน,somying.r,securepass456,officer\n' +
-                    'EMP003,วิชัย ดีมาก,wichai.d,mypass789,admin';
+    let template;
+    
+    if (templateType === 'simple') {
+        // Simple template (5 columns)
+        template = BOM + 'Employee ID,Full Name (Thai),Username,Password,Role\n' +
+                  'EMP001,สมชาย ใจดี,somchai.j,password123,employee\n' +
+                  'EMP002,สมหญิง รักงาน,somying.r,securepass456,officer\n' +
+                  'ADM001,วิชัย ดีเลิศ,wichai.d,admin2024,admin';
+    } else {
+        // Full template (29 columns)
+        template = BOM + 
+'Employee ID,Prefix,Full Name (Thai),Full Name (English),Sex,Birthday,Nationality,Education,Phone,Village,Subdistrict,District,Province,Function,Division,Department,Section,Operation,Position,Position Level,Labour Cost,Hiring Type,Zone,Contribution,Date of Hire,Status,Username,Password,Role\n' +
+'EMP001,นาย,สมชาย ใจดี,Somchai Jaidee,ชาย,1990-01-15,ไทย,ปริญญาตรี,081-234-5678,หมู่ 1,ตำบลหนองบัว,อำเภอเมือง,อุดรธานี,ฝ่ายผลิต,แผนกตัดเย็บ,แผนกจัดส่ง,แผนกผลิตชิ้นส่วน,งานตัด,พนักงานทั่วไป,ระดับ 1,ค่าแรงตรง,พนักงานประจำ,โซน A,ระดับกลาง,2023-01-01,ทำงานอยู่,somchai.j,password123,employee\n' +
+'EMP002,นางสาว,สมหญิง รักงาน,Somying Rakngaan,หญิง,1992-05-20,ไทย,ปริญญาตรี,082-345-6789,หมู่ 2,ตำบลหนองบัว,อำเภอเมือง,อุดรธานี,ฝ่ายคุณภาพ,แผนกควบคุมคุณภาพ,แผนกทรัพยากรบุคคล,แผนกตรวจสอบคุณภาพ,งานตรวจสอบ,เจ้าหน้าที่ธุรการ,ระดับ 2,ค่าแรงอ้อม,พนักงานประจำ,โซน B,ระดับสูง,2023-03-15,ทำงานอยู่,somying.r,securepass456,officer';
+    }
     
     const blob = new Blob([template], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = 'employee_import_template.csv';
+    link.download = templateType === 'simple' ? 
+        'employee_import_simple.csv' : 
+        'employee_import_full.csv';
     link.click();
 }
 
@@ -240,9 +371,20 @@ function uploadFile(event) {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('HTTP error! status: ' + response.status);
+        }
+        return response.json();
+    })
     .then(data => {
         console.log('Import results:', data);
+        
+        if (!data.success && data.message) {
+            // Show general error
+            alert('Error: ' + data.message);
+            return;
+        }
         
         // Show results section
         document.getElementById('resultsSection').classList.remove('hidden');
@@ -277,10 +419,14 @@ function uploadFile(event) {
         if (data.failed > 0) {
             showToast(`${data.failed} record(s) failed to import`, 'error');
         }
+        
+        if (data.total === 0) {
+            showToast('No records found in CSV file', 'error');
+        }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('An error occurred during import. Please try again.');
+        alert('An error occurred during import: ' + error.message + '\n\nPlease check:\n1. CSV file format is correct\n2. File is saved as UTF-8\n3. All required fields are present');
     })
     .finally(() => {
         submitButton.disabled = false;

@@ -384,6 +384,170 @@ include __DIR__ . '/../../includes/sidebar.php';
                     <?php endif; ?>
                 </div>
             </div>
+
+<!-- เพิ่ม Modal สำหรับ Reset Password ก่อน closing </div> ของ page -->
+
+<!-- Reset Password Modal -->
+<div id="resetPasswordModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="<?php echo $card_bg; ?> rounded-xl shadow-2xl max-w-md w-full">
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold <?php echo $text_class; ?>">Reset Password</h3>
+                <button onclick="closeResetPasswordModal()" class="<?php echo $is_dark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-700'; ?>">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <form id="resetPasswordForm" onsubmit="submitPasswordReset(event)">
+                <div class="mb-6">
+                    <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2">
+                        Employee ID
+                    </label>
+                    <input type="text" 
+                        value="<?php echo htmlspecialchars($employee['employee_id']); ?>" 
+                        readonly
+                        class="w-full px-4 py-2 border <?php echo $border_class; ?> rounded-lg <?php echo $is_dark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'; ?> cursor-not-allowed">
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2">
+                        New Password <span class="text-red-500">*</span>
+                    </label>
+                    <input type="password" 
+                        id="new_password" 
+                        required 
+                        minlength="6"
+                        placeholder="Minimum 6 characters"
+                        class="w-full px-4 py-2 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
+                    <p class="text-xs <?php echo $is_dark ? 'text-gray-400' : 'text-gray-500'; ?> mt-1">
+                        Password must be at least 6 characters long
+                    </p>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2">
+                        Confirm Password <span class="text-red-500">*</span>
+                    </label>
+                    <input type="password" 
+                        id="confirm_password" 
+                        required 
+                        minlength="6"
+                        placeholder="Re-enter new password"
+                        class="w-full px-4 py-2 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?>">
+                </div>
+                
+                <div class="p-4 bg-yellow-50 dark:bg-yellow-900 border-l-4 border-yellow-400 rounded mb-6">
+                    <div class="flex">
+                        <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        <div>
+                            <p class="text-sm font-medium text-yellow-800 dark:text-yellow-300">Warning</p>
+                            <p class="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
+                                The employee will be logged out and must use this new password to login again.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex space-x-3">
+                    <button type="submit" 
+                        class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-3 rounded-lg transition font-medium">
+                        Reset Password
+                    </button>
+                    <button type="button" 
+                        onclick="closeResetPasswordModal()" 
+                        class="flex-1 bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition font-medium">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- เพิ่ม JavaScript functions -->
+<script>
+function openResetPasswordModal() {
+    document.getElementById('resetPasswordModal').classList.remove('hidden');
+    document.getElementById('new_password').focus();
+}
+
+function closeResetPasswordModal() {
+    document.getElementById('resetPasswordModal').classList.add('hidden');
+    document.getElementById('resetPasswordForm').reset();
+}
+
+function submitPasswordReset(event) {
+    event.preventDefault();
+    
+    const newPassword = document.getElementById('new_password').value;
+    const confirmPassword = document.getElementById('confirm_password').value;
+    
+    // Validate passwords match
+    if (newPassword !== confirmPassword) {
+        alert('Passwords do not match!');
+        return;
+    }
+    
+    // Validate password length
+    if (newPassword.length < 6) {
+        alert('Password must be at least 6 characters!');
+        return;
+    }
+    
+    // Confirm action
+    if (!confirm('Are you sure you want to reset this employee\'s password?\n\nEmployee: <?php echo addslashes($employee['full_name_en']); ?>\nID: <?php echo $employee_id; ?>')) {
+        return;
+    }
+    
+    // Show loading
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<svg class="animate-spin w-5 h-5 inline-block mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Processing...';
+    
+    // Send request
+    fetch('<?php echo BASE_PATH; ?>/api/reset_employee_password.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            employee_id: '<?php echo $employee_id; ?>',
+            new_password: newPassword
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✓ Password reset successfully!\n\nEmployee: ' + data.employee.name_en + '\nNew password has been set.');
+            closeResetPasswordModal();
+            location.reload();
+        } else {
+            alert('Failed to reset password:\n' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Network error. Please try again.');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    });
+}
+
+// Close modal on ESC key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeResetPasswordModal();
+    }
+});
+</script>
+
         </div>
     </div>
 
