@@ -176,26 +176,10 @@ $h = $header_lang[$_SESSION['language']] ?? $header_lang['th'];
             <!-- Right Side: Actions -->
             <div class="flex items-center space-x-2 md:space-x-3">
 
-                <!-- Search (Desktop only) -->
-                <div class="hidden md:block relative">
-                    <input type="text"
-                        placeholder="<?php echo $h['search_placeholder']; ?>"
-                        class="w-48 lg:w-64 px-4 py-2 pr-10 border <?php echo $border_class; ?> rounded-lg text-sm <?php echo $is_dark ? 'bg-gray-700 text-white' : 'bg-white'; ?> focus:ring-2 focus:ring-blue-500 transition"
-                        onkeypress="if(event.key==='Enter') alert('Search functionality coming soon!')">
-                    <svg class="w-5 h-5 absolute right-3 top-2.5 <?php echo $is_dark ? 'text-gray-400' : 'text-gray-500'; ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
-                </div>
-
                 <!-- Language Switcher -->
                 <div class="relative group">
                     <button class="flex items-center space-x-2 px-3 py-2 border <?php echo $border_class; ?> rounded-lg text-sm hover:<?php echo $is_dark ? 'bg-gray-700' : 'bg-gray-50'; ?> transition"
                         onclick="toggleLanguageMenu(event)">
-                        <span class="text-lg">
-                            <?php
-                            echo $language === 'th' ? '🇹🇭' : ($language === 'my' ? '🇲🇲' : '🇬🇧');
-                            ?>
-                        </span>
                         <span class="hidden md:inline <?php echo $text_class; ?> font-medium">
                             <?php
                             echo $language === 'th' ? 'TH' : ($language === 'my' ? 'MY' : 'EN');
@@ -258,16 +242,6 @@ $h = $header_lang[$_SESSION['language']] ?? $header_lang['th'];
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
                         </svg>
                     <?php endif; ?>
-                </button>
-
-                <!-- Notifications -->
-                <button class="relative p-2 rounded-lg <?php echo $is_dark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'; ?> transition"
-                    title="<?php echo $h['notifications']; ?>">
-                    <svg class="w-6 h-6 <?php echo $text_class; ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-                    </svg>
-                    <!-- Notification Badge -->
-                    <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
                 </button>
 
                 <!-- User Menu -->
