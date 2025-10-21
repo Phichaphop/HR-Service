@@ -12,7 +12,8 @@ $user_role = $_SESSION['role'] ?? '';
 $profile_pic = $_SESSION['profile_pic'] ?? '';
 
 $sidebar_bg = $is_dark ? 'bg-gray-900' : 'bg-gradient-to-b from-blue-600 to-blue-700';
-$sidebar_text = 'text-white';
+$sidebar_text = 'text-white';ง
+
 ?>
 
 <!-- Sidebar -->
