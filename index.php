@@ -17,6 +17,133 @@ if (!checkDatabaseExists() || !checkTablesExist()) {
 // Require authentication
 AuthController::requireAuth();
 
+// Get theme variables
+extract(get_theme_vars());
+
+$page_title = 'Dashboard';
+
+// Connect to database
+$conn = getDbConnection();
+
+// Get statistics based on user role
+$stats = [
+    'pending_requests' => 0,
+    'completed_requests' => 0,
+    'total_documents' => 0,
+    'notifications' => 0
+];
+
+if ($user_role === 'admin' || $user_role === 'officer') {
+    // Admin/Officer: ดูคำขอทั้งหมด
+    
+    // นับ Pending Requests (New + In Progress) จากทุกตาราง
+    $tables = [
+        'leave_requests',
+        'certificate_requests',
+        'id_card_requests',
+        'shuttle_bus_requests',
+        'locker_requests',
+        'supplies_requests',
+        'skill_test_requests',
+        'document_submissions'
+    ];
+    
+    foreach ($tables as $table) {
+        $result = $conn->query("SELECT COUNT(*) as count FROM $table WHERE status IN ('New', 'In Progress')");
+        if ($result) {
+            $row = $result->fetch_assoc();
+            $stats['pending_requests'] += $row['count'];
+        }
+    }
+    
+    // นับ Completed Requests
+    foreach ($tables as $table) {
+        $result = $conn->query("SELECT COUNT(*) as count FROM $table WHERE status = 'Complete'");
+        if ($result) {
+            $row = $result->fetch_assoc();
+            $stats['completed_requests'] += $row['count'];
+        }
+    }
+    
+    // นับจำนวนเอกสารออนไลน์
+    $result = $conn->query("SELECT COUNT(*) as count FROM online_documents");
+    if ($result) {
+        $row = $result->fetch_assoc();
+        $stats['total_documents'] = $row['count'];
+    }
+    
+    // นับ Notifications (คำขอใหม่ที่ยังไม่มี handler)
+    foreach ($tables as $table) {
+        $result = $conn->query("SELECT COUNT(*) as count FROM $table WHERE status = 'New' AND (handler_id IS NULL OR handler_id = '')");
+        if ($result) {
+            $row = $result->fetch_assoc();
+            $stats['notifications'] += $row['count'];
+        }
+    }
+    
+} else {
+    // Employee: ดูเฉพาะของตัวเอง
+    
+    $tables = [
+        'leave_requests',
+        'certificate_requests',
+        'id_card_requests',
+        'shuttle_bus_requests',
+        'locker_requests',
+        'supplies_requests',
+        'skill_test_requests',
+        'document_submissions'
+    ];
+    
+    // นับ Pending Requests ของตัวเอง
+    foreach ($tables as $table) {
+        $stmt = $conn->prepare("SELECT COUNT(*) as count FROM $table WHERE employee_id = ? AND status IN ('New', 'In Progress')");
+        $stmt->bind_param("s", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($row = $result->fetch_assoc()) {
+            $stats['pending_requests'] += $row['count'];
+        }
+        $stmt->close();
+    }
+    
+    // นับ Completed Requests ของตัวเอง
+    foreach ($tables as $table) {
+        $stmt = $conn->prepare("SELECT COUNT(*) as count FROM $table WHERE employee_id = ? AND status = 'Complete'");
+        $stmt->bind_param("s", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($row = $result->fetch_assoc()) {
+            $stats['completed_requests'] += $row['count'];
+        }
+        $stmt->close();
+    }
+    
+    // นับเอกสารที่ upload โดยตัวเอง
+    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM online_documents WHERE upload_by = ?");
+    $stmt->bind_param("s", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($row = $result->fetch_assoc()) {
+        $stats['total_documents'] = $row['count'];
+    }
+    $stmt->close();
+    
+    // นับ Notifications (คำขอที่มีการอัปเดตสถานะ แต่ยังไม่ได้ให้คะแนน)
+    foreach ($tables as $table) {
+        $stmt = $conn->prepare("SELECT COUNT(*) as count FROM $table WHERE employee_id = ? AND status = 'Complete' AND (satisfaction_score IS NULL OR satisfaction_score = 0)");
+        $stmt->bind_param("s", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($row = $result->fetch_assoc()) {
+            $stats['notifications'] += $row['count'];
+        }
+        $stmt->close();
+    }
+}
+
+$conn->close();
+
 include __DIR__ . '/includes/header.php';
 include __DIR__ . '/includes/sidebar.php';
 

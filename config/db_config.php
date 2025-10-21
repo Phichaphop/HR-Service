@@ -135,4 +135,9 @@ createUploadDirectories();
 
 // Include session helper
 require_once __DIR__ . '/session_helper.php';
+
+// เพิ่มบรรทัดนี้ที่ด้านบนของไฟล์ (ลบทิ้งเมื่อแก้เสร็จ)
+error_reporting(E_ALL);
+ini_set('display_errors', 0);  // ← เปลี่ยนเป็น 0
+ini_set('log_errors', 1);
 ?>
