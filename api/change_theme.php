@@ -1,25 +1,56 @@
 <?php
 /**
- * API: Change Theme Mode (Light/Dark)
+ * Change Theme API
+ * Handles theme switching between light and dark modes
  */
+
+session_start();
 
 header('Content-Type: application/json');
 
-require_once __DIR__ . '/../config/db_config.php';
-require_once __DIR__ . '/../controllers/AuthController.php';
-
-// Require authentication
-if (!AuthController::isAuthenticated()) {
-    echo json_encode(['success' => false, 'message' => 'Not authenticated']);
-    exit();
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    http_response_code(401);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Unauthorized'
+    ]);
+    exit;
 }
 
 // Get JSON input
-$input = json_decode(file_get_contents('php://input'), true);
-$mode = $input['mode'] ?? '';
+$input = file_get_contents('php://input');
+$data = json_decode($input, true);
 
-// Update theme mode
-$result = AuthController::updateThemeMode($mode);
+// Validate input
+if (!isset($data['theme']) && !isset($data['mode'])) {
+    http_response_code(400);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Theme parameter is required'
+    ]);
+    exit;
+}
 
-echo json_encode($result);
-?>
+// Support both 'theme' and 'mode' parameter names
+$theme = $data['theme'] ?? $data['mode'] ?? 'light';
+
+// Validate theme value
+if (!in_array($theme, ['light', 'dark'])) {
+    http_response_code(400);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Invalid theme. Use "light" or "dark"'
+    ]);
+    exit;
+}
+
+// Update session
+$_SESSION['theme_mode'] = $theme;
+
+// Return success response
+echo json_encode([
+    'success' => true,
+    'theme' => $theme,
+    'message' => 'Theme changed successfully'
+]);

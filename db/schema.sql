@@ -322,6 +322,7 @@ CREATE TABLE company_info (
     company_id INT PRIMARY KEY AUTO_INCREMENT,
     company_name_th VARCHAR(200),
     company_name_en VARCHAR(200),
+    company_name_my VARCHAR(200),
     phone VARCHAR(20),
     fax VARCHAR(20),
     address TEXT,
