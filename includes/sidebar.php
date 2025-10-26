@@ -1,7 +1,8 @@
 <?php
 /**
- * Sidebar Navigation Component
+ * Sidebar Navigation Component - UPDATED
  * Supports 3 languages: Thai, English, Myanmar
+ * Added: Document Delivery List
  */
 
 // Ensure session is started
@@ -23,7 +24,7 @@ $active_bg = $is_dark ? 'bg-gray-700' : 'bg-blue-50';
 $active_text = $is_dark ? 'text-blue-400' : 'text-blue-600';
 $border_class = $is_dark ? 'border-gray-700' : 'border-gray-200';
 
-// Navigation menu translations
+// Navigation menu translations - UPDATED
 $menu_items = [
     'th' => [
         'dashboard' => 'แดชบอร์ด',
@@ -31,6 +32,8 @@ $menu_items = [
         'request_leave' => 'ขอลาพักงาน',
         'request_certificate' => 'ขอหนังสือรับรอง',
         'request_idcard' => 'ขอบัตรพนักงาน',
+        'document_delivery' => 'ระบบส่งเอกสาร',
+        'document_delivery_list' => 'รายการส่งเอกสาร',
         'employees' => 'จัดการพนักงาน',
         'request_management' => 'จัดการคำขอ',
         'locker_management' => 'จัดการตู้ล็อกเกอร์',
@@ -50,6 +53,8 @@ $menu_items = [
         'request_leave' => 'Request Leave',
         'request_certificate' => 'Request Certificate',
         'request_idcard' => 'Request ID Card',
+        'document_delivery' => 'Document Delivery',
+        'document_delivery_list' => 'Delivery List',
         'employees' => 'Manage Employees',
         'request_management' => 'Request Management',
         'locker_management' => 'Locker Management',
@@ -69,6 +74,8 @@ $menu_items = [
         'request_leave' => 'ခွင့်တောင်းခံရန်',
         'request_certificate' => 'လက်မှတ်တောင်းခံရန်',
         'request_idcard' => 'မှတ်ပုံတင်ကတ်တောင်းခံရန်',
+        'document_delivery' => 'စာ類တင်သွင်းမှုစနစ်',
+        'document_delivery_list' => 'တင်သွင်းမှုစာရင်း',
         'employees' => 'ဝန်ထမ်းများစီမံခန့်ခွဲရန်',
         'request_management' => 'တောင်းဆိုချက်စီမံခန့်ခွဲရန်',
         'locker_management' => 'သော့ခတ်စက်များစီမံခန့်ခွဲရန်',
@@ -196,15 +203,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
             </svg>
             <span class="font-medium"><?php echo $menu['request_management']; ?></span>
-        </a>
-
-        <!-- Locker Management -->
-        <a href="<?php echo BASE_PATH; ?>/views/admin/locker_management.php" 
-           class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'locker_management.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-            </svg>
-            <span class="font-medium"><?php echo $menu['locker_management']; ?></span>
         </a>
 
         <!-- Online Documents -->
