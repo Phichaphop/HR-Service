@@ -163,207 +163,210 @@ include __DIR__ . '/../includes/header.php';
 include __DIR__ . '/../includes/sidebar.php';
 ?>
 
-<!-- Main Content -->
-<div class="container mx-auto px-4 py-6 max-w-4xl">
+<body class="<?php echo $bg_class; ?> <?php echo $text_class; ?> theme-transition">
+    <!-- Main Content -->
+    <div class="lg:ml-64 p-4 md:p-8">
 
-    <?php if ($message): ?>
-        <div class="mb-6 p-4 rounded-lg <?php echo $message_type === 'success' ? 'bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500' : 'bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500'; ?>">
-            <div class="flex items-center">
-                <?php if ($message_type === 'success'): ?>
-                    <svg class="w-6 h-6 text-green-600 dark:text-green-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                <?php else: ?>
-                    <svg class="w-6 h-6 text-red-600 dark:text-red-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                <?php endif; ?>
-                <p class="<?php echo $message_type === 'success' ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'; ?> font-medium">
-                    <?php echo htmlspecialchars($message); ?>
-                </p>
-            </div>
-        </div>
-    <?php endif; ?>
-
-    <!-- Header -->
-    <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-t-lg px-6 py-4">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center">
-                <svg class="w-8 h-8 text-white mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                </svg>
-                <div>
-                    <h2 class="text-2xl font-bold text-white"><?php echo $t['page_title']; ?></h2>
-                    <p class="text-blue-100 text-sm"><?php echo $t['settings_subtitle']; ?></p>
-                </div>
-            </div>
-            <div class="hidden md:block">
-                <span class="px-4 py-2 bg-white bg-opacity-20 backdrop-blur-sm rounded-full text-white text-sm font-medium">
-                    <?php echo $t['private']; ?>
-                </span>
-            </div>
-        </div>
-    </div>
-
-    <div class="space-y-6 mt-6">
-
-        <!-- Profile Information -->
-        <div class="<?php echo $card_bg; ?> rounded-lg shadow-lg p-6">
-            <h2 class="text-xl font-bold <?php echo $text_class; ?> mb-4">
-                <?php echo $t['profile_info']; ?>
-            </h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1">
-                        <?php echo $t['employee_id']; ?>
-                    </label>
-                    <input type="text" value="<?php echo htmlspecialchars($employee['employee_id']); ?>" readonly
-                        class="w-full px-3 py-2 <?php echo $is_dark ? 'bg-gray-700 border-gray-600 text-gray-300' : 'bg-gray-50 border-gray-300 text-gray-700'; ?> border rounded cursor-not-allowed">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1">
-                        <?php echo $t['username']; ?>
-                    </label>
-                    <input type="text" value="<?php echo htmlspecialchars($employee['username']); ?>" readonly
-                        class="w-full px-3 py-2 <?php echo $is_dark ? 'bg-gray-700 border-gray-600 text-gray-300' : 'bg-gray-50 border-gray-300 text-gray-700'; ?> border rounded cursor-not-allowed">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1">
-                        <?php echo $t['full_name']; ?>
-                    </label>
-                    <input type="text"
-                        value="<?php
-                                if (empty($employee['full_name_th']) || $employee['full_name_th'] == '0') {
-                                    echo htmlspecialchars($employee['full_name_en']);
-                                } else {
-                                    echo htmlspecialchars($employee['full_name_th']);
-                                }
-                                ?>"
-                        readonly
-                        class="w-full px-3 py-2 <?php echo $is_dark ? 'bg-gray-700 border-gray-600 text-gray-300' : 'bg-gray-50 border-gray-300 text-gray-700'; ?> border rounded cursor-not-allowed">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1">
-                        <?php echo $t['email']; ?>
-                    </label>
-                    <input type="email" value="<?php echo htmlspecialchars($employee['email'] ?? ''); ?>" readonly
-                        class="w-full px-3 py-2 <?php echo $is_dark ? 'bg-gray-700 border-gray-600 text-gray-300' : 'bg-gray-50 border-gray-300 text-gray-700'; ?> border rounded cursor-not-allowed">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1">
-                        <?php echo $t['phone']; ?>
-                    </label>
-                    <input type="text" value="<?php echo htmlspecialchars($employee['phone_no'] ?? ''); ?>" readonly
-                        class="w-full px-3 py-2 <?php echo $is_dark ? 'bg-gray-700 border-gray-600 text-gray-300' : 'bg-gray-50 border-gray-300 text-gray-700'; ?> border rounded cursor-not-allowed">
-                </div>
-            </div>
-        </div>
-
-        <!-- Preferences -->
-        <div class="<?php echo $card_bg; ?> rounded-lg shadow-lg p-6">
-            <h2 class="text-xl font-bold <?php echo $text_class; ?> mb-4">
-                <?php echo $t['preferences']; ?>
-            </h2>
-            <div>
-                <!-- Theme Mode -->
-                <div>
-                    <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-3">
-                        <?php echo $t['theme_mode']; ?>
-                    </label>
-                    <div class="grid grid-cols-2 gap-4">
-                        <button onclick="changeTheme('light')"
-                            class="p-4 border-2 <?php echo $theme_mode === 'light' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900' : ($is_dark ? 'border-gray-600 hover:border-blue-500' : 'border-gray-300 hover:border-blue-500'); ?> rounded-lg transition">
-                            <svg class="w-8 h-8 mx-auto mb-2 <?php echo $theme_mode === 'light' ? 'text-blue-600' : ($is_dark ? 'text-yellow-400' : 'text-gray-600'); ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                            </svg>
-                            <span class="font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?>"><?php echo $t['light_mode']; ?></span>
-                        </button>
-                        <button onclick="changeTheme('dark')"
-                            class="p-4 border-2 <?php echo $theme_mode === 'dark' ? 'border-blue-500 bg-blue-900' : ($is_dark ? 'border-gray-600 hover:border-blue-500' : 'border-gray-300 hover:border-blue-500'); ?> rounded-lg transition">
-                            <svg class="w-8 h-8 mx-auto mb-2 <?php echo $theme_mode === 'dark' ? 'text-blue-400' : 'text-gray-600'; ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
-                            </svg>
-                            <span class="font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?>"><?php echo $t['dark_mode']; ?></span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div>
-                <!-- Language Selection -->
-                <div>
-                    <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-3">
-                        <?php echo $t['language']; ?>
-                    </label>
-                    <select onchange="changeLanguage(this.value)"
-                        class="w-full px-4 py-3 border <?php echo $is_dark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'; ?> rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <option value="th" <?php echo $current_lang === 'th' ? 'selected' : ''; ?>>🇹🇭 ภาษาไทย</option>
-                        <option value="en" <?php echo $current_lang === 'en' ? 'selected' : ''; ?>>🇬🇧 English</option>
-                        <option value="my" <?php echo $current_lang === 'my' ? 'selected' : ''; ?>>🇲🇲 မြန်မာဘာသာ</option>
-                    </select>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- Change Password -->
-        <div class="<?php echo $card_bg; ?> rounded-lg shadow-lg p-6">
-
-            <h2 class="text-xl font-bold <?php echo $text_class; ?> mb-4">
-                <svg class="w-6 h-6 inline-block mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                </svg>
-                <?php echo $t['change_password']; ?>
-            </h2>
-
-            <form method="POST" action="" id="passwordForm">
-                <input type="hidden" name="action" value="change_password">
-
-                <div class="space-y-4">
-                    <div>
-                        <label for="current_password" class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-2">
-                            <?php echo $t['current_password']; ?> <span class="text-red-500">*</span>
-                        </label>
-                        <input type="password" id="current_password" name="current_password" required
-                            class="w-full px-4 py-3 border <?php echo $is_dark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'; ?> rounded-lg focus:ring-2 focus:ring-blue-500">
-                    </div>
-
-                    <div>
-                        <label for="new_password" class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-2">
-                            <?php echo $t['new_password']; ?> <span class="text-red-500">*</span>
-                        </label>
-                        <input type="password" id="new_password" name="new_password" required
-                            class="w-full px-4 py-3 border <?php echo $is_dark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'; ?> rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <p class="text-xs <?php echo $is_dark ? 'text-gray-400' : 'text-gray-500'; ?> mt-1">
-                            <?php echo $t['min_characters']; ?>
-                        </p>
-                    </div>
-
-                    <div>
-                        <label for="confirm_password" class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-2">
-                            <?php echo $t['confirm_password']; ?> <span class="text-red-500">*</span>
-                        </label>
-                        <input type="password" id="confirm_password" name="confirm_password" required
-                            class="w-full px-4 py-3 border <?php echo $is_dark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'; ?> rounded-lg focus:ring-2 focus:ring-blue-500">
-                    </div>
-                </div>
-
-                <div class="mt-6">
-                    <button type="submit"
-                        class="w-full bg-red-600 hover:bg-red-700 text-white py-3 px-6 rounded-lg font-medium transition shadow-lg hover:shadow-xl">
-                        <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <?php if ($message): ?>
+            <div class="mb-6 p-4 rounded-lg <?php echo $message_type === 'success' ? 'bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500' : 'bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500'; ?>">
+                <div class="flex items-center">
+                    <?php if ($message_type === 'success'): ?>
+                        <svg class="w-6 h-6 text-green-600 dark:text-green-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
-                        <?php echo $t['change_password_btn']; ?>
-                    </button>
+                    <?php else: ?>
+                        <svg class="w-6 h-6 text-red-600 dark:text-red-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    <?php endif; ?>
+                    <p class="<?php echo $message_type === 'success' ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'; ?> font-medium">
+                        <?php echo htmlspecialchars($message); ?>
+                    </p>
                 </div>
-            </form>
+            </div>
+        <?php endif; ?>
+
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-t-lg px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <svg class="w-8 h-8 text-white mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    <div>
+                        <h2 class="text-2xl font-bold text-white"><?php echo $t['page_title']; ?></h2>
+                        <p class="text-blue-100 text-sm"><?php echo $t['settings_subtitle']; ?></p>
+                    </div>
+                </div>
+                <div class="hidden md:block">
+                    <span class="px-4 py-2 bg-white bg-opacity-20 backdrop-blur-sm rounded-full text-white text-sm font-medium">
+                        <?php echo $t['private']; ?>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="space-y-6 mt-6">
+
+            <!-- Profile Information -->
+            <div class="<?php echo $card_bg; ?> rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-bold <?php echo $text_class; ?> mb-4">
+                    <?php echo $t['profile_info']; ?>
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1">
+                            <?php echo $t['employee_id']; ?>
+                        </label>
+                        <input type="text" value="<?php echo htmlspecialchars($employee['employee_id']); ?>" readonly
+                            class="w-full px-3 py-2 <?php echo $is_dark ? 'bg-gray-700 border-gray-600 text-gray-300' : 'bg-gray-50 border-gray-300 text-gray-700'; ?> border rounded cursor-not-allowed">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1">
+                            <?php echo $t['username']; ?>
+                        </label>
+                        <input type="text" value="<?php echo htmlspecialchars($employee['username']); ?>" readonly
+                            class="w-full px-3 py-2 <?php echo $is_dark ? 'bg-gray-700 border-gray-600 text-gray-300' : 'bg-gray-50 border-gray-300 text-gray-700'; ?> border rounded cursor-not-allowed">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1">
+                            <?php echo $t['full_name']; ?>
+                        </label>
+                        <input type="text"
+                            value="<?php
+                                    if (empty($employee['full_name_th']) || $employee['full_name_th'] == '0') {
+                                        echo htmlspecialchars($employee['full_name_en']);
+                                    } else {
+                                        echo htmlspecialchars($employee['full_name_th']);
+                                    }
+                                    ?>"
+                            readonly
+                            class="w-full px-3 py-2 <?php echo $is_dark ? 'bg-gray-700 border-gray-600 text-gray-300' : 'bg-gray-50 border-gray-300 text-gray-700'; ?> border rounded cursor-not-allowed">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1">
+                            <?php echo $t['email']; ?>
+                        </label>
+                        <input type="email" value="<?php echo htmlspecialchars($employee['email'] ?? ''); ?>" readonly
+                            class="w-full px-3 py-2 <?php echo $is_dark ? 'bg-gray-700 border-gray-600 text-gray-300' : 'bg-gray-50 border-gray-300 text-gray-700'; ?> border rounded cursor-not-allowed">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1">
+                            <?php echo $t['phone']; ?>
+                        </label>
+                        <input type="text" value="<?php echo htmlspecialchars($employee['phone_no'] ?? ''); ?>" readonly
+                            class="w-full px-3 py-2 <?php echo $is_dark ? 'bg-gray-700 border-gray-600 text-gray-300' : 'bg-gray-50 border-gray-300 text-gray-700'; ?> border rounded cursor-not-allowed">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preferences -->
+            <div class="<?php echo $card_bg; ?> rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-bold <?php echo $text_class; ?> mb-4">
+                    <?php echo $t['preferences']; ?>
+                </h2>
+                <div>
+                    <!-- Theme Mode -->
+                    <div>
+                        <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-3">
+                            <?php echo $t['theme_mode']; ?>
+                        </label>
+                        <div class="grid grid-cols-2 gap-4">
+                            <button onclick="changeTheme('light')"
+                                class="p-4 border-2 <?php echo $theme_mode === 'light' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900' : ($is_dark ? 'border-gray-600 hover:border-blue-500' : 'border-gray-300 hover:border-blue-500'); ?> rounded-lg transition">
+                                <svg class="w-8 h-8 mx-auto mb-2 <?php echo $theme_mode === 'light' ? 'text-blue-600' : ($is_dark ? 'text-yellow-400' : 'text-gray-600'); ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                                </svg>
+                                <span class="font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?>"><?php echo $t['light_mode']; ?></span>
+                            </button>
+                            <button onclick="changeTheme('dark')"
+                                class="p-4 border-2 <?php echo $theme_mode === 'dark' ? 'border-blue-500 bg-blue-900' : ($is_dark ? 'border-gray-600 hover:border-blue-500' : 'border-gray-300 hover:border-blue-500'); ?> rounded-lg transition">
+                                <svg class="w-8 h-8 mx-auto mb-2 <?php echo $theme_mode === 'dark' ? 'text-blue-400' : 'text-gray-600'; ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                                </svg>
+                                <span class="font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?>"><?php echo $t['dark_mode']; ?></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <!-- Language Selection -->
+                    <div>
+                        <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-3">
+                            <?php echo $t['language']; ?>
+                        </label>
+                        <select onchange="changeLanguage(this.value)"
+                            class="w-full px-4 py-3 border <?php echo $is_dark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'; ?> rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <option value="th" <?php echo $current_lang === 'th' ? 'selected' : ''; ?>>🇹🇭 ภาษาไทย</option>
+                            <option value="en" <?php echo $current_lang === 'en' ? 'selected' : ''; ?>>🇬🇧 English</option>
+                            <option value="my" <?php echo $current_lang === 'my' ? 'selected' : ''; ?>>🇲🇲 မြန်မာဘာသာ</option>
+                        </select>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Change Password -->
+            <div class="<?php echo $card_bg; ?> rounded-lg shadow-lg p-6">
+
+                <h2 class="text-xl font-bold <?php echo $text_class; ?> mb-4">
+                    <svg class="w-6 h-6 inline-block mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                    <?php echo $t['change_password']; ?>
+                </h2>
+
+                <form method="POST" action="" id="passwordForm">
+                    <input type="hidden" name="action" value="change_password">
+
+                    <div class="space-y-4">
+                        <div>
+                            <label for="current_password" class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-2">
+                                <?php echo $t['current_password']; ?> <span class="text-red-500">*</span>
+                            </label>
+                            <input type="password" id="current_password" name="current_password" required
+                                class="w-full px-4 py-3 border <?php echo $is_dark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'; ?> rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+
+                        <div>
+                            <label for="new_password" class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-2">
+                                <?php echo $t['new_password']; ?> <span class="text-red-500">*</span>
+                            </label>
+                            <input type="password" id="new_password" name="new_password" required
+                                class="w-full px-4 py-3 border <?php echo $is_dark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'; ?> rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <p class="text-xs <?php echo $is_dark ? 'text-gray-400' : 'text-gray-500'; ?> mt-1">
+                                <?php echo $t['min_characters']; ?>
+                            </p>
+                        </div>
+
+                        <div>
+                            <label for="confirm_password" class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-2">
+                                <?php echo $t['confirm_password']; ?> <span class="text-red-500">*</span>
+                            </label>
+                            <input type="password" id="confirm_password" name="confirm_password" required
+                                class="w-full px-4 py-3 border <?php echo $is_dark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'; ?> rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+
+                    <div class="mt-6">
+                        <button type="submit"
+                            class="w-full bg-red-600 hover:bg-red-700 text-white py-3 px-6 rounded-lg font-medium transition shadow-lg hover:shadow-xl">
+                            <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <?php echo $t['change_password_btn']; ?>
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-</div>
 
-<?php include __DIR__ . '/../includes/footer.php'; ?>
+    <?php include __DIR__ . '/../includes/footer.php'; ?>
+
+</body>
 
 <script>
     // Translation strings for JavaScript
