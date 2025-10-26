@@ -265,6 +265,29 @@ $current_page = basename($_SERVER['PHP_SELF']);
         </a>
     </nav>
 
+    <!-- Sidebar Footer -->
+    <div class="p-4 border-t <?php echo $border_class; ?>">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+                <?php echo strtoupper(substr($_SESSION['full_name_th'] ?? 'U', 0, 1)); ?>
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium <?php echo $is_dark ? 'text-white' : 'text-gray-900'; ?> truncate">
+                    <?php echo $_SESSION['full_name_th'] ?? 'User'; ?>
+                </p>
+                <p class="text-xs <?php echo $text_class; ?> truncate">
+                    <?php 
+                    $role_names = [
+                        'th' => ['admin' => 'ผู้ดูแลระบบ', 'officer' => 'เจ้าหน้าที่', 'employee' => 'พนักงาน'],
+                        'en' => ['admin' => 'Admin', 'officer' => 'Officer', 'employee' => 'Employee'],
+                        'my' => ['admin' => 'စီမံခန့်ခွဲသူ', 'officer' => 'အရာရှိ', 'employee' => 'ဝန်ထမ်း']
+                    ];
+                    echo $role_names[$current_lang][$user_role] ?? $user_role;
+                    ?>
+                </p>
+            </div>
+        </div>
+    </div>
 </aside>
 
 <!-- Mobile Menu Overlay -->
