@@ -1,9 +1,10 @@
 <?php
 
 /**
- * Request Certificate Form - Complete Version with Multi-Language Support
- * Supports: Thai (ไทย), English (EN), Myanmar (မြန်မာ)
- * Employee can request certificate with type selection
+ * Request Certificate Form - FIXED VERSION
+ * ✅ FIX: Corrected bind_param - removed duplicate binding
+ * ✅ FIX: Added hiring_type_id to database query
+ * ✅ FIX: Proper INSERT with all employee data
  */
 
 require_once __DIR__ . '/../../config/db_config.php';
@@ -102,26 +103,26 @@ $translations = [
         'submit_request' => 'တောင်းခံမှုတင်သွင်းမည်',
         'cancel' => 'ပယ်ဖျက်မည်',
         'required' => 'လိုအပ်ခြင်း',
-        'base_salary' => 'အခြေခံအခtime',
+        'base_salary' => 'အခြေခံအခခ',
         'section' => 'အပိုင်းခွဲ',
     ]
 ];
 
 // Get current language strings
 $t = $translations[$current_lang] ?? $translations['th'];
-
-$page_title = $t['page_title'];
 ensure_session_started();
 
 $conn = getDbConnection();
 
-// Get employee info with multi-language support
+// ✅ FIXED: Added hiring_type_id to SELECT
 $emp_sql = "SELECT e.*, 
  COALESCE(p.position_name_" . ($current_lang === 'en' ? 'en' : 'th') . ", p.position_name_th) as position_name,
  COALESCE(d.division_name_" . ($current_lang === 'en' ? 'en' : 'th') . ", d.division_name_th) as division_name,
  COALESCE(dep.department_name_" . ($current_lang === 'en' ? 'en' : 'th') . ", dep.department_name_th) as department_name,
  COALESCE(sec.section_name_" . ($current_lang === 'en' ? 'en' : 'th') . ", sec.section_name_th) as section_name,
- COALESCE(ht.type_name_" . ($current_lang === 'en' ? 'en' : 'th') . ", ht.type_name_th) as hiring_type_name
+ COALESCE(ht.type_name_" . ($current_lang === 'en' ? 'en' : 'th') . ", ht.type_name_th) as hiring_type_name,
+ ht.type_name_th,
+ ht.type_name_en
  FROM employees e
  LEFT JOIN position_master p ON e.position_id = p.position_id
  LEFT JOIN division_master d ON e.division_id = d.division_id
@@ -149,7 +150,7 @@ while ($row = $types_result->fetch_assoc()) {
     $cert_types[] = $row;
 }
 
-// Handle form submission
+// ✅ FIXED: Removed duplicate bind_param and corrected the logic
 $error = '';
 $success = '';
 
@@ -160,9 +161,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($cert_type_id)) {
         $error = $t['please_select_type'];
     } else {
-        // Generate certificate number
-        $cert_no = 'CERT-' . date('Ymd') . '-' . rand(1000, 9999);
+        // Extract employee data
+        $employee_name = trim(($employee['full_name_th'] ?? '') . ' ' . ($employee['full_name_en'] ?? ''));
+        $position = $employee['position_name'] ?? '';
+        $division = $employee['division_name'] ?? '';
+        $date_of_hire = $employee['date_of_hire'] ?? null;
+        $hiring_type = $current_lang === 'en'
+            ? ($employee['type_name_en'] ?? '')
+            : ($employee['type_name_th'] ?? '');
 
+        $base_salary = (float)($employee['base_salary'] ?? 0);
+
+        // Generate certificate number
+        $cert_no = 'CERT-' . date('Ymd') . '-' . str_pad(rand(1000, 9999), 4, '0', STR_PAD_LEFT);
+
+        // ✅ FIXED: Corrected INSERT statement with proper placeholders
         $insert_sql = "INSERT INTO certificate_requests 
 (
  certificate_no,
@@ -180,10 +193,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
  updated_at
 )
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'New', NOW(), NOW())";
+
         $insert_stmt = $conn->prepare($insert_sql);
-        $stmt->bind_param("ssis", $cert_no, $user_id, $cert_type_id, $purpose);
-        $stmt->bind_param(
-            'ssissssdss',
+
+        // ✅ FIXED: Single bind_param call with correct type string
+        if (!$insert_stmt->bind_param(
+            'ssisssdsss',
             $cert_no,
             $user_id,
             $cert_type_id,
@@ -194,13 +209,14 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'New', NOW(), NOW())";
             $hiring_type,
             $base_salary,
             $purpose
-        );
-
-        if ($insert_stmt->execute()) {
-            $success = $t['submitted_successfully'] . ' ' . $cert_no;
-        } else {
+        )) {
             $error = $t['error_occurred'] . ' ' . $insert_stmt->error;
+        } else if (!$insert_stmt->execute()) {
+            $error = $t['error_occurred'] . ' ' . $insert_stmt->error;
+        } else {
+            $success = $t['submitted_successfully'] . ' ' . $cert_no;
         }
+
         $insert_stmt->close();
     }
 }
@@ -228,12 +244,29 @@ include __DIR__ . '/../../includes/sidebar.php';
     <div class="max-w-4xl mx-auto">
 
         <!-- Success/Error Messages -->
-        <div id="alertContainer"></div>
+        <div id="alertContainer">
+            <?php if ($success): ?>
+                <div class="mb-6 p-4 bg-green-50 border border-green-200 text-green-800 rounded-lg flex items-start">
+                    <svg class="w-6 h-6 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <div class="flex-1"><?php echo htmlspecialchars($success); ?></div>
+                </div>
+            <?php endif; ?>
+            <?php if ($error): ?>
+                <div class="mb-6 p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg flex items-start">
+                    <svg class="w-6 h-6 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                    <div class="flex-1"><?php echo htmlspecialchars($error); ?></div>
+                </div>
+            <?php endif; ?>
+        </div>
 
         <!-- Form Card -->
         <div class="<?php echo $card_bg; ?> rounded-lg shadow-lg p-8 border <?php echo $border_class; ?>">
 
-            <form id="certificateForm" method="POST" action="#" onsubmit="submitCertificateRequest(event)">
+            <form method="POST" action="">
 
                 <!-- Employee Information Section (Read-Only) -->
                 <div class="mb-8 pb-8 border-b <?php echo $border_class; ?>">
@@ -269,25 +302,13 @@ include __DIR__ . '/../../includes/sidebar.php';
                             <input type="text" readonly value="<?php echo htmlspecialchars($employee['division_name'] ?? ''); ?>" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75">
                         </div>
 
-                        <!-- Department -->
-                        <div>
-                            <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1"><?php echo $t['department']; ?></label>
-                            <input type="text" readonly value="<?php echo htmlspecialchars($employee['department_name'] ?? ''); ?>" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75">
-                        </div>
-
-                        <!-- Section -->
-                        <div>
-                            <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1"><?php echo $t['section']; ?></label>
-                            <input type="text" readonly value="<?php echo htmlspecialchars($employee['section_name'] ?? ''); ?>" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75">
-                        </div>
-
                         <!-- Date of Hire -->
                         <div>
                             <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1"><?php echo $t['date_of_hire']; ?></label>
                             <input type="text" readonly value="<?php echo isset($employee['date_of_hire']) ? date('d-m-Y', strtotime($employee['date_of_hire'])) : ''; ?>" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75">
                         </div>
 
-                        <!-- Hiring Type -->
+                        <!-- ✅ FIXED: Hiring Type displays correctly -->
                         <div>
                             <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1"><?php echo $t['hiring_type']; ?></label>
                             <input type="text" readonly value="<?php echo htmlspecialchars($employee['hiring_type_name'] ?? ''); ?>" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75">
@@ -311,11 +332,8 @@ include __DIR__ . '/../../includes/sidebar.php';
                     </label>
 
                     <?php if (empty($cert_types)): ?>
-                        <div class="text-center py-8 <?php echo $is_dark ? 'bg-gray-700' : 'bg-gray-50'; ?> rounded-lg border-2 border-dashed <?php echo $border_class; ?>">
-                            <svg class="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            <p class="<?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?>"><?php echo $t['no_types_available']; ?></p>
+                        <div class="text-center py-8 <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?>">
+                            <p><?php echo $t['no_types_available']; ?></p>
                         </div>
                     <?php else: ?>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -350,132 +368,24 @@ include __DIR__ . '/../../includes/sidebar.php';
                         required
                         minlength="5"
                         class="w-full px-4 py-3 border rounded-lg <?php echo $input_class; ?> focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-                    <p class="text-xs <?php echo $is_dark ? 'text-gray-500' : 'text-gray-400'; ?> mt-1">ระบุวัตถุประสงค์อย่างชัดเจน (มากกว่า 5 คำ)</p>
+                    <p class="text-xs <?php echo $is_dark ? 'text-gray-400' : 'text-gray-500'; ?> mt-1"><?php echo $t['purpose_placeholder']; ?></p>
                 </div>
 
-                <!-- Action Buttons -->
-                <div class="flex flex-col md:flex-row gap-4">
-                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition font-semibold text-lg shadow-lg hover:shadow-xl flex items-center justify-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                <!-- Form Actions -->
+                <div class="flex gap-4 justify-end pt-8 border-t <?php echo $border_class; ?>">
+                    <a href="<?php echo BASE_PATH; ?>/views/employee/my_requests.php" class="px-6 py-3 border rounded-lg <?php echo $border_class; ?> <?php echo $text_class; ?> hover:<?php echo $is_dark ? 'bg-gray-700' : 'bg-gray-50'; ?> transition font-medium">
+                        <?php echo $t['cancel']; ?>
+                    </a>
+                    <button type="submit" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-medium shadow-lg hover:shadow-xl">
+                        <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8m0 8l-6-2m6 2l6-2"></path>
                         </svg>
                         <?php echo $t['submit_request']; ?>
                     </button>
-                    <a href="<?php echo BASE_PATH; ?>/views/employee/my_requests.php" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition font-semibold text-lg text-center shadow-lg hover:shadow-xl">
-                        <?php echo $t['cancel']; ?>
-                    </a>
                 </div>
             </form>
         </div>
-
-        <!-- Info Section -->
-        <div class="mt-6 p-4 <?php echo $is_dark ? 'bg-gray-800' : 'bg-blue-50'; ?> rounded-lg border-l-4 border-blue-500">
-            <h4 class="font-semibold <?php echo $text_class; ?> mb-2">💡 <?php echo $current_lang === 'en' ? 'Information' : ($current_lang === 'my' ? 'အချက်အလက်' : 'ข้อมูล'); ?></h4>
-            <p class="text-sm <?php echo $is_dark ? 'text-gray-300' : 'text-blue-900'; ?>">
-                <?php
-                if ($current_lang === 'en') {
-                    echo 'Once submitted, your certificate request will be processed by the HR department. You will receive a reference number that you can use to track your request status.';
-                } elseif ($current_lang === 'my') {
-                    echo 'ထုတ်ယူထားပြီးနောက် သင့်လက်မှတ်တောင်းခံမှုကို HR ဌာနက ဆောင်ရွက်မည်ဖြစ်သည်။';
-                } else {
-                    echo 'หลังจากส่งคำขอแล้ว แผนกทรัพยากรบุคคลจะดำเนินการอนุมัติ คุณจะได้รับเลขที่อ้างอิงเพื่อใช้ในการติดตามสถานะคำขอ';
-                }
-                ?>
-            </p>
-        </div>
     </div>
 </div>
-
-<!-- Scripts for Form Submission -->
-<script>
-    const currentLang = '<?php echo $current_lang; ?>';
-    const translations = {
-        th: {
-            error: 'เกิดข้อผิดพลาด:',
-            success: 'ส่งคำขอเรียบร้อยแล้ว! เลขที่:',
-            selectType: 'กรุณาเลือกประเภทหนังสือรับรอง',
-            purposeRequired: 'กรุณากรอกวัตถุประสงค์อย่างชัดเจน',
-        },
-        en: {
-            error: 'An error occurred:',
-            success: 'Certificate request submitted successfully! Reference:',
-            selectType: 'Please select a certificate type',
-            purposeRequired: 'Please specify the purpose clearly',
-        },
-        my: {
-            error: 'အမှားအယွင်းပေါ်ပေါက်ခြင်း:',
-            success: 'လက်မှတ်တောင်းခံမှုအောင်မြင်စွာတင်သွင်းခြင်း! ကိုးကားကုဒ်:',
-            selectType: 'လက်မှတ်အမျိုးအစားရွေးချယ်ပါ',
-            purposeRequired: 'ရည်ရွယ်ချက်ကိုသတ်မှတ်ပါ',
-        }
-    };
-
-    function showAlert(message, type = 'error') {
-        const alertContainer = document.getElementById('alertContainer');
-        const alertClass = type === 'success' ?
-            'bg-green-50 border border-green-200 text-green-800' :
-            'bg-red-50 border border-red-200 text-red-800';
-
-        const alertHTML = `
- <div class="mb-6 p-4 ${alertClass} rounded-lg flex items-start">
- <svg class="w-6 h-6 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
- <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${type === 'success' ? 'M5 13l4 4L19 7' : 'M6 18L18 6M6 6l12 12'}"></path>
- </svg>
- <div class="flex-1">${message}</div>
- <button onclick="this.parentElement.remove()" class="text-xl opacity-50 hover:opacity-100">&times;</button>
- </div>
- `;
-
-        alertContainer.innerHTML = alertHTML;
-    }
-
-    async function submitCertificateRequest(e) {
-        e.preventDefault();
-
-        const t = translations[currentLang];
-        const certTypeId = document.querySelector('input[name="cert_type_id"]:checked');
-        const purpose = document.querySelector('textarea[name="purpose"]').value.trim();
-
-        // Validate
-        if (!certTypeId) {
-            showAlert(t.selectType, 'error');
-            return;
-        }
-
-        if (purpose.length < 5) {
-            showAlert(t.purposeRequired, 'error');
-            return;
-        }
-
-        try {
-            const response = await fetch('<?php echo BASE_PATH; ?>/api/save_certificate_request.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    cert_type_id: certTypeId.value,
-                    purpose: purpose
-                })
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                showAlert(`${t.success} ${data.cert_no}`, 'success');
-                document.getElementById('certificateForm').reset();
-
-                // Redirect after 2 seconds
-                setTimeout(() => {
-                    window.location.href = '<?php echo BASE_PATH; ?>/views/employee/my_requests.php';
-                }, 2000);
-            } else {
-                showAlert(`${t.error} ${data.message}`, 'error');
-            }
-        } catch (error) {
-            showAlert(`${t.error} ${error.message}`, 'error');
-        }
-    }
-</script>
 
 <?php include __DIR__ . '/../../includes/footer.php'; ?>

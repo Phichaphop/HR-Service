@@ -643,7 +643,7 @@ include __DIR__ . '/../../includes/sidebar.php';
             modal.classList.add('active');
             
             // Fetch request details
-            const url = `<?php echo BASE_PATH; ?>/api/get_request_detail.php?table=${table}&id=${requestId}`;
+            const url = `<?php echo BASE_PATH; ?>/api/admin_get_request_details.php?table=${table}&id=${requestId}`;
             
             fetch(url)
                 .then(response => {
