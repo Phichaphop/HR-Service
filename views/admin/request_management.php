@@ -1,11 +1,15 @@
 <?php
 /**
- * Request Management Page
+ * Request Management Page - FIXED VERSION
  * Supports: Thai (ไทย), English (EN), Myanmar (မြန်မာ)
  * Features: Multi-language UI, Dark Mode, Mobile Responsive
  * Admin/Officer only - Manage all service requests
+ * 
+ * FIXES:
+ * 1. Added employee name JOIN in getRequests()
+ * 2. Enhanced modal to show full request details
+ * 3. Display employee name in table
  */
-
 require_once __DIR__ . '/../../config/db_config.php';
 require_once __DIR__ . '/../../controllers/AuthController.php';
 require_once __DIR__ . '/../../db/Localization.php';
@@ -47,6 +51,7 @@ $translations = [
         'request_id' => 'รหัสคำขอ',
         'type' => 'ประเภท',
         'employee' => 'พนักงาน',
+        'employee_name' => 'ชื่อพนักงาน',
         'created' => 'สร้างเมื่อ',
         'handler' => 'ผู้ดำเนิน',
         'actions' => 'การกระทำ',
@@ -64,16 +69,12 @@ $translations = [
         'update_error' => 'ข้อผิดพลาด: ',
         'failed_update' => 'ล้มเหลวในการอัปเดตคำขอ: ',
         'unassigned' => 'ยังไม่ได้มอบหมาย',
-        'leave_request' => 'คำขอใบลา',
-        'certificate_request' => 'คำขอหนังสือรับรอง',
-        'id_card_request' => 'คำขอทำบัตรพนักงาน',
-        'shuttle_bus_request' => 'คำขอขึ้นรถรับส่ง',
-        'locker_request' => 'คำขอใช้งานตู้ล็อกเกอร์',
-        'supplies_request' => 'คำขอเบิกอุปกรณ์',
-        'skill_test_request' => 'คำขอสอบทักษะ',
-        'document_submission' => 'ลงชื่อส่งเอกสาร',
         'optional' => '(ไม่บังคับ)',
         'updating' => 'กำลังอัปเดต...',
+        'position' => 'ตำแหน่ง',
+        'division' => 'แผนก',
+        'request_info' => 'ข้อมูลคำขอ',
+        'employee_info' => 'ข้อมูลพนักงาน',
     ],
     'en' => [
         'page_title' => 'Request Management',
@@ -94,6 +95,7 @@ $translations = [
         'request_id' => 'Request ID',
         'type' => 'Type',
         'employee' => 'Employee',
+        'employee_name' => 'Employee Name',
         'created' => 'Created',
         'handler' => 'Handler',
         'actions' => 'Actions',
@@ -111,16 +113,12 @@ $translations = [
         'update_error' => 'Error: ',
         'failed_update' => 'Failed to update request: ',
         'unassigned' => 'Unassigned',
-        'leave_request' => 'Leave Request',
-        'certificate_request' => 'Certificate Request',
-        'id_card_request' => 'ID Card Request',
-        'shuttle_bus_request' => 'Shuttle Bus Request',
-        'locker_request' => 'Locker Request',
-        'supplies_request' => 'Supplies Request',
-        'skill_test_request' => 'Skill Test Request',
-        'document_submission' => 'Document Submission',
         'optional' => '(Optional)',
         'updating' => 'Updating...',
+        'position' => 'Position',
+        'division' => 'Division',
+        'request_info' => 'Request Information',
+        'employee_info' => 'Employee Information',
     ],
     'my' => [
         'page_title' => 'တောင်းခံမှုစီမံခန့်ခွဲမှု',
@@ -141,9 +139,10 @@ $translations = [
         'request_id' => 'တောင်းခံမှုအိုင်ဒီ',
         'type' => 'အမျိုးအစား',
         'employee' => 'အလုပ်သမား',
+        'employee_name' => 'အလုပ်သမားအမည်',
         'created' => 'ဖန်တီးသည်',
         'handler' => 'အကျင့်တည်ဝတ်ပြုသူ',
-        'actions' => 'အရቀວမ်များ',
+        'actions' => 'အရေးယူမှုများ',
         'view_details' => 'အသေးစိတ်ကြည့်ရှုမည်',
         'no_requests' => 'တောင်းခံမှုများမတွေ့ရှိ',
         'try_adjusting' => 'သင်၏စစ်ထုတ်မှုများကိုချိန်ညှိရန်ကြိုးစားပါ',
@@ -158,23 +157,19 @@ $translations = [
         'update_error' => 'အမှားအယွင်း: ',
         'failed_update' => 'တောင်းခံမှုအချက်အလက်အသစ်မပြုလုပ်နိုင်ခြင်း: ',
         'unassigned' => 'မမှတ်မထားသေးခြင်း',
-        'leave_request' => 'အငြိုးပြုစုတောင်းခံမှု',
-        'certificate_request' => 'လက်မှတ်တောင်းခံမှု',
-        'id_card_request' => 'အိုင်ဒီကဒ်တောင်းခံမှု',
-        'shuttle_bus_request' => 'ကားရီးယားတောင်းခံမှု',
-        'locker_request' => 'အိတ်ဆောင်တင်သွင်းမှုတောင်းခံမှု',
-        'supplies_request' => 'ပရိယာယ်တောင်းခံမှု',
-        'skill_test_request' => 'အရည်အချင်းစမ်းသပ်မှုတောင်းခံမှု',
-        'document_submission' => 'စာ類တင်သွင်းမှု',
         'optional' => '(အကြိုက်ရှိသည့်)',
         'updating' => 'အချက်အလက်အသစ်ပြုလုပ်နေ...',
+        'position' => 'ရာထူး',
+        'division' => 'ဌာန',
+        'request_info' => 'တောင်းခံမှုအချက်အလက်',
+        'employee_info' => 'အလုပ်သမားအချက်အလက်',
     ]
 ];
 
 // Get current language strings
 $t = $translations[$current_lang] ?? $translations['th'];
-
 $page_title = $t['page_title'];
+
 ensure_session_started();
 
 // Get filter parameters
@@ -196,42 +191,55 @@ $params = [];
 $types = '';
 
 if ($status_filter !== 'all') {
-    $where_conditions[] = "status = ?";
+    $where_conditions[] = "r.status = ?";
     $params[] = $status_filter;
     $types .= 's';
 }
 
 if (!empty($search)) {
-    $where_conditions[] = "(employee_id LIKE ? OR employee_name LIKE ?)";
+    $where_conditions[] = "(r.employee_id LIKE ? OR e.full_name_th LIKE ? OR e.full_name_en LIKE ?)";
     $search_term = '%' . $search . '%';
     $params[] = $search_term;
     $params[] = $search_term;
-    $types .= 'ss';
+    $params[] = $search_term;
+    $types .= 'sss';
 }
 
 $where_sql = implode(' AND ', $where_conditions);
 
-// Function to get requests from a table
-function getRequests($conn, $table, $type_name, $type_key, $where_sql, $params, $types, $offset, $per_page) {
+// Function to get requests from a table - FIXED with JOIN
+function getRequests($conn, $table, $type_name, $type_key, $where_sql, $params, $types, $offset, $per_page, $current_lang) {
     // Determine the primary key column name
     $id_column = ($table === 'document_submissions') ? 'submission_id' : 'request_id';
     
+    // Determine which name column to use
+    $name_column = ($current_lang === 'en') ? 'e.full_name_en' : 'e.full_name_th';
+    
     $sql = "SELECT 
-        $id_column as request_id,
-        employee_id,
+        r.$id_column as request_id,
+        r.employee_id,
+        $name_column as employee_name,
+        e.full_name_th,
+        e.full_name_en,
         '$type_name' as request_type,
         '$type_key' as request_type_key,
-        status,
-        created_at,
-        handler_id,
-        handler_remarks,
-        satisfaction_score
-    FROM $table 
+        r.status,
+        r.created_at,
+        r.handler_id,
+        r.handler_remarks,
+        r.satisfaction_score
+    FROM $table r
+    LEFT JOIN employees e ON r.employee_id = e.employee_id
     WHERE $where_sql 
-    ORDER BY created_at DESC 
+    ORDER BY r.created_at DESC 
     LIMIT ? OFFSET ?";
     
     $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        error_log("Prepare failed for table $table: " . $conn->error);
+        return [];
+    }
+    
     if (!empty($params)) {
         $all_params = array_merge($params, [$per_page, $offset]);
         $all_types = $types . 'ii';
@@ -240,7 +248,12 @@ function getRequests($conn, $table, $type_name, $type_key, $where_sql, $params, 
         $stmt->bind_param('ii', $per_page, $offset);
     }
     
-    $stmt->execute();
+    if (!$stmt->execute()) {
+        error_log("Execute failed for table $table: " . $stmt->error);
+        $stmt->close();
+        return [];
+    }
+    
     $result = $stmt->get_result();
     
     $requests = [];
@@ -267,18 +280,17 @@ $request_types = [
 
 // Get all requests based on type filter
 $all_requests = [];
-
 if ($type_filter === 'all') {
     foreach ($request_types as $table => $labels) {
         $type_name = $labels['label_en'];
-        $requests = getRequests($conn, $table, $type_name, $table, $where_sql, $params, $types, 0, $per_page);
+        $requests = getRequests($conn, $table, $type_name, $table, $where_sql, $params, $types, 0, $per_page, $current_lang);
         $all_requests = array_merge($all_requests, $requests);
     }
 } else {
     if (isset($request_types[$type_filter])) {
         $labels = $request_types[$type_filter];
         $type_name = $labels['label_en'];
-        $all_requests = getRequests($conn, $type_filter, $type_name, $type_filter, $where_sql, $params, $types, $offset, $per_page);
+        $all_requests = getRequests($conn, $type_filter, $type_name, $type_filter, $where_sql, $params, $types, $offset, $per_page, $current_lang);
     }
 }
 
@@ -301,11 +313,13 @@ $stats = [
 
 foreach ($request_types as $table => $labels) {
     $result = $conn->query("SELECT status, COUNT(*) as count FROM $table GROUP BY status");
-    while ($row = $result->fetch_assoc()) {
-        $stats['total'] += $row['count'];
-        $status_key = strtolower(str_replace(' ', '_', $row['status']));
-        if (isset($stats[$status_key])) {
-            $stats[$status_key] += $row['count'];
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $stats['total'] += $row['count'];
+            $status_key = strtolower(str_replace(' ', '_', $row['status']));
+            if (isset($stats[$status_key])) {
+                $stats[$status_key] += $row['count'];
+            }
         }
     }
 }
@@ -315,7 +329,6 @@ $conn->close();
 include __DIR__ . '/../../includes/header.php';
 include __DIR__ . '/../../includes/sidebar.php';
 ?>
-
 <!DOCTYPE html>
 <html lang="<?php echo $current_lang; ?>" class="<?php echo $is_dark ? 'dark' : ''; ?>">
 <head>
@@ -505,6 +518,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                                 <th class="px-6 py-4 text-left text-xs font-semibold <?php echo $text_class; ?> uppercase tracking-wider"><?php echo $t['request_id']; ?></th>
                                 <th class="px-6 py-4 text-left text-xs font-semibold <?php echo $text_class; ?> uppercase tracking-wider"><?php echo $t['type']; ?></th>
                                 <th class="px-6 py-4 text-left text-xs font-semibold <?php echo $text_class; ?> uppercase tracking-wider"><?php echo $t['employee']; ?></th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold <?php echo $text_class; ?> uppercase tracking-wider"><?php echo $t['employee_name']; ?></th>
                                 <th class="px-6 py-4 text-left text-xs font-semibold <?php echo $text_class; ?> uppercase tracking-wider"><?php echo $t['created']; ?></th>
                                 <th class="px-6 py-4 text-left text-xs font-semibold <?php echo $text_class; ?> uppercase tracking-wider"><?php echo $t['status']; ?></th>
                                 <th class="px-6 py-4 text-left text-xs font-semibold <?php echo $text_class; ?> uppercase tracking-wider"><?php echo $t['handler']; ?></th>
@@ -514,7 +528,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                         <tbody class="divide-y <?php echo $is_dark ? 'divide-gray-700' : 'divide-gray-200'; ?>">
                             <?php if (empty($all_requests)): ?>
                                 <tr>
-                                    <td colspan="7" class="px-6 py-12 text-center <?php echo $is_dark ? 'text-gray-400' : 'text-gray-500'; ?>">
+                                    <td colspan="8" class="px-6 py-12 text-center <?php echo $is_dark ? 'text-gray-400' : 'text-gray-500'; ?>">
                                         <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
                                         </svg>
@@ -549,6 +563,11 @@ include __DIR__ . '/../../includes/sidebar.php';
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <span class="<?php echo $text_class; ?> font-medium">
                                                 <?php echo htmlspecialchars($request['employee_id']); ?>
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="<?php echo $text_class; ?>">
+                                                <?php echo htmlspecialchars($request['employee_name'] ?? '-'); ?>
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
@@ -607,7 +626,7 @@ include __DIR__ . '/../../includes/sidebar.php';
 
     <!-- Request Detail Modal -->
     <div id="requestModal" class="modal-backdrop">
-        <div class="<?php echo $card_bg; ?> rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border <?php echo $border_class; ?> m-4">
+        <div class="<?php echo $card_bg; ?> rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border <?php echo $border_class; ?> m-4">
             <div class="p-6">
                 <div class="flex items-center justify-between mb-6">
                     <h3 class="text-xl font-bold <?php echo $text_class; ?>"><?php echo $t['request_details']; ?></h3>
@@ -628,6 +647,7 @@ include __DIR__ . '/../../includes/sidebar.php';
         const t = <?php echo json_encode($t); ?>;
         const currentLang = '<?php echo $current_lang; ?>';
         const isDark = <?php echo $is_dark ? 'true' : 'false'; ?>;
+        
         const statusMap = {
             'th': {'New': 'ใหม่', 'In Progress': 'กำลังดำเนิน', 'Complete': 'เสร็จสิ้น', 'Cancelled': 'ยกเลิก'},
             'en': {'New': 'New', 'In Progress': 'In Progress', 'Complete': 'Complete', 'Cancelled': 'Cancelled'},
@@ -642,24 +662,39 @@ include __DIR__ . '/../../includes/sidebar.php';
             content.innerHTML = '<div class="text-center py-8"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div><p class="mt-4 <?php echo $text_class; ?>">' + t['loading'] + '</p></div>';
             modal.classList.add('active');
             
-            // Fetch request details
-            const url = `<?php echo BASE_PATH; ?>/api/admin_get_request_details.php?table=${table}&id=${requestId}`;
+            // Build API URL - handle both with and without BASE_PATH
+            const basePath = '<?php echo defined("BASE_PATH") ? BASE_PATH : ""; ?>';
+            const url = basePath ? `${basePath}/api/admin_get_request_details.php?table=${table}&id=${requestId}` 
+                                 : `/api/admin_get_request_details.php?table=${table}&id=${requestId}`;
+            
+            console.log('Fetching from URL:', url); // Debug log
             
             fetch(url)
                 .then(response => {
+                    console.log('Response status:', response.status); // Debug log
+                    console.log('Response headers:', response.headers); // Debug log
+                    
                     if (!response.ok) {
-                        throw new Error('Network response was not ok');
+                        throw new Error(`HTTP error! status: ${response.status}`);
                     }
-                    return response.json();
+                    return response.text(); // Get as text first to see what we receive
                 })
-                .then(data => {
-                    if (data.success) {
-                        content.innerHTML = generateRequestHTML(data.request, table);
-                    } else {
-                        content.innerHTML = `<div class="text-center py-8"><p class="text-red-600 font-medium">${data.message || t['error_loading']}</p><button onclick="closeRequestModal()" class="mt-4 px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">${t['close']}</button></div>`;
+                .then(text => {
+                    console.log('Response text:', text); // Debug log
+                    try {
+                        const data = JSON.parse(text);
+                        if (data.success) {
+                            content.innerHTML = generateRequestHTML(data.request, table);
+                        } else {
+                            content.innerHTML = `<div class="text-center py-8"><p class="text-red-600 font-medium">${data.message || t['error_loading']}</p>${data.debug ? '<p class="text-sm mt-2 text-gray-600">' + JSON.stringify(data.debug) + '</p>' : ''}<button onclick="closeRequestModal()" class="mt-4 px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">${t['close']}</button></div>`;
+                        }
+                    } catch (e) {
+                        console.error('JSON parse error:', e);
+                        content.innerHTML = `<div class="text-center py-8"><p class="text-red-600 font-medium">Invalid JSON response</p><pre class="text-xs mt-2 text-left overflow-auto">${text}</pre><button onclick="closeRequestModal()" class="mt-4 px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">${t['close']}</button></div>`;
                     }
                 })
                 .catch(error => {
+                    console.error('Fetch error:', error); // Debug log
                     content.innerHTML = `<div class="text-center py-8"><p class="text-red-600 font-medium">${t['error_loading']}</p><p class="text-sm <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?> mt-2">${error.message}</p><button onclick="closeRequestModal()" class="mt-4 px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">${t['close']}</button></div>`;
                 });
         }
@@ -674,36 +709,98 @@ include __DIR__ . '/../../includes/sidebar.php';
             const isDarkMode = isDark;
             const grayTextClass = isDarkMode ? 'text-gray-400' : 'text-gray-600';
             const inputClass = isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300';
+            const cardBg = isDarkMode ? 'bg-gray-700' : 'bg-gray-50';
             
             const statusLabel = statusMap[currentLang][request.status] || request.status;
             
+            // Determine employee name based on language
+            let employeeName = request.employee_id;
+            if (currentLang === 'en' && request.full_name_en) {
+                employeeName = request.full_name_en;
+            } else if (request.full_name_th) {
+                employeeName = request.full_name_th;
+            }
+            
+            // Get position and division names
+            let positionName = '';
+            let divisionName = '';
+            
+            if (currentLang === 'en') {
+                positionName = request.position_name_en || '-';
+                divisionName = request.division_name_en || '-';
+            } else {
+                positionName = request.position_name_th || '-';
+                divisionName = request.division_name_th || '-';
+            }
+            
             let html = `
-                <div class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="text-sm font-medium ${grayTextClass}">${t['request_id']}</label>
-                            <p class="${textClass} font-mono">#${String(request.request_id).padStart(5, '0')}</p>
+                <div class="space-y-6">
+                    <!-- Employee Information Section -->
+                    <div class="p-4 ${cardBg} rounded-lg border ${borderClass}">
+                        <h4 class="font-semibold ${textClass} mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                            ${t['employee_info']}
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-sm font-medium ${grayTextClass}">${t['employee']}</label>
+                                <p class="${textClass}">${request.employee_id}</p>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium ${grayTextClass}">${t['employee_name']}</label>
+                                <p class="${textClass}">${employeeName}</p>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium ${grayTextClass}">${t['position']}</label>
+                                <p class="${textClass}">${positionName}</p>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium ${grayTextClass}">${t['division']}</label>
+                                <p class="${textClass}">${divisionName}</p>
+                            </div>
                         </div>
-                        <div>
-                            <label class="text-sm font-medium ${grayTextClass}">${t['status']}</label>
-                            <p class="${textClass}">${statusLabel}</p>
+                    </div>
+                    
+                    <!-- Request Information Section -->
+                    <div class="p-4 ${cardBg} rounded-lg border ${borderClass}">
+                        <h4 class="font-semibold ${textClass} mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            ${t['request_info']}
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-sm font-medium ${grayTextClass}">${t['request_id']}</label>
+                                <p class="${textClass} font-mono">#${String(request.request_id).padStart(5, '0')}</p>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium ${grayTextClass}">${t['status']}</label>
+                                <p class="${textClass}">${statusLabel}</p>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium ${grayTextClass}">${t['created']}</label>
+                                <p class="${textClass}">${new Date(request.created_at).toLocaleString()}</p>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium ${grayTextClass}">${t['handler']}</label>
+                                <p class="${textClass}">${request.handler_id || t['unassigned']}</p>
+                            </div>
                         </div>
                     </div>
                     
-                    <div>
-                        <label class="text-sm font-medium ${grayTextClass}">${t['employee']}</label>
-                        <p class="${textClass}">${request.employee_id}</p>
-                    </div>
-                    
-                    <div>
-                        <label class="text-sm font-medium ${grayTextClass}">${t['created']}</label>
-                        <p class="${textClass}">${new Date(request.created_at).toLocaleString()}</p>
-                    </div>
-                    
+                    <!-- Status Update Section -->
                     <div class="pt-4 border-t ${borderClass}">
-                        <h4 class="font-semibold ${textClass} mb-3">${t['status_update']}</h4>
+                        <h4 class="font-semibold ${textClass} mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                            ${t['status_update']}
+                        </h4>
                         <form onsubmit="updateRequestStatus(event, '${table}', ${request.request_id})">
-                            <select name="status" class="w-full px-4 py-2 border rounded-lg mb-3 ${inputClass}">
+                            <select name="status" class="w-full px-4 py-2 border rounded-lg mb-3 ${inputClass} focus:ring-2 focus:ring-blue-500">
                                 <option value="New" ${request.status === 'New' ? 'selected' : ''}>${statusMap[currentLang]['New']}</option>
                                 <option value="In Progress" ${request.status === 'In Progress' ? 'selected' : ''}>${statusMap[currentLang]['In Progress']}</option>
                                 <option value="Complete" ${request.status === 'Complete' ? 'selected' : ''}>${statusMap[currentLang]['Complete']}</option>
@@ -711,7 +808,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                             </select>
                             
                             <textarea name="remarks" placeholder="${t['handler_remarks']} ${t['optional']}" rows="3"
-                                class="w-full px-4 py-2 border rounded-lg mb-3 ${inputClass}">${request.handler_remarks || ''}</textarea>
+                                class="w-full px-4 py-2 border rounded-lg mb-3 ${inputClass} focus:ring-2 focus:ring-blue-500">${request.handler_remarks || ''}</textarea>
                             
                             <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition font-medium">
                                 ${t['update_request']}

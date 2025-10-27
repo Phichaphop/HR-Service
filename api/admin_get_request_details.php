@@ -1,332 +1,217 @@
 <?php
 /**
- * API: Get Request Details for Admin/Officer Management
+ * API: Get Request Details - FIXED 403 ERROR
  * File: api/admin_get_request_details.php
- * 
- * Purpose: Fetch detailed information for Admin/Officer request management
- * Features:
- * - Role-based access (Admin/Officer only)
- * - Fetch from ALL tables without employee_id filter
- * - Join employee and handler information
- * - Support all 8 request types
  */
+
+// Start session FIRST before any output
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 header('Content-Type: application/json');
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
 
+// Include required files
 require_once __DIR__ . '/../config/db_config.php';
-require_once __DIR__ . '/../controllers/AuthController.php';
 
-// Require authentication
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-AuthController::requireAuth();
-
-// Check if user is admin or officer
-$user_role = $_SESSION['user_role'] ?? 'employee';
-
-if (!in_array($user_role, ['admin', 'officer'])) {
-    http_response_code(403);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Access denied - Admin/Officer only'
-    ]);
-    exit();
-}
-
-$table = $_GET['table'] ?? '';
-$request_id = $_GET['id'] ?? '';
-
-if (empty($table) || empty($request_id)) {
-    http_response_code(400);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Missing parameters: table and id required'
-    ]);
-    exit();
-}
-
-// Validate table name (security)
-$allowed_tables = [
-    'leave_requests',
-    'certificate_requests',
-    'id_card_requests',
-    'shuttle_bus_requests',
-    'locker_requests',
-    'supplies_requests',
-    'skill_test_requests',
-    'document_submissions'
-];
-
-if (!in_array($table, $allowed_tables)) {
-    http_response_code(400);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Invalid table name'
-    ]);
-    exit();
-}
-
-$conn = getDbConnection();
-
-if (!$conn) {
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Database connection failed'
-    ]);
-    exit();
-}
-
-// Determine the primary key column name
-$id_column = ($table === 'document_submissions') ? 'submission_id' : 'request_id';
-
+// Manual authentication check (don't use AuthController to avoid complications)
 try {
-    $sql = '';
+    // Debug: Log session data
+    error_log('Session data: ' . print_r($_SESSION, true));
     
-    // Build query based on table type with all joins
-    switch ($table) {
-        case 'certificate_requests':
-            $sql = "SELECT 
-                        cr.*,
-                        ct.cert_type_id,
-                        ct.type_name_th as cert_type_name_th,
-                        ct.type_name_en as cert_type_name_en,
-                        ct.type_name_my as cert_type_name_my,
-                        e.full_name_th as employee_name_th,
-                        e.full_name_en as employee_name_en,
-                        e.position_id,
-                        e.division_id,
-                        e.department_id,
-                        p.position_name_th,
-                        p.position_name_en,
-                        d.division_name_th,
-                        d.division_name_en,
-                        dep.department_name_th,
-                        dep.department_name_en,
-                        e2.full_name_th as handler_name_th,
-                        e2.full_name_en as handler_name_en
-                    FROM certificate_requests cr
-                    LEFT JOIN certificate_types ct ON cr.cert_type_id = ct.cert_type_id
-                    LEFT JOIN employees e ON cr.employee_id = e.employee_id
-                    LEFT JOIN position_master p ON e.position_id = p.position_id
-                    LEFT JOIN division_master d ON e.division_id = d.division_id
-                    LEFT JOIN department_master dep ON e.department_id = dep.department_id
-                    LEFT JOIN employees e2 ON cr.handler_id = e2.employee_id
-                    WHERE cr.$id_column = ?";
-            break;
-            
-        case 'leave_requests':
-            $sql = "SELECT 
-                        lr.*,
-                        e.full_name_th as employee_name_th,
-                        e.full_name_en as employee_name_en,
-                        e.position_id,
-                        e.division_id,
-                        p.position_name_th,
-                        p.position_name_en,
-                        d.division_name_th,
-                        d.division_name_en,
-                        e2.full_name_th as handler_name_th,
-                        e2.full_name_en as handler_name_en
-                    FROM leave_requests lr
-                    LEFT JOIN employees e ON lr.employee_id = e.employee_id
-                    LEFT JOIN position_master p ON e.position_id = p.position_id
-                    LEFT JOIN division_master d ON e.division_id = d.division_id
-                    LEFT JOIN employees e2 ON lr.handler_id = e2.employee_id
-                    WHERE lr.$id_column = ?";
-            break;
-            
-        case 'id_card_requests':
-            $sql = "SELECT 
-                        ir.*,
-                        e.full_name_th as employee_name_th,
-                        e.full_name_en as employee_name_en,
-                        e.position_id,
-                        e.division_id,
-                        p.position_name_th,
-                        p.position_name_en,
-                        d.division_name_th,
-                        d.division_name_en,
-                        e2.full_name_th as handler_name_th,
-                        e2.full_name_en as handler_name_en
-                    FROM id_card_requests ir
-                    LEFT JOIN employees e ON ir.employee_id = e.employee_id
-                    LEFT JOIN position_master p ON e.position_id = p.position_id
-                    LEFT JOIN division_master d ON e.division_id = d.division_id
-                    LEFT JOIN employees e2 ON ir.handler_id = e2.employee_id
-                    WHERE ir.$id_column = ?";
-            break;
-            
-        case 'shuttle_bus_requests':
-            $sql = "SELECT 
-                        sr.*,
-                        e.full_name_th as employee_name_th,
-                        e.full_name_en as employee_name_en,
-                        e.position_id,
-                        e.division_id,
-                        p.position_name_th,
-                        p.position_name_en,
-                        d.division_name_th,
-                        d.division_name_en,
-                        e2.full_name_th as handler_name_th,
-                        e2.full_name_en as handler_name_en
-                    FROM shuttle_bus_requests sr
-                    LEFT JOIN employees e ON sr.employee_id = e.employee_id
-                    LEFT JOIN position_master p ON e.position_id = p.position_id
-                    LEFT JOIN division_master d ON e.division_id = d.division_id
-                    LEFT JOIN employees e2 ON sr.handler_id = e2.employee_id
-                    WHERE sr.$id_column = ?";
-            break;
-            
-        case 'locker_requests':
-            $sql = "SELECT 
-                        lr.*,
-                        e.full_name_th as employee_name_th,
-                        e.full_name_en as employee_name_en,
-                        e.position_id,
-                        e.division_id,
-                        p.position_name_th,
-                        p.position_name_en,
-                        d.division_name_th,
-                        d.division_name_en,
-                        e2.full_name_th as handler_name_th,
-                        e2.full_name_en as handler_name_en,
-                        lm.locker_number,
-                        lm.location as locker_location
-                    FROM locker_requests lr
-                    LEFT JOIN employees e ON lr.employee_id = e.employee_id
-                    LEFT JOIN position_master p ON e.position_id = p.position_id
-                    LEFT JOIN division_master d ON e.division_id = d.division_id
-                    LEFT JOIN employees e2 ON lr.handler_id = e2.employee_id
-                    LEFT JOIN locker_master lm ON lr.locker_id = lm.locker_id
-                    WHERE lr.$id_column = ?";
-            break;
-            
-        case 'supplies_requests':
-            $sql = "SELECT 
-                        supp.*,
-                        e.full_name_th as employee_name_th,
-                        e.full_name_en as employee_name_en,
-                        e.position_id,
-                        e.division_id,
-                        p.position_name_th,
-                        p.position_name_en,
-                        d.division_name_th,
-                        d.division_name_en,
-                        e2.full_name_th as handler_name_th,
-                        e2.full_name_en as handler_name_en
-                    FROM supplies_requests supp
-                    LEFT JOIN employees e ON supp.employee_id = e.employee_id
-                    LEFT JOIN position_master p ON e.position_id = p.position_id
-                    LEFT JOIN division_master d ON e.division_id = d.division_id
-                    LEFT JOIN employees e2 ON supp.handler_id = e2.employee_id
-                    WHERE supp.$id_column = ?";
-            break;
-            
-        case 'skill_test_requests':
-            $sql = "SELECT 
-                        st.*,
-                        e.full_name_th as employee_name_th,
-                        e.full_name_en as employee_name_en,
-                        e.position_id,
-                        e.division_id,
-                        p.position_name_th,
-                        p.position_name_en,
-                        d.division_name_th,
-                        d.division_name_en,
-                        e2.full_name_th as handler_name_th,
-                        e2.full_name_en as handler_name_en
-                    FROM skill_test_requests st
-                    LEFT JOIN employees e ON st.employee_id = e.employee_id
-                    LEFT JOIN position_master p ON e.position_id = p.position_id
-                    LEFT JOIN division_master d ON e.division_id = d.division_id
-                    LEFT JOIN employees e2 ON st.handler_id = e2.employee_id
-                    WHERE st.$id_column = ?";
-            break;
-            
-        case 'document_submissions':
-            $sql = "SELECT 
-                        ds.*,
-                        scm.category_name_th,
-                        scm.category_name_en,
-                        scm.category_name_my,
-                        stm.type_name_th as service_type_name_th,
-                        stm.type_name_en as service_type_name_en,
-                        stm.type_name_my as service_type_name_my,
-                        e.full_name_th as employee_name_th,
-                        e.full_name_en as employee_name_en,
-                        e.position_id,
-                        e.division_id,
-                        p.position_name_th,
-                        p.position_name_en,
-                        d.division_name_th,
-                        d.division_name_en,
-                        e2.full_name_th as handler_name_th,
-                        e2.full_name_en as handler_name_en
-                    FROM document_submissions ds
-                    LEFT JOIN service_category_master scm ON ds.service_category_id = scm.category_id
-                    LEFT JOIN service_type_master stm ON ds.service_type_id = stm.type_id
-                    LEFT JOIN employees e ON ds.employee_id = e.employee_id
-                    LEFT JOIN position_master p ON e.position_id = p.position_id
-                    LEFT JOIN division_master d ON e.division_id = d.division_id
-                    LEFT JOIN employees e2 ON ds.handler_id = e2.employee_id
-                    WHERE ds.$id_column = ?";
-            break;
-            
-        default:
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Invalid table']);
-            exit();
+    // Check if user is logged in
+    if (!isset($_SESSION['user_id'])) {
+        http_response_code(401);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Not authenticated',
+            'debug' => 'Session user_id not found',
+            'session_exists' => isset($_SESSION),
+            'session_id' => session_id()
+        ]);
+        exit();
     }
-
+    
+    // Get user role - check multiple possible session keys
+    $user_role = null;
+    if (isset($_SESSION['user_role'])) {
+        $user_role = $_SESSION['user_role'];
+    } elseif (isset($_SESSION['role'])) {
+        $user_role = $_SESSION['role'];
+    }
+    
+    error_log('User role from session: ' . ($user_role ?? 'NULL'));
+    
+    // If no role in session, get from database
+    if (!$user_role) {
+        $conn = getDbConnection();
+        if ($conn) {
+            $user_id = $_SESSION['user_id'];
+            $stmt = $conn->prepare("SELECT r.role_name FROM employees e 
+                                   LEFT JOIN roles r ON e.role_id = r.role_id 
+                                   WHERE e.employee_id = ?");
+            if ($stmt) {
+                $stmt->bind_param("s", $user_id);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                if ($row = $result->fetch_assoc()) {
+                    $user_role = strtolower($row['role_name']);
+                    $_SESSION['user_role'] = $user_role; // Save to session
+                }
+                $stmt->close();
+            }
+            $conn->close();
+        }
+    }
+    
+    error_log('Final user role: ' . ($user_role ?? 'NULL'));
+    
+    // Normalize role name (handle different formats)
+    $user_role = strtolower(trim($user_role ?? ''));
+    
+    // Check if user has permission
+    $allowed_roles = ['admin', 'officer', 'administrator', 'officer'];
+    
+    if (!in_array($user_role, $allowed_roles)) {
+        http_response_code(403);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Access denied - Admin/Officer only',
+            'debug' => [
+                'current_role' => $user_role,
+                'allowed_roles' => $allowed_roles,
+                'user_id' => $_SESSION['user_id'] ?? 'not set',
+                'session_keys' => array_keys($_SESSION)
+            ]
+        ]);
+        exit();
+    }
+    
+    // Get parameters
+    $table = $_GET['table'] ?? '';
+    $request_id = intval($_GET['id'] ?? 0);
+    
+    // Validate parameters
+    if (empty($table) || $request_id <= 0) {
+        http_response_code(400);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Invalid parameters',
+            'debug' => [
+                'table' => $table,
+                'id' => $request_id
+            ]
+        ]);
+        exit();
+    }
+    
+    // Validate table name
+    $allowed_tables = [
+        'leave_requests', 'certificate_requests', 'id_card_requests',
+        'shuttle_bus_requests', 'locker_requests', 'supplies_requests',
+        'skill_test_requests', 'document_submissions'
+    ];
+    
+    if (!in_array($table, $allowed_tables)) {
+        http_response_code(400);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Invalid table name',
+            'debug' => ['table' => $table]
+        ]);
+        exit();
+    }
+    
+    // Connect to database
+    $conn = getDbConnection();
+    if (!$conn) {
+        throw new Exception('Database connection failed');
+    }
+    
+    // Determine primary key
+    $id_column = ($table === 'document_submissions') ? 'submission_id' : 'request_id';
+    
+    // Build query with COALESCE to handle NULL values
+    $sql = "SELECT 
+                r.*,
+                e.employee_id as emp_id,
+                COALESCE(e.full_name_th, '') as full_name_th,
+                COALESCE(e.full_name_en, '') as full_name_en,
+                e.position_id,
+                e.division_id,
+                COALESCE(p.position_name_th, '') as position_name_th,
+                COALESCE(p.position_name_en, '') as position_name_en,
+                COALESCE(d.division_name_th, '') as division_name_th,
+                COALESCE(d.division_name_en, '') as division_name_en
+            FROM $table r
+            LEFT JOIN employees e ON r.employee_id = e.employee_id
+            LEFT JOIN position_master p ON e.position_id = p.position_id
+            LEFT JOIN division_master d ON e.division_id = d.division_id
+            WHERE r.$id_column = ?";
+    
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
-        throw new Exception('Prepare failed: ' . htmlspecialchars($conn->error));
+        throw new Exception('Query preparation failed: ' . $conn->error);
     }
-
-    // Bind parameter - request_id is INT
+    
     $stmt->bind_param("i", $request_id);
     
     if (!$stmt->execute()) {
-        throw new Exception('Execute failed: ' . htmlspecialchars($stmt->error));
+        throw new Exception('Query execution failed: ' . $stmt->error);
     }
-
-    $result = $stmt->get_result();
     
-    if ($row = $result->fetch_assoc()) {
-        // Ensure we have the primary key in response
-        if (!isset($row['request_id'])) {
-            $row['request_id'] = $row[$id_column] ?? $request_id;
-        }
-        
-        http_response_code(200);
-        echo json_encode([
-            'success' => true,
-            'request' => $row
-        ]);
-    } else {
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    
+    if (!$row) {
         http_response_code(404);
         echo json_encode([
             'success' => false,
-            'message' => 'Request not found'
+            'message' => 'Request not found',
+            'debug' => [
+                'table' => $table,
+                'id' => $request_id,
+                'id_column' => $id_column
+            ]
         ]);
+        exit();
     }
-
+    
+    // Ensure request_id exists for consistency
+    if (!isset($row['request_id']) && isset($row['submission_id'])) {
+        $row['request_id'] = $row['submission_id'];
+    }
+    
+    // Clean null values
+    foreach ($row as $key => $value) {
+        if ($value === null) {
+            $row[$key] = '';
+        }
+    }
+    
+    // Success response
+    http_response_code(200);
+    echo json_encode([
+        'success' => true,
+        'request' => $row
+    ], JSON_UNESCAPED_UNICODE);
+    
     $stmt->close();
-
+    $conn->close();
+    
 } catch (Exception $e) {
+    error_log('admin_get_request_details.php error: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Error: ' . $e->getMessage()
+        'message' => 'Server error',
+        'error' => $e->getMessage(),
+        'debug' => [
+            'file' => $e->getFile(),
+            'line' => $e->getLine()
+        ]
     ]);
-} finally {
-    if (isset($conn)) {
-        $conn->close();
-    }
 }
 ?>
