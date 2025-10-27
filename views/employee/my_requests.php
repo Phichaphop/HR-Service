@@ -1,30 +1,28 @@
 <?php
 /**
- * My Requests Page - Complete Version with Multi-Language Support
+ * My Requests Page - ENHANCED VERSION with Detailed Information - FIXED
  * Supports: Thai (ไทย), English (EN), Myanmar (မြန်မာ)
- * Employee can view all their requests
+ * FIXES:
+ * 1. Added text-gray-900 dark:text-white to all detail values for proper dark mode text color
+ * 2. Fixed employee_name display issue
  */
-
 require_once __DIR__ . '/../../config/db_config.php';
 require_once __DIR__ . '/../../controllers/AuthController.php';
 require_once __DIR__ . '/../../db/Localization.php';
-
 AuthController::requireAuth();
-
 // Get current settings from session
 $current_lang = $_SESSION['language'] ?? 'th';
 $theme_mode = $_SESSION['theme_mode'] ?? 'light';
 $is_dark = ($theme_mode === 'dark');
 $user_id = $_SESSION['user_id'] ?? '';
-
 // Theme colors based on dark mode
 $card_bg = $is_dark ? 'bg-gray-800' : 'bg-white';
 $text_class = $is_dark ? 'text-white' : 'text-gray-900';
 $bg_class = $is_dark ? 'bg-gray-900' : 'bg-gray-50';
 $border_class = $is_dark ? 'border-gray-700' : 'border-gray-200';
 $input_class = $is_dark ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500';
-
-// Multi-language translations
+$label_class = $is_dark ? 'text-gray-300' : 'text-gray-700';
+// Multi-language translations - ENHANCED with more fields
 $translations = [
     'th' => [
         'page_title' => 'คำขอของฉัน',
@@ -44,9 +42,57 @@ $translations = [
         'request_id_label' => 'Request ID',
         'status_label' => 'สถานะ',
         'created_date' => 'วันที่สร้าง',
-        'certificate_type' => 'ประเภทหนังสือรับรอง',
-        'purpose' => 'วัตถุประสงค์',
+        'updated_date' => 'วันที่อัปเดต',
+        'employee_info' => 'ข้อมูลพนักงาน',
+        'employee_id' => 'รหัสพนักงาน',
+        'employee_name' => 'ชื่อพนักงาน',
+        'position' => 'ตำแหน่ง',
+        'department' => 'แผนก',
+        'division' => 'สายการจัดการ',
+        'section' => 'ส่วน',
+        'handler_info' => 'ข้อมูลผู้ดำเนินการ',
+        'handler_id' => 'รหัสผู้ดำเนินการ',
+        'handler_name' => 'ชื่อผู้ดำเนินการ',
         'handler_remarks' => 'หมายเหตุจากเจ้าหน้าที่',
+        'purpose' => 'วัตถุประสงค์',
+        'reason' => 'เหตุผล',
+        'remarks' => 'หมายเหตุ',
+        'suggestion' => 'ข้อเสนอแนะ',
+        // Leave Request
+        'leave_type' => 'ประเภทการลา',
+        'start_date' => 'วันเริ่มต้น',
+        'end_date' => 'วันสิ้นสุด',
+        'total_days' => 'จำนวนวันที่ลา',
+        'leave_reason' => 'เหตุผลการลา',
+        // Certificate Request
+        'certificate_type' => 'ประเภทหนังสือรับรอง',
+        'certificate_no' => 'เลขที่หนังสือรับรอง',
+        'salary_info' => 'ข้อมูลเงินเดือน',
+        'base_salary' => 'เงินเดือนพื้นฐาน',
+        'hiring_type' => 'ประเภทการจ้าง',
+        'date_of_hire' => 'วันที่เริ่มงาน',
+        // ID Card Request
+        'card_reason' => 'เหตุผลการขอบัตร',
+        'card_status' => 'สถานะบัตร',
+        // Shuttle Bus Request
+        'route' => 'เส้นทาง',
+        'pickup_location' => 'สถานที่รับ',
+        'start_date_bus' => 'วันเริ่มใช้บริการ',
+        // Locker Request
+        'locker_number' => 'หมายเลขล็อกเกอร์',
+        'assigned_locker' => 'ล็อกเกอร์ที่ได้รับมอบหมาย',
+        // Supplies Request
+        'request_type' => 'ประเภทคำขอ',
+        'items_list' => 'รายการอุปกรณ์',
+        'quantity' => 'จำนวน',
+        'supplies_reason' => 'เหตุผลการขอเบิก',
+        // Skill Test
+        'test_info' => 'ข้อมูลการสอบทักษะ',
+        // Document Submission
+        'service_category' => 'หมวดหมู่บริการ',
+        'service_type' => 'ประเภทบริการ',
+        'submission_date' => 'วันที่ส่ง',
+        // Rating
         'rating_title' => 'ให้คะแนนความพึงพอใจ',
         'rating_label' => 'คะแนน (1-5 ดาว)',
         'additional_feedback' => 'ความคิดเห็นเพิ่มเติม',
@@ -67,6 +113,8 @@ $translations = [
         'supplies_request' => 'วัสดุสำนักงาน',
         'skill_test_request' => 'ทดสอบทักษะ',
         'document_submission' => 'ลงชื่อส่งเอกสาร',
+        'no_data' => 'ไม่มีข้อมูล',
+        'not_assigned' => 'ยังไม่ได้มอบหมาย',
     ],
     'en' => [
         'page_title' => 'My Requests',
@@ -86,9 +134,48 @@ $translations = [
         'request_id_label' => 'Request ID',
         'status_label' => 'Status',
         'created_date' => 'Created Date',
-        'certificate_type' => 'Certificate Type',
-        'purpose' => 'Purpose',
+        'updated_date' => 'Updated Date',
+        'employee_info' => 'Employee Information',
+        'employee_id' => 'Employee ID',
+        'employee_name' => 'Employee Name',
+        'position' => 'Position',
+        'department' => 'Department',
+        'division' => 'Division',
+        'section' => 'Section',
+        'handler_info' => 'Handler Information',
+        'handler_id' => 'Handler ID',
+        'handler_name' => 'Handler Name',
         'handler_remarks' => 'Handler Remarks',
+        'purpose' => 'Purpose',
+        'reason' => 'Reason',
+        'remarks' => 'Remarks',
+        'suggestion' => 'Suggestion',
+        'leave_type' => 'Leave Type',
+        'start_date' => 'Start Date',
+        'end_date' => 'End Date',
+        'total_days' => 'Total Days',
+        'leave_reason' => 'Leave Reason',
+        'certificate_type' => 'Certificate Type',
+        'certificate_no' => 'Certificate Number',
+        'salary_info' => 'Salary Information',
+        'base_salary' => 'Base Salary',
+        'hiring_type' => 'Hiring Type',
+        'date_of_hire' => 'Date of Hire',
+        'card_reason' => 'Card Request Reason',
+        'card_status' => 'Card Status',
+        'route' => 'Route',
+        'pickup_location' => 'Pickup Location',
+        'start_date_bus' => 'Service Start Date',
+        'locker_number' => 'Locker Number',
+        'assigned_locker' => 'Assigned Locker',
+        'request_type' => 'Request Type',
+        'items_list' => 'Items List',
+        'quantity' => 'Quantity',
+        'supplies_reason' => 'Supply Reason',
+        'test_info' => 'Skill Test Information',
+        'service_category' => 'Service Category',
+        'service_type' => 'Service Type',
+        'submission_date' => 'Submission Date',
         'rating_title' => 'Rate Satisfaction',
         'rating_label' => 'Rating (1-5 Stars)',
         'additional_feedback' => 'Additional Feedback',
@@ -109,6 +196,8 @@ $translations = [
         'supplies_request' => 'Supplies Request',
         'skill_test_request' => 'Skill Test Request',
         'document_submission' => 'Document Submission',
+        'no_data' => 'No Data',
+        'not_assigned' => 'Not Assigned Yet',
     ],
     'my' => [
         'page_title' => 'ကျွန်ုပ်၏တောင်းခံမှုများ',
@@ -128,12 +217,51 @@ $translations = [
         'request_id_label' => 'Request ID',
         'status_label' => 'အနေအထား',
         'created_date' => 'ဖန်တီးသည့်နေ့',
-        'certificate_type' => 'လက်မှတ်အမျိုးအစား',
+        'updated_date' => 'အဆင့်သတ်မှတ်သည့်နေ့',
+        'employee_info' => 'အလုပ်သမားအချက်အလက်',
+        'employee_id' => 'အလုပ်သမား ID',
+        'employee_name' => 'အလုပ်သမားအမည်',
+        'position' => 'အနေအထား',
+        'department' => 'ဌာန',
+        'division' => 'မြဲ',
+        'section' => 'အပိုင်းခွဲ',
+        'handler_info' => 'ကိုင်တွယ်သူအချက်အလက်',
+        'handler_id' => 'ကိုင်တွယ်သူ ID',
+        'handler_name' => 'ကိုင်တွယ်သူအမည်',
+        'handler_remarks' => 'ကိုင်တွယ်သူမှတ်ချက်များ',
         'purpose' => 'ရည်ရွယ်ချက်',
-        'handler_remarks' => 'ကိုင်တွယ်မှုမှတ်ချက်များ',
-        'rating_title' => 'ကျေးဇူးတင်မှုအဆင့်သတ်မှတ်ခြင်း',
+        'reason' => 'အကြောင်းအရာ',
+        'remarks' => 'မှတ်ချက်များ',
+        'suggestion' => 'အကြံအစည်',
+        'leave_type' => 'အငြိုးပြုစုအမျိုးအစား',
+        'start_date' => 'စတင်နေ့',
+        'end_date' => 'အဆုံးသတ်နေ့',
+        'total_days' => 'စုစုပေါင်းနေ့များ',
+        'leave_reason' => 'အငြိုးပြုစုအကြောင်းအရာ',
+        'certificate_type' => 'လက်မှတ်အမျိုးအစား',
+        'certificate_no' => 'လက်မှတ်နံပါတ်',
+        'salary_info' => 'လစာအချက်အလက်',
+        'base_salary' => 'အခြေခံလစာ',
+        'hiring_type' => 'လုပ်ခန်းအမျိုးအစား',
+        'date_of_hire' => 'လုပ်ခန်းနေ့',
+        'card_reason' => 'ကဒ်တောင်းခံအကြောင်းအရာ',
+        'card_status' => 'ကဒ်အနေအထား',
+        'route' => 'လမ်းကြောင်း',
+        'pickup_location' => 'ရယူမည့်နေရာ',
+        'start_date_bus' => 'ဝန်ဆောင်မှုစတင်နေ့',
+        'locker_number' => 'အိတ်နံပါတ်',
+        'assigned_locker' => 'သတ်မှတ်သည့်အိတ်',
+        'request_type' => 'တောင်းခံအမျိုးအစား',
+        'items_list' => 'ပစ္စည်းစာရင်း',
+        'quantity' => 'အရေအတွက်',
+        'supplies_reason' => 'ပေးအမ်အကြောင်းအရာ',
+        'test_info' => 'အရည်အချင်းစမ်းသပ်မှုအချက်အလက်',
+        'service_category' => 'ဝန်ဆောင်မှုအမျိုးအစား',
+        'service_type' => 'ဝန်ဆောင်မှုအမျိုးအစား',
+        'submission_date' => 'တင်သွင်းသည့်နေ့',
+        'rating_title' => 'संतुष्टिতां အဆင့်သတ်မှတ်ခြင်း',
         'rating_label' => 'အဆင့် (၁-၅ ကြယ်)',
-        'additional_feedback' => 'အခြားတစ်ခုအဆင့်သတ်မှတ်ခြင်း',
+        'additional_feedback' => 'အခြားအဆင့်သတ်မှတ်ခြင်း',
         'feedback_placeholder' => 'သင်၏အကြံအစည်ကိုထည့်သွင်းပါ (ရှိရင်)',
         'submit_rating' => 'အဆင့်သတ်မှတ်မှုတင်သွင်းမည်',
         'close' => 'ပိတ်မည်',
@@ -150,18 +278,16 @@ $translations = [
         'locker_request' => 'အိတ်ဆောင်တင်သွင်းမှုတောင်းခံမှု',
         'supplies_request' => 'ပရိယာယ်တောင်းခံမှု',
         'skill_test_request' => 'အရည်အချင်းစမ်းသပ်မှုတောင်းခံမှု',
-        'document_submission' => 'စာ類တင်သွင်းမှု',
+        'document_submission' => 'စာ类တင်သွင်းမှု',
+        'no_data' => 'အချက်အလက်မရှိ',
+        'not_assigned' => 'ဒီတစ်ခါမှ မည့်အပ်မထားရသေးပါ',
     ]
 ];
-
 // Get current language strings
 $t = $translations[$current_lang] ?? $translations['th'];
-
 $page_title = $t['page_title'];
 ensure_session_started();
-
 $conn = getDbConnection();
-
 // Request type mapping with multi-language support
 $request_types = [
     'leave_requests' => ['th' => 'ใบลา', 'en' => 'Leave Request', 'my' => 'အငြိုးပြုစုတောင်းခံမှု'],
@@ -171,21 +297,17 @@ $request_types = [
     'locker_requests' => ['th' => 'ตู้ล็อกเกอร์', 'en' => 'Locker Request', 'my' => 'အိတ်ဆောင်တင်သွင်းမှုတောင်းခံမှု'],
     'supplies_requests' => ['th' => 'วัสดุสำนักงาน', 'en' => 'Supplies Request', 'my' => 'ပရိယာယ်တောင်းခံမှု'],
     'skill_test_requests' => ['th' => 'ทดสอบทักษะ', 'en' => 'Skill Test Request', 'my' => 'အရည်အချင်းစမ်းသပ်မှုတောင်းခံမှု'],
-    'document_submissions' => ['th' => 'ลงชื่อส่งเอกสาร', 'en' => 'Document Submission', 'my' => 'စာ類တင်သွင်းမှု']
+    'document_submissions' => ['th' => 'ลงชื่อส่งเอกสาร', 'en' => 'Document Submission', 'my' => 'စာ类တင်သွင်းမှု']
 ];
-
 // Status mapping with multi-language support
 $status_map = [
     'th' => ['New' => 'ใหม่', 'In Progress' => 'กำลังดำเนิน', 'Complete' => 'เสร็จสิ้น', 'Cancelled' => 'ยกเลิก'],
     'en' => ['New' => 'New', 'In Progress' => 'In Progress', 'Complete' => 'Complete', 'Cancelled' => 'Cancelled'],
     'my' => ['New' => 'အသစ်', 'In Progress' => 'လုပ်ဆောင်နေ', 'Complete' => 'ပြည့်စုံမည်', 'Cancelled' => 'ပယ်ဖျက်ခြင်း']
 ];
-
 // Get all requests for this user
 $all_requests = [];
-
 foreach ($request_types as $table => $type_names) {
-    // For document_submissions, use submission_id instead of request_id
     $id_column = ($table === 'document_submissions') ? 'submission_id' : 'request_id';
     
     $sql = "SELECT 
@@ -210,18 +332,14 @@ foreach ($request_types as $table => $type_names) {
     }
     $stmt->close();
 }
-
 // Sort by date
 usort($all_requests, function($a, $b) {
     return strtotime($b['created_at']) - strtotime($a['created_at']);
 });
-
 $conn->close();
-
 include __DIR__ . '/../../includes/header.php';
 include __DIR__ . '/../../includes/sidebar.php';
 ?>
-
 <!DOCTYPE html>
 <html lang="<?php echo $current_lang; ?>" class="<?php echo $is_dark ? 'dark' : ''; ?>">
 <head>
@@ -247,9 +365,45 @@ include __DIR__ . '/../../includes/sidebar.php';
             z-index: 50;
             align-items: center;
             justify-content: center;
+            overflow-y: auto;
         }
         .modal-backdrop.active {
             display: flex;
+        }
+        .detail-section {
+            background: rgba(0,0,0,0.1);
+            border-left: 4px solid #3b82f6;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            margin-bottom: 1rem;
+        }
+        .detail-section.dark {
+            background: rgba(255,255,255,0.05);
+        }
+        .detail-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .detail-item {
+            padding: 0.5rem 0;
+        }
+        .detail-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            opacity: 0.8;
+            margin-bottom: 0.25rem;
+        }
+        .detail-value {
+            font-size: 1rem;
+            font-weight: 500;
+            color: inherit;
+        }
+        @media (max-width: 768px) {
+            .detail-row {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -271,7 +425,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                     </div>
                 </div>
             </div>
-
             <!-- Requests Table -->
             <div class="<?php echo $card_bg; ?> rounded-lg shadow-sm border <?php echo $border_class; ?> overflow-hidden">
                 <div class="overflow-x-auto">
@@ -367,26 +520,28 @@ include __DIR__ . '/../../includes/sidebar.php';
             </div>
         </div>
     </div>
-
-    <!-- View Details Modal -->
+    <!-- View Details Modal - ENHANCED with more detailed information -->
     <div id="detailsModal" class="modal-backdrop">
-        <div class="<?php echo $card_bg; ?> rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border <?php echo $border_class; ?> m-4">
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-xl font-bold <?php echo $text_class; ?>"><?php echo $t['request_details']; ?></h3>
+        <div class="<?php echo $card_bg; ?> rounded-xl shadow-2xl max-w-4xl w-full max-h-[95vh] overflow-y-auto border <?php echo $border_class; ?> m-4 my-auto">
+            <div class="p-6 lg:p-8">
+                <div class="flex items-center justify-between mb-6 sticky top-0 bg-inherit z-10 pb-4 border-b <?php echo $border_class; ?>">
+                    <h3 class="text-2xl font-bold <?php echo $text_class; ?>"><?php echo $t['request_details']; ?></h3>
                     <button onclick="closeModal()" class="<?php echo $is_dark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-700'; ?>">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                     </button>
                 </div>
-                <div id="detailsContent">
+                <div id="detailsContent" class="space-y-6">
                     <!-- Content loaded via JavaScript -->
+                    <div class="text-center py-12">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                        <p class="mt-4"><?php echo $t['error_loading']; ?></p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-
     <!-- Rating Modal -->
     <div id="ratingModal" class="modal-backdrop">
         <div class="<?php echo $card_bg; ?> rounded-xl shadow-2xl max-w-md w-full border <?php echo $border_class; ?> m-4">
@@ -437,90 +592,294 @@ include __DIR__ . '/../../includes/sidebar.php';
             </div>
         </div>
     </div>
-
     <script>
         const currentLang = '<?php echo $current_lang; ?>';
         const t = <?php echo json_encode($t); ?>;
         const statusMap = <?php echo json_encode($status_map); ?>;
-
+        const isDark = <?php echo json_encode($is_dark); ?>;
+        
         function viewDetails(id, table) {
             const modal = document.getElementById('detailsModal');
             const content = document.getElementById('detailsContent');
             
-            content.innerHTML = '<div class="text-center py-8"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div></div>';
+            content.innerHTML = '<div class="text-center py-12"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div></div>';
             modal.classList.add('active');
             
             fetch(`<?php echo BASE_PATH; ?>/api/get_request_details.php?id=${id}&table=${table}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        content.innerHTML = generateDetailsHTML(data.request, table);
+                        content.innerHTML = generateDetailedHTML(data.request, table);
                     } else {
-                        content.innerHTML = `<p class="text-red-600">${data.message}</p>`;
+                        content.innerHTML = `<div class="bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-lg p-4"><p class="text-red-800 dark:text-red-200">${data.message || t['error_loading']}</p></div>`;
                     }
                 })
                 .catch(error => {
-                    content.innerHTML = '<p class="text-red-600">' + t['error_loading'] + '</p>';
+                    console.error('Error:', error);
+                    content.innerHTML = '<div class="bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-lg p-4"><p class="text-red-800 dark:text-red-200">' + t['error_loading'] + '</p></div>';
                 });
         }
-
-        function generateDetailsHTML(req, table) {
-            let html = `<div class="space-y-4">`;
+        
+        function generateDetailedHTML(req, table) {
+            let html = ``;
+            const detailClass = isDark ? 'detail-section dark' : 'detail-section';
+            const valueColorClass = isDark ? 'text-gray-900 dark:text-white' : 'text-gray-900';
             
-            // Common fields
+            // 1. REQUEST HEADER INFO
             html += `
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-sm <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?>">${t['request_id_label']}</label>
-                        <p class="<?php echo $text_class; ?> font-mono">#${String(req.request_id).padStart(5, '0')}</p>
+                <div class="${detailClass}">
+                    <h4 class="font-bold text-lg mb-4">📋 ${t['request_details']}</h4>
+                    <div class="detail-row">
+                        <div class="detail-item">
+                            <div class="detail-label">${t['request_id_label']}</div>
+                            <div class="detail-value font-mono text-gray-900 dark:text-white">#${String(req.request_id).padStart(5, '0')}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">${t['status_label']}</div>
+                            <div class="detail-value text-gray-900 dark:text-white">${statusMap[currentLang][req.status] || req.status}</div>
+                        </div>
                     </div>
-                    <div>
-                        <label class="text-sm <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?>">${t['status_label']}</label>
-                        <p class="<?php echo $text_class; ?>">${statusMap[currentLang][req.status] || req.status}</p>
+                    <div class="detail-row">
+                        <div class="detail-item">
+                            <div class="detail-label">${t['created_date']}</div>
+                            <div class="detail-value text-gray-900 dark:text-white">${new Date(req.created_at).toLocaleString(currentLang === 'th' ? 'th-TH' : currentLang === 'en' ? 'en-US' : 'my-MM')}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">${t['updated_date']}</div>
+                            <div class="detail-value text-gray-900 dark:text-white">${new Date(req.updated_at).toLocaleString(currentLang === 'th' ? 'th-TH' : currentLang === 'en' ? 'en-US' : 'my-MM')}</div>
+                        </div>
                     </div>
-                </div>
-                <div>
-                    <label class="text-sm <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?>">${t['created_date']}</label>
-                    <p class="<?php echo $text_class; ?>">${new Date(req.created_at).toLocaleString('th-TH')}</p>
                 </div>
             `;
             
-            // Certificate specific fields
-            if (table === 'certificate_requests' && req.cert_type_id) {
+            // 2. EMPLOYEE INFORMATION - FIXED with dark mode text color
+            html += `
+                <div class="${detailClass}">
+                    <h4 class="font-bold text-lg mb-4">👤 ${t['employee_info']}</h4>
+                    <div class="detail-row">
+                        <div class="detail-item">
+                            <div class="detail-label">${t['employee_id']}</div>
+                            <div class="detail-value font-mono text-gray-900 dark:text-white">${req.employee_id || t['no_data']}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">${t['employee_name']}</div>
+                            <div class="detail-value text-gray-900 dark:text-white">${req.employee_name || t['no_data']}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // 3. REQUEST TYPE SPECIFIC DETAILS
+            if (table === 'leave_requests') {
                 html += `
-                    <div>
-                        <label class="text-sm <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?>">${t['certificate_type']}</label>
-                        <p class="<?php echo $text_class; ?> font-medium">${req.cert_type_name || 'ระบุในระบบ'}</p>
+                    <div class="${detailClass}">
+                        <h4 class="font-bold text-lg mb-4">🏖️ ${t['leave_request']}</h4>
+                        <div class="detail-row">
+                            <div class="detail-item">
+                                <div class="detail-label">${t['leave_type']}</div>
+                                <div class="detail-value text-gray-900 dark:text-white">${req.leave_type || t['no_data']}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">${t['total_days']}</div>
+                                <div class="detail-value text-gray-900 dark:text-white">${req.total_days || t['no_data']} ${t['total_days']}</div>
+                            </div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-item">
+                                <div class="detail-label">${t['start_date']}</div>
+                                <div class="detail-value text-gray-900 dark:text-white">${req.start_date ? new Date(req.start_date).toLocaleDateString() : t['no_data']}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">${t['end_date']}</div>
+                                <div class="detail-value text-gray-900 dark:text-white">${req.end_date ? new Date(req.end_date).toLocaleDateString() : t['no_data']}</div>
+                            </div>
+                        </div>
+                        ${req.reason ? `<div class="detail-item mt-4"><div class="detail-label">${t['leave_reason']}</div><div class="detail-value break-words text-gray-900 dark:text-white">${req.reason}</div></div>` : ''}
                     </div>
                 `;
             }
             
-            if (req.purpose) {
+            if (table === 'certificate_requests') {
                 html += `
-                    <div>
-                        <label class="text-sm <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?>">${t['purpose']}</label>
-                        <p class="<?php echo $text_class; ?>">${req.purpose}</p>
+                    <div class="${detailClass}">
+                        <h4 class="font-bold text-lg mb-4">📄 ${t['certificate_request']}</h4>
+                        <div class="detail-row">
+                            <div class="detail-item">
+                                <div class="detail-label">${t['certificate_no']}</div>
+                                <div class="detail-value font-mono text-gray-900 dark:text-white">${req.certificate_no || t['no_data']}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">${t['hiring_type']}</div>
+                                <div class="detail-value text-gray-900 dark:text-white">${req.hiring_type || t['no_data']}</div>
+                            </div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-item">
+                                <div class="detail-label">${t['date_of_hire']}</div>
+                                <div class="detail-value text-gray-900 dark:text-white">${req.date_of_hire ? new Date(req.date_of_hire).toLocaleDateString() : t['no_data']}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">${t['base_salary']}</div>
+                                <div class="detail-value font-mono text-gray-900 dark:text-white">${req.base_salary ? parseFloat(req.base_salary).toLocaleString() : t['no_data']}</div>
+                            </div>
+                        </div>
+                        ${req.purpose ? `<div class="detail-item mt-4"><div class="detail-label">${t['purpose']}</div><div class="detail-value break-words text-gray-900 dark:text-white">${req.purpose}</div></div>` : ''}
                     </div>
                 `;
             }
             
+            if (table === 'shuttle_bus_requests') {
+                html += `
+                    <div class="${detailClass}">
+                        <h4 class="font-bold text-lg mb-4">🚌 ${t['shuttle_bus_request']}</h4>
+                        <div class="detail-row">
+                            <div class="detail-item">
+                                <div class="detail-label">${t['route']}</div>
+                                <div class="detail-value text-gray-900 dark:text-white">${req.route || t['no_data']}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">${t['pickup_location']}</div>
+                                <div class="detail-value text-gray-900 dark:text-white">${req.pickup_location || t['no_data']}</div>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">${t['start_date_bus']}</div>
+                            <div class="detail-value text-gray-900 dark:text-white">${req.start_date ? new Date(req.start_date).toLocaleDateString() : t['no_data']}</div>
+                        </div>
+                        ${req.reason ? `<div class="detail-item mt-4"><div class="detail-label">${t['reason']}</div><div class="detail-value break-words text-gray-900 dark:text-white">${req.reason}</div></div>` : ''}
+                    </div>
+                `;
+            }
+            
+            if (table === 'locker_requests') {
+                html += `
+                    <div class="${detailClass}">
+                        <h4 class="font-bold text-lg mb-4">🔐 ${t['locker_request']}</h4>
+                        ${req.assigned_locker_id ? `
+                            <div class="detail-item">
+                                <div class="detail-label">${t['assigned_locker']}</div>
+                                <div class="detail-value font-mono text-gray-900 dark:text-white">Locker #${req.assigned_locker_id}</div>
+                            </div>
+                        ` : `
+                            <div class="detail-item">
+                                <div class="detail-label">${t['assigned_locker']}</div>
+                                <div class="detail-value text-gray-900 dark:text-white">${t['not_assigned']}</div>
+                            </div>
+                        `}
+                        ${req.reason ? `<div class="detail-item mt-4"><div class="detail-label">${t['reason']}</div><div class="detail-value break-words text-gray-900 dark:text-white">${req.reason}</div></div>` : ''}
+                    </div>
+                `;
+            }
+            
+            if (table === 'supplies_requests') {
+                html += `
+                    <div class="${detailClass}">
+                        <h4 class="font-bold text-lg mb-4">📦 ${t['supplies_request']}</h4>
+                        <div class="detail-row">
+                            <div class="detail-item">
+                                <div class="detail-label">${t['request_type']}</div>
+                                <div class="detail-value text-gray-900 dark:text-white">${req.request_type || t['no_data']}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">${t['quantity']}</div>
+                                <div class="detail-value text-gray-900 dark:text-white">${req.quantity || t['no_data']}</div>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">${t['items_list']}</div>
+                            <div class="detail-value break-words whitespace-pre-wrap text-gray-900 dark:text-white">${req.items_list || t['no_data']}</div>
+                        </div>
+                        ${req.reason ? `<div class="detail-item mt-4"><div class="detail-label">${t['reason']}</div><div class="detail-value break-words text-gray-900 dark:text-white">${req.reason}</div></div>` : ''}
+                    </div>
+                `;
+            }
+            
+            if (table === 'id_card_requests') {
+                html += `
+                    <div class="${detailClass}">
+                        <h4 class="font-bold text-lg mb-4">🎫 ${t['id_card_request']}</h4>
+                        ${req.reason ? `<div class="detail-item"><div class="detail-label">${t['reason']}</div><div class="detail-value break-words text-gray-900 dark:text-white">${req.reason}</div></div>` : ''}
+                    </div>
+                `;
+            }
+            
+            if (table === 'skill_test_requests') {
+                html += `
+                    <div class="${detailClass}">
+                        <h4 class="font-bold text-lg mb-4">🧪 ${t['skill_test_request']}</h4>
+                        ${req.reason ? `<div class="detail-item"><div class="detail-label">${t['reason']}</div><div class="detail-value break-words text-gray-900 dark:text-white">${req.reason}</div></div>` : ''}
+                    </div>
+                `;
+            }
+            
+            if (table === 'document_submissions') {
+                html += `
+                    <div class="${detailClass}">
+                        <h4 class="font-bold text-lg mb-4">📃 ${t['document_submission']}</h4>
+                        <div class="detail-item">
+                            <div class="detail-label">${t['submission_date']}</div>
+                            <div class="detail-value text-gray-900 dark:text-white">${req.submission_date ? new Date(req.submission_date).toLocaleString() : t['no_data']}</div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 4. HANDLER INFORMATION (if assigned)
+            if (req.handler_id) {
+                html += `
+                    <div class="${detailClass}">
+                        <h4 class="font-bold text-lg mb-4">👨‍💼 ${t['handler_info']}</h4>
+                        <div class="detail-row">
+                            <div class="detail-item">
+                                <div class="detail-label">${t['handler_id']}</div>
+                                <div class="detail-value font-mono text-gray-900 dark:text-white">${req.handler_id}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 5. REMARKS/FEEDBACK
             if (req.handler_remarks) {
                 html += `
-                    <div class="<?php echo $is_dark ? 'bg-gray-700' : 'bg-blue-50'; ?> p-4 rounded-lg">
-                        <label class="text-sm font-medium <?php echo $text_class; ?>">${t['handler_remarks']}</label>
-                        <p class="<?php echo $text_class; ?> mt-1">${req.handler_remarks}</p>
+                    <div class="bg-blue-50 dark:bg-blue-900 border-l-4 border-blue-500 p-4 rounded">
+                        <h4 class="font-bold mb-2 flex items-center text-gray-900 dark:text-white">
+                            <span class="text-blue-500 mr-2">💬</span>
+                            ${t['handler_remarks']}
+                        </h4>
+                        <p class="break-words whitespace-pre-wrap text-gray-900 dark:text-white">${req.handler_remarks}</p>
                     </div>
                 `;
             }
             
-            html += `</div>`;
+            // 6. SATISFACTION RATING (if rated)
+            if (req.satisfaction_score) {
+                html += `
+                    <div class="${detailClass}">
+                        <h4 class="font-bold text-lg mb-4">⭐ ให้คะแนน</h4>
+                        <div class="detail-row">
+                            <div class="detail-item">
+                                <div class="detail-label">ระดับความพึงพอใจ</div>
+                                <div class="detail-value text-gray-900 dark:text-white">${'★'.repeat(req.satisfaction_score)}${'☆'.repeat(5 - req.satisfaction_score)}</div>
+                            </div>
+                        </div>
+                        ${req.satisfaction_feedback ? `
+                            <div class="detail-item mt-4">
+                                <div class="detail-label">ความเห็น</div>
+                                <div class="detail-value break-words text-gray-900 dark:text-white">${req.satisfaction_feedback}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+            
             return html;
         }
-
+        
         function closeModal() {
             document.getElementById('detailsModal').classList.remove('active');
         }
-
+        
         function cancelRequest(id, table) {
             if (!confirm(t['confirm_cancel'])) {
                 return;
@@ -541,21 +900,22 @@ include __DIR__ . '/../../includes/sidebar.php';
                 }
             })
             .catch(error => {
+                console.error('Error:', error);
                 showToast(t['error_occurred'], 'error');
             });
         }
-
+        
         function rateRequest(id, table) {
             document.getElementById('rating_request_id').value = id;
             document.getElementById('rating_table').value = table;
             document.getElementById('ratingModal').classList.add('active');
         }
-
+        
         function closeRatingModal() {
             document.getElementById('ratingModal').classList.remove('active');
             document.getElementById('ratingForm').reset();
         }
-
+        
         function submitRating(event) {
             event.preventDefault();
             
@@ -583,32 +943,30 @@ include __DIR__ . '/../../includes/sidebar.php';
                 }
             })
             .catch(error => {
+                console.error('Error:', error);
                 showToast(t['error_occurred'], 'error');
             });
         }
-
-        // Close modals on ESC
+        
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeModal();
                 closeRatingModal();
             }
         });
-
-        // Close modals on outside click
+        
         document.getElementById('detailsModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeModal();
             }
         });
-
+        
         document.getElementById('ratingModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeRatingModal();
             }
         });
-
-        // Toast notification function
+        
         function showToast(message, type = 'info') {
             const bgColor = type === 'success' ? 'bg-green-500' : (type === 'error' ? 'bg-red-500' : 'bg-blue-500');
             const toast = document.createElement('div');
@@ -621,7 +979,6 @@ include __DIR__ . '/../../includes/sidebar.php';
             }, 3000);
         }
     </script>
-
     <style>
         @keyframes fadeInUp {
             from {
@@ -637,7 +994,6 @@ include __DIR__ . '/../../includes/sidebar.php';
             animation: fadeInUp 0.3s ease-in-out;
         }
     </style>
-
     <?php include __DIR__ . '/../../includes/footer.php'; ?>
 </body>
 </html>

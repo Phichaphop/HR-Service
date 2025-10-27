@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Document Delivery System - Enhanced Beautiful Design
  * ระบบลงชื่อส่งเอกสาร (ดีไซน์ปรับปรุง + Button Selection สำหรับ Document Type)
@@ -11,110 +12,111 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_SERVER['CONTENT_TYPE'] === 'appli
     exit;
 }
 
-function handleApiRequest() {
+function handleApiRequest()
+{
     header('Content-Type: application/json; charset=utf-8');
-    
+
     try {
         require_once __DIR__ . '/../../config/db_config.php';
-        
+
         $json_input = file_get_contents('php://input');
         if (empty($json_input)) {
             throw new Exception('Empty request body');
         }
-        
+
         $input = json_decode($json_input, true);
         if ($input === null) {
             throw new Exception('Invalid JSON format: ' . json_last_error_msg());
         }
-        
+
         $required = ['employee_id', 'delivery_type', 'service_type', 'document_category_id', 'satisfaction_score'];
         foreach ($required as $field) {
             if (!isset($input[$field]) || ($input[$field] === '' && $field !== 'remarks')) {
                 throw new Exception("Missing required field: $field");
             }
         }
-        
+
         $employee_id = trim($input['employee_id']);
         $delivery_type = trim($input['delivery_type']);
         $service_type = trim($input['service_type']);
         $category_id = intval($input['document_category_id']);
         $remarks = trim($input['remarks'] ?? '');
         $satisfaction_score = intval($input['satisfaction_score']);
-        
+
         if (empty($employee_id) || strlen($employee_id) > 20) {
             throw new Exception('Invalid employee ID');
         }
-        
+
         if ($satisfaction_score < 1 || $satisfaction_score > 5) {
             throw new Exception('Invalid satisfaction score (must be 1-5)');
         }
-        
+
         if ($category_id <= 0) {
             throw new Exception('Invalid category ID');
         }
-        
+
         if (!in_array($delivery_type, ['submit', 'receive'])) {
             throw new Exception('Invalid delivery type');
         }
-        
+
         if (!in_array($service_type, ['individual', 'group'])) {
             throw new Exception('Invalid service type');
         }
-        
+
         $conn = getDbConnection();
         if (!$conn) {
             throw new Exception('Database connection failed');
         }
-        
+
         $emp_id_safe = $conn->real_escape_string($employee_id);
-        
+
         $emp_query = "SELECT employee_id, full_name_th FROM employees WHERE employee_id = '$emp_id_safe' AND status_id = 1 LIMIT 1";
         $emp_result = $conn->query($emp_query);
-        
+
         if (!$emp_result) {
             throw new Exception('Database query error: ' . $conn->error);
         }
-        
+
         if ($emp_result->num_rows === 0) {
             throw new Exception('Employee not found or inactive');
         }
-        
+
         $employee = $emp_result->fetch_assoc();
-        
+
         $cat_query = "SELECT category_id, category_name_th FROM service_category_master WHERE category_id = $category_id LIMIT 1";
         $cat_result = $conn->query($cat_query);
-        
+
         if (!$cat_result) {
             throw new Exception('Database query error: ' . $conn->error);
         }
-        
+
         if ($cat_result->num_rows === 0) {
             throw new Exception('Invalid document category');
         }
-        
+
         $category = $cat_result->fetch_assoc();
-        
+
         $service_type_id = ($service_type === 'group') ? 2 : 1;
-        
+
         $feedback = "Delivery: $delivery_type | Service: $service_type | Remarks: $remarks";
-        
+
         $employee_name = $employee['full_name_th'] ?? $employee_id;
         $employee_name_safe = $conn->real_escape_string($employee_name);
         $feedback_safe = $conn->real_escape_string($feedback);
-        
+
         $insert_query = "INSERT INTO document_submissions 
                         (employee_id, employee_name, service_category_id, service_type_id, status, 
                          satisfaction_score, satisfaction_feedback, created_at, updated_at) 
                         VALUES ('$emp_id_safe', '$employee_name_safe', $category_id, $service_type_id, 'Complete', 
                                 $satisfaction_score, '$feedback_safe', NOW(), NOW())";
-        
+
         if (!$conn->query($insert_query)) {
             throw new Exception('Insert failed: ' . $conn->error);
         }
-        
+
         $submission_id = $conn->insert_id;
         $conn->close();
-        
+
         http_response_code(200);
         echo json_encode([
             'success' => true,
@@ -128,7 +130,6 @@ function handleApiRequest() {
                 'timestamp' => date('Y-m-d H:i:s')
             ]
         ], JSON_UNESCAPED_UNICODE);
-        
     } catch (Exception $e) {
         http_response_code(400);
         echo json_encode([
@@ -251,12 +252,28 @@ $conn->close();
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $current_lang; ?>">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $t['page_title']; ?></title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="<?php echo BASE_PATH; ?>/assets/images/favicons/favicon.ico">
+    <link rel="icon" type="image/png" sizes="16x16" href="<?php echo BASE_PATH; ?>/assets/images/favicons/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="<?php echo BASE_PATH; ?>/assets/images/favicons/favicon-32x32.png">
+
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="<?php echo BASE_PATH; ?>/assets/images/favicons/apple-touch-icon.png">
+
+    <!-- Android Chrome Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="<?php echo BASE_PATH; ?>/assets/images/favicons/android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="<?php echo BASE_PATH; ?>/assets/images/favicons/android-chrome-512x512.png">
+
+
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
+
 <body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen font-system">
     <!-- Decorative Elements -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none">
@@ -267,10 +284,10 @@ $conn->close();
     <!-- Main Container -->
     <div class="relative z-10 flex min-h-screen items-center justify-center py-12 px-4 sm:px-6">
         <div class="w-full max-w-2xl">
-            
+
             <!-- Card Container -->
             <div class="bg-white rounded-2xl shadow-2xl overflow-hidden">
-                
+
                 <!-- Header Section with Gradient -->
                 <div class="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 px-6 sm:px-8 py-10 sm:py-12">
                     <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">
@@ -282,16 +299,16 @@ $conn->close();
 
                     <!-- Language Switcher -->
                     <div class="flex gap-2 flex-wrap">
-                        <a href="?lang=th" 
-                           class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-300 backdrop-blur-sm <?php echo $current_lang === 'th' ? 'bg-white text-blue-600 shadow-lg' : 'bg-white/20 text-white hover:bg-white/30'; ?>">
+                        <a href="?lang=th"
+                            class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-300 backdrop-blur-sm <?php echo $current_lang === 'th' ? 'bg-white text-blue-600 shadow-lg' : 'bg-white/20 text-white hover:bg-white/30'; ?>">
                             ไทย
                         </a>
-                        <a href="?lang=en" 
-                           class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-300 backdrop-blur-sm <?php echo $current_lang === 'en' ? 'bg-white text-blue-600 shadow-lg' : 'bg-white/20 text-white hover:bg-white/30'; ?>">
+                        <a href="?lang=en"
+                            class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-300 backdrop-blur-sm <?php echo $current_lang === 'en' ? 'bg-white text-blue-600 shadow-lg' : 'bg-white/20 text-white hover:bg-white/30'; ?>">
                             English
                         </a>
-                        <a href="?lang=my" 
-                           class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-300 backdrop-blur-sm <?php echo $current_lang === 'my' ? 'bg-white text-blue-600 shadow-lg' : 'bg-white/20 text-white hover:bg-white/30'; ?>">
+                        <a href="?lang=my"
+                            class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-300 backdrop-blur-sm <?php echo $current_lang === 'my' ? 'bg-white text-blue-600 shadow-lg' : 'bg-white/20 text-white hover:bg-white/30'; ?>">
                             မြန်မာ
                         </a>
                     </div>
@@ -309,15 +326,14 @@ $conn->close();
                                 <span class="text-red-500">*</span>
                             </label>
                             <div class="relative">
-                                <input 
+                                <input
                                     list="employeeList"
                                     id="employee_id"
                                     name="employee_id"
                                     type="text"
                                     required
                                     placeholder="ค้นหาหรือพิมพ์รหัสพนักงาน"
-                                    class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200 transition-all bg-gray-50 hover:bg-white"
-                                >
+                                    class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200 transition-all bg-gray-50 hover:bg-white">
                                 <datalist id="employeeList">
                                     <?php foreach ($employees as $emp): ?>
                                         <option value="<?php echo htmlspecialchars($emp['employee_id']); ?>">
@@ -343,33 +359,29 @@ $conn->close();
                             </label>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
-                                    <input 
+                                    <input
                                         type="radio"
                                         id="delivery_submit"
                                         name="delivery_type"
                                         value="submit"
                                         checked
-                                        class="hidden peer"
-                                    >
-                                    <label 
+                                        class="hidden peer">
+                                    <label
                                         for="delivery_submit"
-                                        class="flex items-center justify-center px-4 py-3 border-2 border-gray-300 rounded-xl text-sm font-semibold text-gray-700 cursor-pointer transition-all hover:border-blue-400 hover:shadow-md peer-checked:border-blue-600 peer-checked:bg-gradient-to-r peer-checked:from-blue-50 peer-checked:to-indigo-50 peer-checked:text-blue-700 peer-checked:shadow-lg"
-                                    >
+                                        class="flex items-center justify-center px-4 py-3 border-2 border-gray-300 rounded-xl text-sm font-semibold text-gray-700 cursor-pointer transition-all hover:border-blue-400 hover:shadow-md peer-checked:border-blue-600 peer-checked:bg-gradient-to-r peer-checked:from-blue-50 peer-checked:to-indigo-50 peer-checked:text-blue-700 peer-checked:shadow-lg">
                                         <?php echo $t['delivery_submit']; ?>
                                     </label>
                                 </div>
                                 <div>
-                                    <input 
+                                    <input
                                         type="radio"
                                         id="delivery_receive"
                                         name="delivery_type"
                                         value="receive"
-                                        class="hidden peer"
-                                    >
-                                    <label 
+                                        class="hidden peer">
+                                    <label
                                         for="delivery_receive"
-                                        class="flex items-center justify-center px-4 py-3 border-2 border-gray-300 rounded-xl text-sm font-semibold text-gray-700 cursor-pointer transition-all hover:border-blue-400 hover:shadow-md peer-checked:border-blue-600 peer-checked:bg-gradient-to-r peer-checked:from-blue-50 peer-checked:to-indigo-50 peer-checked:text-blue-700 peer-checked:shadow-lg"
-                                    >
+                                        class="flex items-center justify-center px-4 py-3 border-2 border-gray-300 rounded-xl text-sm font-semibold text-gray-700 cursor-pointer transition-all hover:border-blue-400 hover:shadow-md peer-checked:border-blue-600 peer-checked:bg-gradient-to-r peer-checked:from-blue-50 peer-checked:to-indigo-50 peer-checked:text-blue-700 peer-checked:shadow-lg">
                                         <?php echo $t['delivery_receive']; ?>
                                     </label>
                                 </div>
@@ -385,33 +397,29 @@ $conn->close();
                             </label>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
-                                    <input 
+                                    <input
                                         type="radio"
                                         id="service_individual"
                                         name="service_type"
                                         value="individual"
                                         checked
-                                        class="hidden peer"
-                                    >
-                                    <label 
+                                        class="hidden peer">
+                                    <label
                                         for="service_individual"
-                                        class="flex items-center justify-center px-4 py-3 border-2 border-gray-300 rounded-xl text-sm font-semibold text-gray-700 cursor-pointer transition-all hover:border-indigo-400 hover:shadow-md peer-checked:border-indigo-600 peer-checked:bg-gradient-to-r peer-checked:from-indigo-50 peer-checked:to-purple-50 peer-checked:text-indigo-700 peer-checked:shadow-lg"
-                                    >
+                                        class="flex items-center justify-center px-4 py-3 border-2 border-gray-300 rounded-xl text-sm font-semibold text-gray-700 cursor-pointer transition-all hover:border-indigo-400 hover:shadow-md peer-checked:border-indigo-600 peer-checked:bg-gradient-to-r peer-checked:from-indigo-50 peer-checked:to-purple-50 peer-checked:text-indigo-700 peer-checked:shadow-lg">
                                         <?php echo $t['service_individual']; ?>
                                     </label>
                                 </div>
                                 <div>
-                                    <input 
+                                    <input
                                         type="radio"
                                         id="service_group"
                                         name="service_type"
                                         value="group"
-                                        class="hidden peer"
-                                    >
-                                    <label 
+                                        class="hidden peer">
+                                    <label
                                         for="service_group"
-                                        class="flex items-center justify-center px-4 py-3 border-2 border-gray-300 rounded-xl text-sm font-semibold text-gray-700 cursor-pointer transition-all hover:border-indigo-400 hover:shadow-md peer-checked:border-indigo-600 peer-checked:bg-gradient-to-r peer-checked:from-indigo-50 peer-checked:to-purple-50 peer-checked:text-indigo-700 peer-checked:shadow-lg"
-                                    >
+                                        class="flex items-center justify-center px-4 py-3 border-2 border-gray-300 rounded-xl text-sm font-semibold text-gray-700 cursor-pointer transition-all hover:border-indigo-400 hover:shadow-md peer-checked:border-indigo-600 peer-checked:bg-gradient-to-r peer-checked:from-indigo-50 peer-checked:to-purple-50 peer-checked:text-indigo-700 peer-checked:shadow-lg">
                                         <?php echo $t['service_group']; ?>
                                     </label>
                                 </div>
@@ -431,17 +439,15 @@ $conn->close();
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="categoryContainer">
                                 <?php foreach ($categories as $cat): ?>
                                     <div>
-                                        <input 
+                                        <input
                                             type="radio"
                                             id="cat_<?php echo $cat['category_id']; ?>"
                                             name="document_category_id"
                                             value="<?php echo $cat['category_id']; ?>"
-                                            class="hidden peer"
-                                        >
-                                        <label 
+                                            class="hidden peer">
+                                        <label
                                             for="cat_<?php echo $cat['category_id']; ?>"
-                                            class="flex items-center justify-center px-4 py-3 border-2 border-gray-300 rounded-xl text-sm font-semibold text-gray-700 cursor-pointer transition-all hover:border-emerald-400 hover:shadow-md peer-checked:border-emerald-600 peer-checked:bg-gradient-to-r peer-checked:from-emerald-50 peer-checked:to-teal-50 peer-checked:text-emerald-700 peer-checked:shadow-lg"
-                                        >
+                                            class="flex items-center justify-center px-4 py-3 border-2 border-gray-300 rounded-xl text-sm font-semibold text-gray-700 cursor-pointer transition-all hover:border-emerald-400 hover:shadow-md peer-checked:border-emerald-600 peer-checked:bg-gradient-to-r peer-checked:from-emerald-50 peer-checked:to-teal-50 peer-checked:text-emerald-700 peer-checked:shadow-lg">
                                             📎 <?php echo htmlspecialchars($cat['category_name_th']); ?>
                                         </label>
                                     </div>
@@ -455,13 +461,12 @@ $conn->close();
                                 <span class="text-xl">💬</span>
                                 <?php echo $t['remarks']; ?>
                             </label>
-                            <textarea 
+                            <textarea
                                 id="remarks"
                                 name="remarks"
                                 placeholder="<?php echo $t['remarks_placeholder']; ?>"
                                 class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200 transition-all resize-none bg-gray-50 hover:bg-white"
-                                rows="4"
-                            ></textarea>
+                                rows="4"></textarea>
                         </div>
 
                         <!-- Divider -->
@@ -477,19 +482,17 @@ $conn->close();
                             <div class="flex items-center justify-center gap-3" id="starContainer">
                                 <?php for ($i = 1; $i <= 5; $i++): ?>
                                     <div class="relative group">
-                                        <input 
+                                        <input
                                             type="radio"
                                             id="star<?php echo $i; ?>"
                                             name="satisfaction_score"
                                             value="<?php echo $i; ?>"
                                             <?php echo $i === 5 ? 'required' : ''; ?>
-                                            class="hidden peer"
-                                        >
-                                        <label 
+                                            class="hidden peer">
+                                        <label
                                             for="star<?php echo $i; ?>"
                                             class="star-label text-5xl text-gray-300 cursor-pointer transition-all duration-200 hover:scale-125 block"
-                                            data-star="<?php echo $i; ?>"
-                                        >
+                                            data-star="<?php echo $i; ?>">
                                             ★
                                         </label>
                                         <!-- Show rating number on hover -->
@@ -509,16 +512,14 @@ $conn->close();
 
                         <!-- Buttons -->
                         <div class="flex gap-3 pt-4">
-                            <button 
+                            <button
                                 type="submit"
-                                class="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-bold uppercase tracking-wider rounded-xl hover:from-blue-700 hover:to-indigo-700 active:from-blue-800 active:to-indigo-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                            >
+                                class="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-bold uppercase tracking-wider rounded-xl hover:from-blue-700 hover:to-indigo-700 active:from-blue-800 active:to-indigo-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
                                 <?php echo $t['confirm_submit']; ?>
                             </button>
-                            <button 
+                            <button
                                 type="reset"
-                                class="flex-1 px-6 py-3 bg-gray-200 text-gray-700 text-sm font-bold uppercase tracking-wider rounded-xl hover:bg-gray-300 active:bg-gray-400 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-                            >
+                                class="flex-1 px-6 py-3 bg-gray-200 text-gray-700 text-sm font-bold uppercase tracking-wider rounded-xl hover:bg-gray-300 active:bg-gray-400 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
                                 <?php echo $t['clear']; ?>
                             </button>
                         </div>
@@ -560,7 +561,7 @@ $conn->close();
                 };
                 ratingText.textContent = ratings[value] || 'เลือกคะแนน / Select Rating';
                 ratingText.classList.add('text-yellow-600', 'font-bold');
-                
+
                 // Update all star colors based on rating
                 updateStarColors(value);
             });
@@ -667,10 +668,12 @@ $conn->close();
             btn.textContent = t['processing'];
 
             fetch(window.location.href, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            })
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
                 .then(r => r.json())
                 .then(result => {
                     if (result.success) {
@@ -680,14 +683,14 @@ $conn->close();
                             document.getElementById('employeeInfo').classList.add('hidden');
                             document.getElementById('ratingText').textContent = 'เลือกคะแนน / Select Rating';
                             document.getElementById('ratingText').classList.remove('text-yellow-600', 'font-bold');
-                            
+
                             // Reset star colors
                             const starLabels = document.querySelectorAll('.star-label');
                             starLabels.forEach(label => {
                                 label.classList.add('text-gray-300');
                                 label.classList.remove('text-yellow-400', 'scale-125');
                             });
-                            
+
                             btn.disabled = false;
                             btn.textContent = t['confirm_submit'];
                         }, 2000);
@@ -712,7 +715,7 @@ $conn->close();
             }`;
             toast.classList.remove('opacity-0', 'translate-y-2');
             toast.classList.add('opacity-100', 'translate-y-0');
-            
+
             setTimeout(() => {
                 toast.classList.add('opacity-0', 'translate-y-2');
                 toast.classList.remove('opacity-100', 'translate-y-0');
@@ -724,7 +727,7 @@ $conn->close();
             document.getElementById('employeeInfo').classList.add('hidden');
             document.getElementById('ratingText').textContent = 'เลือกคะแนน / Select Rating';
             document.getElementById('ratingText').classList.remove('text-yellow-600', 'font-bold');
-            
+
             // Reset star colors
             const starLabels = document.querySelectorAll('.star-label');
             starLabels.forEach(label => {
@@ -734,4 +737,5 @@ $conn->close();
         });
     </script>
 </body>
+
 </html>

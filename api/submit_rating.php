@@ -1,6 +1,6 @@
 <?php
 /**
- * API: Submit Rating
+ * API: Submit Rating - Fixed Version
  * Employee can rate completed requests
  */
 
@@ -9,23 +9,20 @@ header('Content-Type: application/json');
 require_once __DIR__ . '/../config/db_config.php';
 require_once __DIR__ . '/../controllers/AuthController.php';
 
-// Require authentication
-if (!AuthController::isAuthenticated()) {
-    echo json_encode(['success' => false, 'message' => 'Not authenticated']);
-    exit();
-}
+AuthController::requireAuth();
 
 // Get JSON input
 $input = json_decode(file_get_contents('php://input'), true);
 
-// Debug log
-error_log("Submit Rating Input: " . print_r($input, true));
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-// Support both parameter names for compatibility
 $table = $input['table'] ?? '';
-$request_id = $input['request_id'] ?? ($input['id'] ?? '');
+$request_id = $input['request_id'] ?? '';
 $score = $input['score'] ?? '';
 $feedback = $input['feedback'] ?? '';
+$user_id = $_SESSION['user_id'] ?? '';
 
 // Validation
 if (empty($table)) {
@@ -43,6 +40,11 @@ if ($score === '' || $score < 1 || $score > 5) {
     exit();
 }
 
+if (empty($user_id)) {
+    echo json_encode(['success' => false, 'message' => 'User ID not found']);
+    exit();
+}
+
 // Validate table name (security)
 $allowed_tables = [
     'leave_requests',
@@ -56,7 +58,7 @@ $allowed_tables = [
 ];
 
 if (!in_array($table, $allowed_tables)) {
-    echo json_encode(['success' => false, 'message' => 'Invalid table: ' . $table]);
+    echo json_encode(['success' => false, 'message' => 'Invalid table']);
     exit();
 }
 
@@ -67,49 +69,37 @@ if (!$conn) {
     exit();
 }
 
-// Get current user ID
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-$user_id = $_SESSION['user_id'] ?? '';
-
-if (empty($user_id)) {
-    $conn->close();
-    echo json_encode(['success' => false, 'message' => 'User ID not found in session']);
-    exit();
-}
-
 // Determine the primary key column name
 $id_column = ($table === 'document_submissions') ? 'submission_id' : 'request_id';
 
 // Check if request belongs to this user and is completed
 $check_sql = "SELECT $id_column, employee_id, status, satisfaction_score 
               FROM $table 
-              WHERE $id_column = ?";
+              WHERE $id_column = ? AND employee_id = ?";
+
 $check_stmt = $conn->prepare($check_sql);
-$check_stmt->bind_param("i", $request_id);
+
+if (!$check_stmt) {
+    echo json_encode(['success' => false, 'message' => 'Prepare check failed: ' . htmlspecialchars($conn->error)]);
+    exit();
+}
+
+$check_stmt->bind_param("is", $request_id, $user_id);
 $check_stmt->execute();
 $check_result = $check_stmt->get_result();
 
 if ($check_result->num_rows === 0) {
     $check_stmt->close();
     $conn->close();
-    echo json_encode(['success' => false, 'message' => 'Request not found']);
+    echo json_encode(['success' => false, 'message' => 'Request not found or access denied']);
     exit();
 }
 
 $request_data = $check_result->fetch_assoc();
 $check_stmt->close();
 
-// Verify ownership
-if ($request_data['employee_id'] !== $user_id) {
-    $conn->close();
-    echo json_encode(['success' => false, 'message' => 'You can only rate your own requests']);
-    exit();
-}
-
 // Check if already rated
-if (!empty($request_data['satisfaction_score'])) {
+if (!empty($request_data['satisfaction_score']) && $request_data['satisfaction_score'] > 0) {
     $conn->close();
     echo json_encode(['success' => false, 'message' => 'You have already rated this request']);
     exit();
@@ -123,40 +113,38 @@ if ($request_data['status'] !== 'Complete') {
 }
 
 // Update satisfaction rating
-$sql = "UPDATE $table 
-        SET satisfaction_score = ?, 
-            satisfaction_feedback = ?,
-            updated_at = CURRENT_TIMESTAMP 
-        WHERE $id_column = ?";
+$score = (int) $score;
+$update_sql = "UPDATE $table 
+               SET satisfaction_score = ?, 
+                   satisfaction_feedback = ?,
+                   updated_at = CURRENT_TIMESTAMP 
+               WHERE $id_column = ?";
 
-$stmt = $conn->prepare($sql);
+$update_stmt = $conn->prepare($update_sql);
 
-if (!$stmt) {
-    $conn->close();
-    echo json_encode(['success' => false, 'message' => 'Prepare failed: ' . $conn->error]);
+if (!$update_stmt) {
+    echo json_encode(['success' => false, 'message' => 'Prepare update failed: ' . htmlspecialchars($conn->error)]);
     exit();
 }
 
-$stmt->bind_param("isi", $score, $feedback, $request_id);
+$update_stmt->bind_param("isi", $score, $feedback, $request_id);
 
-if ($stmt->execute()) {
-    $affected = $stmt->affected_rows;
-    $stmt->close();
+if ($update_stmt->execute()) {
+    $update_stmt->close();
     $conn->close();
     
     echo json_encode([
         'success' => true,
-        'message' => 'Thank you for your feedback!',
-        'affected_rows' => $affected
+        'message' => 'Thank you for your feedback!'
     ]);
 } else {
-    $error = $stmt->error;
-    $stmt->close();
+    $error = $update_stmt->error;
+    $update_stmt->close();
     $conn->close();
     
     echo json_encode([
         'success' => false,
-        'message' => 'Failed to submit rating: ' . $error
+        'message' => 'Failed to submit rating: ' . htmlspecialchars($error)
     ]);
 }
 ?>

@@ -1,6 +1,6 @@
 <?php
 /**
- * Employees Management Page
+ * Employees Management Page - FIXED
  * Supports: Thai (ไทย), English (EN), Myanmar (မြန်မာ)
  * Features: Multi-language UI, Dark Mode, Mobile Responsive
  * Admin/Officer only
@@ -8,7 +8,6 @@
 
 require_once __DIR__ . '/../../config/db_config.php';
 require_once __DIR__ . '/../../controllers/AuthController.php';
-require_once __DIR__ . '/../../models/Employee.php';
 require_once __DIR__ . '/../../db/Localization.php';
 
 // Require admin or officer role
@@ -19,6 +18,7 @@ $current_lang = $_SESSION['language'] ?? 'th';
 $theme_mode = $_SESSION['theme_mode'] ?? 'light';
 $is_dark = ($theme_mode === 'dark');
 $user_id = $_SESSION['user_id'] ?? '';
+$user_role = $_SESSION['role'] ?? 'officer';
 
 // Theme colors based on dark mode
 $card_bg = $is_dark ? 'bg-gray-800' : 'bg-white';
@@ -136,9 +136,6 @@ $translations = [
 // Get current language strings
 $t = $translations[$current_lang] ?? $translations['th'];
 
-// Get theme vars for backward compatibility
-extract(get_theme_vars());
-
 $page_title = $t['page_title'];
 ensure_session_started();
 
@@ -148,30 +145,102 @@ $search = $_GET['search'] ?? '';
 $status_filter = $_GET['status'] ?? '';
 $function_filter = $_GET['function'] ?? '';
 $per_page = 20;
+$offset = ($page - 1) * $per_page;
 
-$filters = [
-    'search' => $search,
-    'status_id' => $status_filter,
-    'function_id' => $function_filter
-];
+// Database connection
+$conn = getDbConnection();
+if (!$conn) {
+    die("Database connection failed");
+}
 
-// Get employees
-$result = Employee::getAll($page, $per_page, $filters);
-$employees = $result['data'];
-$total_pages = $result['total_pages'];
-$total_records = $result['total'];
+// Build WHERE clause
+$where_conditions = ["1=1"];
+$params = [];
+$types = '';
+
+if ($search) {
+    $where_conditions[] = "(e.employee_id LIKE ? OR e.full_name_en LIKE ? OR e.full_name_th LIKE ? OR e.phone_no LIKE ?)";
+    $search_term = '%' . $search . '%';
+    $params[] = $search_term;
+    $params[] = $search_term;
+    $params[] = $search_term;
+    $params[] = $search_term;
+    $types .= 'ssss';
+}
+
+if ($status_filter) {
+    $where_conditions[] = "e.status_id = ?";
+    $params[] = (int)$status_filter;
+    $types .= 'i';
+}
+
+if ($function_filter) {
+    $where_conditions[] = "e.function_id = ?";
+    $params[] = (int)$function_filter;
+    $types .= 'i';
+}
+
+$where_sql = implode(' AND ', $where_conditions);
+
+// Get total count
+$count_sql = "SELECT COUNT(*) as total FROM employees e WHERE $where_sql";
+$stmt = $conn->prepare($count_sql);
+if (!empty($params)) {
+    $stmt->bind_param($types, ...$params);
+}
+$stmt->execute();
+$count_result = $stmt->get_result()->fetch_assoc();
+$total_records = $count_result['total'];
+$total_pages = ceil($total_records / $per_page);
+$stmt->close();
+
+// Get employees with JOIN
+$sql = "SELECT 
+    e.employee_id,
+    e.full_name_th,
+    e.full_name_en,
+    e.position_id,
+    e.function_id,
+    e.status_id,
+    e.year_of_service,
+    e.phone_no,
+    e.profile_pic_path,
+    p.position_name_th,
+    p.position_name_en,
+    p.position_name_my,
+    f.function_name_th,
+    f.function_name_en,
+    f.function_name_my,
+    s.status_name_th,
+    s.status_name_en,
+    s.status_name_my
+FROM employees e
+LEFT JOIN position_master p ON e.position_id = p.position_id
+LEFT JOIN function_master f ON e.function_id = f.function_id
+LEFT JOIN status_master s ON e.status_id = s.status_id
+WHERE $where_sql
+ORDER BY e.employee_id DESC
+LIMIT ? OFFSET ?";
+
+$stmt = $conn->prepare($sql);
+$all_params = array_merge($params, [$per_page, $offset]);
+$all_types = $types . 'ii';
+$stmt->bind_param($all_types, ...$all_params);
+$stmt->execute();
+$result = $stmt->get_result();
+$employees = $result->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
 
 // Get master data for filters
-$conn = getDbConnection();
 $statuses = $conn->query("SELECT * FROM status_master ORDER BY status_id")->fetch_all(MYSQLI_ASSOC);
 $functions = $conn->query("SELECT * FROM function_master ORDER BY function_id")->fetch_all(MYSQLI_ASSOC);
 
 // Get statistics
 $stats = [
     'total' => $total_records,
-    'active' => $conn->query("SELECT COUNT(*) as cnt FROM employees WHERE status_id = 1")->fetch_assoc()['cnt'],
-    'inactive' => $conn->query("SELECT COUNT(*) as cnt FROM employees WHERE status_id != 1")->fetch_assoc()['cnt'],
-    'new_this_month' => $conn->query("SELECT COUNT(*) as cnt FROM employees WHERE MONTH(date_of_hire) = MONTH(CURDATE()) AND YEAR(date_of_hire) = YEAR(CURDATE())")->fetch_assoc()['cnt']
+    'active' => $conn->query("SELECT COUNT(*) as cnt FROM employees WHERE status_id = 1")->fetch_assoc()['cnt'] ?? 0,
+    'inactive' => $conn->query("SELECT COUNT(*) as cnt FROM employees WHERE status_id != 1")->fetch_assoc()['cnt'] ?? 0,
+    'new_this_month' => $conn->query("SELECT COUNT(*) as cnt FROM employees WHERE MONTH(date_of_hire) = MONTH(CURDATE()) AND YEAR(date_of_hire) = YEAR(CURDATE())")->fetch_assoc()['cnt'] ?? 0
 ];
 
 $conn->close();
@@ -286,18 +355,18 @@ include __DIR__ . '/../../includes/sidebar.php';
                         <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2"><?php echo $t['status']; ?></label>
                         <select name="status" class="w-full px-4 py-2 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $input_class; ?> theme-transition">
                             <option value=""><?php echo $t['all_status']; ?></option>
-                            <?php foreach ($statuses as $status): ?>
+                            <?php foreach ($statuses as $status): 
+                                $status_label = '';
+                                if ($current_lang === 'th') {
+                                    $status_label = $status['status_name_th'] ?? 'N/A';
+                                } elseif ($current_lang === 'en') {
+                                    $status_label = $status['status_name_en'] ?? 'N/A';
+                                } else {
+                                    $status_label = $status['status_name_my'] ?? 'N/A';
+                                }
+                            ?>
                                 <option value="<?php echo $status['status_id']; ?>" <?php echo $status_filter == $status['status_id'] ? 'selected' : ''; ?>>
-                                    <?php 
-                                    // Get status in current language
-                                    if ($current_lang === 'th') {
-                                        echo htmlspecialchars($status['status_name_th'] ?? 'N/A');
-                                    } elseif ($current_lang === 'en') {
-                                        echo htmlspecialchars($status['status_name_en'] ?? 'N/A');
-                                    } else {
-                                        echo htmlspecialchars($status['status_name_my'] ?? 'N/A');
-                                    }
-                                    ?>
+                                    <?php echo htmlspecialchars($status_label); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -306,18 +375,18 @@ include __DIR__ . '/../../includes/sidebar.php';
                         <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2"><?php echo $t['function']; ?></label>
                         <select name="function" class="w-full px-4 py-2 border <?php echo $border_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 <?php echo $input_class; ?> theme-transition">
                             <option value=""><?php echo $t['all_functions']; ?></option>
-                            <?php foreach ($functions as $func): ?>
+                            <?php foreach ($functions as $func): 
+                                $function_label = '';
+                                if ($current_lang === 'th') {
+                                    $function_label = $func['function_name_th'] ?? 'N/A';
+                                } elseif ($current_lang === 'en') {
+                                    $function_label = $func['function_name_en'] ?? 'N/A';
+                                } else {
+                                    $function_label = $func['function_name_my'] ?? 'N/A';
+                                }
+                            ?>
                                 <option value="<?php echo $func['function_id']; ?>" <?php echo $function_filter == $func['function_id'] ? 'selected' : ''; ?>>
-                                    <?php 
-                                    // Get function in current language
-                                    if ($current_lang === 'th') {
-                                        echo htmlspecialchars($func['function_name_th'] ?? 'N/A');
-                                    } elseif ($current_lang === 'en') {
-                                        echo htmlspecialchars($func['function_name_en'] ?? 'N/A');
-                                    } else {
-                                        echo htmlspecialchars($func['function_name_my'] ?? 'N/A');
-                                    }
-                                    ?>
+                                    <?php echo htmlspecialchars($function_label); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -359,7 +428,40 @@ include __DIR__ . '/../../includes/sidebar.php';
                                     </td>
                                 </tr>
                             <?php else: ?>
-                                <?php foreach ($employees as $emp): ?>
+                                <?php foreach ($employees as $emp): 
+                                    // Get language-specific name
+                                    $emp_name = $current_lang === 'en' ? ($emp['full_name_en'] ?? 'Unknown') : ($emp['full_name_th'] ?? 'Unknown');
+                                    
+                                    // Get position name
+                                    $position_label = '';
+                                    if ($current_lang === 'th') {
+                                        $position_label = $emp['position_name_th'] ?? 'N/A';
+                                    } elseif ($current_lang === 'en') {
+                                        $position_label = $emp['position_name_en'] ?? 'N/A';
+                                    } else {
+                                        $position_label = $emp['position_name_my'] ?? 'N/A';
+                                    }
+                                    
+                                    // Get function name
+                                    $function_label = '';
+                                    if ($current_lang === 'th') {
+                                        $function_label = $emp['function_name_th'] ?? 'N/A';
+                                    } elseif ($current_lang === 'en') {
+                                        $function_label = $emp['function_name_en'] ?? 'N/A';
+                                    } else {
+                                        $function_label = $emp['function_name_my'] ?? 'N/A';
+                                    }
+                                    
+                                    // Get status name
+                                    $status_label = '';
+                                    if ($current_lang === 'th') {
+                                        $status_label = $emp['status_name_th'] ?? 'N/A';
+                                    } elseif ($current_lang === 'en') {
+                                        $status_label = $emp['status_name_en'] ?? 'N/A';
+                                    } else {
+                                        $status_label = $emp['status_name_my'] ?? 'N/A';
+                                    }
+                                ?>
                                     <tr class="<?php echo $is_dark ? 'hover:bg-gray-700' : 'hover:bg-gray-50'; ?> transition">
                                         <td class="px-6 py-4 text-sm font-medium <?php echo $text_class; ?>">
                                             <?php echo htmlspecialchars($emp['employee_id']); ?>
@@ -371,16 +473,13 @@ include __DIR__ . '/../../includes/sidebar.php';
                                                         <img src="<?php echo htmlspecialchars($emp['profile_pic_path']); ?>" class="w-full h-full rounded-full object-cover" alt="">
                                                     <?php else: ?>
                                                         <span class="<?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?> font-medium text-lg">
-                                                            <?php 
-                                                            $name = $current_lang === 'en' ? ($emp['full_name_en'] ?? '') : ($emp['full_name_th'] ?? '');
-                                                            echo strtoupper(substr($name, 0, 1)); 
-                                                            ?>
+                                                            <?php echo strtoupper(substr($emp_name, 0, 1)); ?>
                                                         </span>
                                                     <?php endif; ?>
                                                 </div>
                                                 <div>
                                                     <p class="text-sm font-medium <?php echo $text_class; ?>">
-                                                        <?php echo $current_lang === 'en' ? htmlspecialchars($emp['full_name_en'] ?? '') : htmlspecialchars($emp['full_name_th'] ?? ''); ?>
+                                                        <?php echo htmlspecialchars($emp_name); ?>
                                                     </p>
                                                     <p class="text-xs <?php echo $is_dark ? 'text-gray-400' : 'text-gray-500'; ?>">
                                                         <?php
@@ -395,38 +494,14 @@ include __DIR__ . '/../../includes/sidebar.php';
                                             </div>
                                         </td>
                                         <td class="px-6 py-4 text-sm <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?>">
-                                            <?php 
-                                            if ($current_lang === 'th') {
-                                                echo htmlspecialchars($emp['position_name_th'] ?? 'N/A');
-                                            } elseif ($current_lang === 'en') {
-                                                echo htmlspecialchars($emp['position_name_en'] ?? 'N/A');
-                                            } else {
-                                                echo htmlspecialchars($emp['position_name_my'] ?? 'N/A');
-                                            }
-                                            ?>
+                                            <?php echo htmlspecialchars($position_label); ?>
                                         </td>
                                         <td class="px-6 py-4 text-sm <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?>">
-                                            <?php 
-                                            if ($current_lang === 'th') {
-                                                echo htmlspecialchars($emp['function_name_th'] ?? 'N/A');
-                                            } elseif ($current_lang === 'en') {
-                                                echo htmlspecialchars($emp['function_name_en'] ?? 'N/A');
-                                            } else {
-                                                echo htmlspecialchars($emp['function_name_my'] ?? 'N/A');
-                                            }
-                                            ?>
+                                            <?php echo htmlspecialchars($function_label); ?>
                                         </td>
                                         <td class="px-6 py-4">
                                             <span class="px-3 py-1 rounded-full text-xs font-medium <?php echo $emp['status_id'] == 1 ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'; ?>">
-                                                <?php 
-                                                if ($current_lang === 'th') {
-                                                    echo htmlspecialchars($emp['status_name_th'] ?? 'N/A');
-                                                } elseif ($current_lang === 'en') {
-                                                    echo htmlspecialchars($emp['status_name_en'] ?? 'N/A');
-                                                } else {
-                                                    echo htmlspecialchars($emp['status_name_my'] ?? 'N/A');
-                                                }
-                                                ?>
+                                                <?php echo htmlspecialchars($status_label); ?>
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 text-sm <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?>">
