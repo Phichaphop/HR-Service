@@ -733,6 +733,9 @@ include __DIR__ . '/../../includes/sidebar.php';
                 divisionName = request.division_name_th || '-';
             }
             
+            // Check if this is a certificate request
+            const isCertificateRequest = (table === 'certificate_requests');
+            
             let html = `
                 <div class="space-y-6">
                     <!-- Employee Information Section -->
@@ -789,8 +792,157 @@ include __DIR__ . '/../../includes/sidebar.php';
                                 <p class="${textClass}">${request.handler_id || t['unassigned']}</p>
                             </div>
                         </div>
+                    </div>`;
+            
+            // Add Salary Information Form and Certificate Generation Button if it's a certificate request
+            if (isCertificateRequest) {
+                const salaryLabel = currentLang === 'th' ? '💰 ข้อมูลเงินเดือน' : 
+                                   currentLang === 'my' ? '💰 လစာအချက်အလက်' : 
+                                   '💰 Salary Information';
+                
+                const salaryPlaceholder = currentLang === 'th' ? 'ระบุเงินเดือน' : 
+                                         currentLang === 'my' ? 'လစာဖြည့်ပါ' : 
+                                         'Enter Salary';
+                
+                const hiringTypeLabel = currentLang === 'th' ? 'ประเภทการจ้าง' : 
+                                       currentLang === 'my' ? 'အလုပ်ခန့်အပ်မှုအမျိုးအစား' : 
+                                       'Hiring Type';
+                
+                const selectHiringType = currentLang === 'th' ? 'เลือกประเภทการจ้าง' : 
+                                        currentLang === 'my' ? 'အမျိုးအစားရွေးပါ' : 
+                                        'Select Hiring Type';
+                
+                const saveSalaryBtn = currentLang === 'th' ? '💾 บันทึกข้อมูลเงินเดือน' : 
+                                     currentLang === 'my' ? '💾 လစာအချက်အလက်သိမ်းဆည်းပါ' : 
+                                     '💾 Save Salary Information';
+                
+                const certButtonText = currentLang === 'th' ? '📄 สร้างหนังสือรับรอง' : 
+                                      currentLang === 'my' ? '📄 လက်မှတ်ဖန်တီးမည်' : 
+                                      '📄 Generate Certificate';
+                
+                const currentSalary = request.base_salary || 0;
+                const currentHiringType = request.hiring_type_id || '';
+                
+                html += `
+                    <!-- Salary Information Form -->
+                    <div class="p-4 bg-yellow-50 dark:bg-yellow-900 rounded-lg border border-yellow-200 dark:border-yellow-700">
+                        <h4 class="font-semibold ${textClass} mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            ${salaryLabel}
+                        </h4>
+                        
+                        <form id="salaryForm" onsubmit="updateEmployeeSalary(event, '${request.employee_id}')">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label class="block text-sm font-medium ${textClass} mb-2">
+                                        ${currentLang === 'th' ? 'เงินเดือนปัจจุบัน (บาท)' : 
+                                          currentLang === 'my' ? 'လက်ရှိလစာ (ကျပ်)' : 
+                                          'Current Salary (THB)'}
+                                    </label>
+                                    <input type="number" 
+                                           name="base_salary" 
+                                           step="0.01" 
+                                           min="0"
+                                           value="${currentSalary}"
+                                           placeholder="${salaryPlaceholder}"
+                                           class="w-full px-4 py-2 border rounded-lg ${inputClass} focus:ring-2 focus:ring-yellow-500"
+                                           required>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium ${textClass} mb-2">
+                                        ${hiringTypeLabel}
+                                    </label>
+                                    <select name="hiring_type_id" 
+                                            class="w-full px-4 py-2 border rounded-lg ${inputClass} focus:ring-2 focus:ring-yellow-500"
+                                            required>
+                                        <option value="">${selectHiringType}</option>
+                                        <option value="1" ${currentHiringType == 1 ? 'selected' : ''}>
+                                            ${currentLang === 'th' ? 'พนักงานประจำ' : currentLang === 'my' ? 'အမြဲတမ်းဝန်ထမ်း' : 'Permanent'}
+                                        </option>
+                                        <option value="2" ${currentHiringType == 2 ? 'selected' : ''}>
+                                            ${currentLang === 'th' ? 'พนักงานชั่วคราว' : currentLang === 'my' ? 'ယာယီဝန်ထမ်း' : 'Temporary'}
+                                        </option>
+                                        <option value="3" ${currentHiringType == 3 ? 'selected' : ''}>
+                                            ${currentLang === 'th' ? 'พนักงานสัญญาจ้าง' : currentLang === 'my' ? 'စာချုပ်ဝန်ထမ်း' : 'Contract'}
+                                        </option>
+                                        <option value="4" ${currentHiringType == 4 ? 'selected' : ''}>
+                                            ${currentLang === 'th' ? 'พนักงานทดลองงาน' : currentLang === 'my' ? 'စမ်းသပ်ဝန်ထမ်း' : 'Probation'}
+                                        </option>
+                                        <option value="5" ${currentHiringType == 5 ? 'selected' : ''}>
+                                            ${currentLang === 'th' ? 'พนักงานพาร์ทไทม์' : currentLang === 'my' ? 'အချိန်ပိုင်းဝန်ထမ်း' : 'Part-time'}
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" 
+                                    class="w-full bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-3 rounded-lg transition font-medium">
+                                ${saveSalaryBtn}
+                            </button>
+                        </form>
+                        
+                        ${currentSalary > 0 ? `
+                            <div class="mt-3 p-3 bg-green-100 dark:bg-green-800 rounded text-sm ${textClass}">
+                                ✅ ${currentLang === 'th' ? 'มีข้อมูลเงินเดือนแล้ว: ' : 
+                                     currentLang === 'my' ? 'လစာအချက်အလက်ရှိပြီး: ' : 
+                                     'Salary data available: '}
+                                <strong>${parseFloat(currentSalary).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} 
+                                ${currentLang === 'th' ? 'บาท' : currentLang === 'my' ? 'ကျပ်' : 'THB'}</strong>
+                            </div>
+                        ` : `
+                            <div class="mt-3 p-3 bg-red-100 dark:bg-red-800 rounded text-sm ${textClass}">
+                                ⚠️ ${currentLang === 'th' ? 'กรุณากรอกข้อมูลเงินเดือนก่อนสร้างหนังสือรับรอง' : 
+                                      currentLang === 'my' ? 'လက်မှတ်မဖန်တီးမီလစာအချက်အလက်ဖြည့်ပါ' : 
+                                      'Please enter salary information before generating certificate'}
+                            </div>
+                        `}
                     </div>
                     
+                    <!-- Certificate Generation Section -->
+                    <div class="p-4 bg-blue-50 dark:bg-blue-900 rounded-lg border border-blue-200 dark:border-blue-700">
+                        <h4 class="font-semibold ${textClass} mb-3 flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            ${certButtonText}
+                        </h4>
+                        
+                        ${currentSalary > 0 ? `
+                            <div class="flex gap-2">
+                                <button onclick="generateCertificate(${request.request_id}, 'th')" 
+                                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition font-medium">
+                                    🇹🇭 ${currentLang === 'th' ? 'ภาษาไทย' : currentLang === 'my' ? 'ထိုင်းဘာသာ' : 'Thai'}
+                                </button>
+                                <button onclick="generateCertificate(${request.request_id}, 'en')" 
+                                    class="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition font-medium">
+                                    🇬🇧 ${currentLang === 'th' ? 'ภาษาอังกฤษ' : currentLang === 'my' ? 'အင်္ဂလိပ်ဘာသာ' : 'English'}
+                                </button>
+                            </div>
+                            ${request.certificate_no ? `
+                                <p class="text-sm ${grayTextClass} mt-2 text-center">
+                                    ${currentLang === 'th' ? 'เลขที่หนังสือรับรอง' : currentLang === 'my' ? 'လက်မှတ်နံပါတ်' : 'Certificate No.'}: 
+                                    <span class="font-mono font-semibold">${request.certificate_no}</span>
+                                </p>
+                            ` : ''}
+                        ` : `
+                            <div class="p-4 bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-100 rounded-lg text-center">
+                                <svg class="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>
+                                <p class="font-medium">
+                                    ${currentLang === 'th' ? 'กรุณากรอกข้อมูลเงินเดือนก่อน' : 
+                                      currentLang === 'my' ? 'လစာအချက်အလက်ဖြည့်ပါ' : 
+                                      'Please enter salary information first'}
+                                </p>
+                            </div>
+                        `}
+                    </div>`;
+            }
+            
+            html += `
                     <!-- Status Update Section -->
                     <div class="pt-4 border-t ${borderClass}">
                         <h4 class="font-semibold ${textClass} mb-4 flex items-center">
@@ -878,6 +1030,95 @@ include __DIR__ . '/../../includes/sidebar.php';
                 closeRequestModal();
             }
         });
+
+        // Generate Certificate Function
+        function generateCertificate(requestId, language) {
+            const basePath = '<?php echo defined("BASE_PATH") ? BASE_PATH : ""; ?>';
+            const url = basePath ? `${basePath}/api/generate_certificate.php?request_id=${requestId}&lang=${language}` 
+                                 : `/api/generate_certificate.php?request_id=${requestId}&lang=${language}`;
+            
+            // Open in new tab
+            window.open(url, '_blank');
+            
+            // Show success message
+            const langMessage = {
+                'th': 'กำลังเปิดหนังสือรับรองในหน้าต่างใหม่...',
+                'en': 'Opening certificate in new window...',
+                'my': 'လက်မှတ်ကို ဝင်းဒိုးအသစ်တွင်ဖွင့်နေသည်...'
+            };
+            showToast(langMessage[currentLang] || langMessage['th'], 'info');
+        }
+        
+        // Update Employee Salary Function
+        function updateEmployeeSalary(event, employeeId) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            const data = {
+                employee_id: employeeId,
+                base_salary: parseFloat(formData.get('base_salary')),
+                hiring_type_id: parseInt(formData.get('hiring_type_id'))
+            };
+            
+            // Disable submit button
+            const submitBtn = event.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="inline-block animate-spin mr-2">⏳</span> ' + 
+                                 (currentLang === 'th' ? 'กำลังบันทึก...' : 
+                                  currentLang === 'my' ? 'သိမ်းဆည်းနေသည်...' : 
+                                  'Saving...');
+            
+            const basePath = '<?php echo defined("BASE_PATH") ? BASE_PATH : ""; ?>';
+            const url = basePath ? `${basePath}/api/update_employee_salary.php` 
+                                 : `/api/update_employee_salary.php`;
+            
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    const successMessage = {
+                        'th': 'บันทึกข้อมูลเงินเดือนเรียบร้อยแล้ว',
+                        'en': 'Salary information saved successfully',
+                        'my': 'လစာအချက်အလက်သိမ်းဆည်းပြီးပါပြီ'
+                    };
+                    showToast(successMessage[currentLang] || successMessage['th'], 'success');
+                    
+                    // Reload modal to show updated data
+                    setTimeout(() => {
+                        // Get current modal data
+                        const modal = document.getElementById('requestModal');
+                        if (modal) {
+                            // Extract table and request_id from the form context
+                            const form = event.target.closest('.space-y-6');
+                            if (form) {
+                                // Reload the modal content
+                                location.reload(); // Simple reload for now
+                            }
+                        }
+                    }, 1000);
+                } else {
+                    const errorMessage = result.message || 'Error saving salary information';
+                    showToast(errorMessage, 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
+            })
+            .catch(error => {
+                const errorMessage = {
+                    'th': 'เกิดข้อผิดพลาด: ',
+                    'en': 'Error: ',
+                    'my': 'အမှားအယွင်း: '
+                };
+                showToast((errorMessage[currentLang] || errorMessage['th']) + error.message, 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+        }
 
         // Toast notification function
         function showToast(message, type = 'info') {
