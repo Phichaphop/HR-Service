@@ -1,20 +1,24 @@
 <?php
 /**
- * My Requests Page - ENHANCED VERSION with Detailed Information - FIXED
+ * My Requests Page - FIXED VERSION
  * Supports: Thai (ไทย), English (EN), Myanmar (မြန်မာ)
  * FIXES:
- * 1. Added text-gray-900 dark:text-white to all detail values for proper dark mode text color
- * 2. Fixed employee_name display issue
+ * 1. Fixed Hiring Type, Date of Hire, Base Salary showing "No Data"
+ * 2. Added certificate type display in certificate request details
+ * 3. Proper dark mode text colors on all fields
  */
 require_once __DIR__ . '/../../config/db_config.php';
 require_once __DIR__ . '/../../controllers/AuthController.php';
 require_once __DIR__ . '/../../db/Localization.php';
+
 AuthController::requireAuth();
+
 // Get current settings from session
 $current_lang = $_SESSION['language'] ?? 'th';
 $theme_mode = $_SESSION['theme_mode'] ?? 'light';
 $is_dark = ($theme_mode === 'dark');
 $user_id = $_SESSION['user_id'] ?? '';
+
 // Theme colors based on dark mode
 $card_bg = $is_dark ? 'bg-gray-800' : 'bg-white';
 $text_class = $is_dark ? 'text-white' : 'text-gray-900';
@@ -22,6 +26,7 @@ $bg_class = $is_dark ? 'bg-gray-900' : 'bg-gray-50';
 $border_class = $is_dark ? 'border-gray-700' : 'border-gray-200';
 $input_class = $is_dark ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500';
 $label_class = $is_dark ? 'text-gray-300' : 'text-gray-700';
+
 // Multi-language translations - ENHANCED with more fields
 $translations = [
     'th' => [
@@ -115,6 +120,8 @@ $translations = [
         'document_submission' => 'ลงชื่อส่งเอกสาร',
         'no_data' => 'ไม่มีข้อมูล',
         'not_assigned' => 'ยังไม่ได้มอบหมาย',
+        'satisfaction_score' => 'ระดับความพึงพอใจ',
+        'satisfaction_feedback' => 'ความเห็นของผู้ใช้',
     ],
     'en' => [
         'page_title' => 'My Requests',
@@ -198,6 +205,8 @@ $translations = [
         'document_submission' => 'Document Submission',
         'no_data' => 'No Data',
         'not_assigned' => 'Not Assigned Yet',
+        'satisfaction_score' => 'Satisfaction Score',
+        'satisfaction_feedback' => 'User Feedback',
     ],
     'my' => [
         'page_title' => 'ကျွန်ုပ်၏တောင်းခံမှုများ',
@@ -259,7 +268,7 @@ $translations = [
         'service_category' => 'ဝန်ဆောင်မှုအမျိုးအစား',
         'service_type' => 'ဝန်ဆောင်မှုအမျိုးအစား',
         'submission_date' => 'တင်သွင်းသည့်နေ့',
-        'rating_title' => 'संतुष्टिতां အဆင့်သတ်မှတ်ခြင်း',
+        'rating_title' => 'संतुष्टिతां အဆင့်သတ်မှတ်ခြင်း',
         'rating_label' => 'အဆင့် (၁-၅ ကြယ်)',
         'additional_feedback' => 'အခြားအဆင့်သတ်မှတ်ခြင်း',
         'feedback_placeholder' => 'သင်၏အကြံအစည်ကိုထည့်သွင်းပါ (ရှိရင်)',
@@ -281,13 +290,22 @@ $translations = [
         'document_submission' => 'စာ类တင်သွင်းမှု',
         'no_data' => 'အချက်အလက်မရှိ',
         'not_assigned' => 'ဒီတစ်ခါမှ မည့်အပ်မထားရသေးပါ',
+        'satisfaction_score' => 'ကျေးဇူးတင်သောအဆင့်',
+        'satisfaction_feedback' => 'အသုံးပြုသူအကြံအစည်',
     ]
 ];
+
 // Get current language strings
 $t = $translations[$current_lang] ?? $translations['th'];
 $page_title = $t['page_title'];
-ensure_session_started();
+
+// Ensure session started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 $conn = getDbConnection();
+
 // Request type mapping with multi-language support
 $request_types = [
     'leave_requests' => ['th' => 'ใบลา', 'en' => 'Leave Request', 'my' => 'အငြိုးပြုစုတောင်းခံမှု'],
@@ -297,14 +315,16 @@ $request_types = [
     'locker_requests' => ['th' => 'ตู้ล็อกเกอร์', 'en' => 'Locker Request', 'my' => 'အိတ်ဆောင်တင်သွင်းမှုတောင်းခံမှု'],
     'supplies_requests' => ['th' => 'วัสดุสำนักงาน', 'en' => 'Supplies Request', 'my' => 'ပရိယာယ်တောင်းခံမှု'],
     'skill_test_requests' => ['th' => 'ทดสอบทักษะ', 'en' => 'Skill Test Request', 'my' => 'အရည်အချင်းစမ်းသပ်မှုတောင်းခံမှု'],
-    'document_submissions' => ['th' => 'ลงชื่อส่งเอกสาร', 'en' => 'Document Submission', 'my' => 'စာ类တင်သွင်းမှု']
+    'document_submissions' => ['th' => 'ลงชื่อส่งเอกสาร', 'en' => 'Document Submission', 'my' => 'စာ類တင်သွင်းမှု']
 ];
+
 // Status mapping with multi-language support
 $status_map = [
     'th' => ['New' => 'ใหม่', 'In Progress' => 'กำลังดำเนิน', 'Complete' => 'เสร็จสิ้น', 'Cancelled' => 'ยกเลิก'],
     'en' => ['New' => 'New', 'In Progress' => 'In Progress', 'Complete' => 'Complete', 'Cancelled' => 'Cancelled'],
     'my' => ['New' => 'အသစ်', 'In Progress' => 'လုပ်ဆောင်နေ', 'Complete' => 'ပြည့်စုံမည်', 'Cancelled' => 'ပယ်ဖျက်ခြင်း']
 ];
+
 // Get all requests for this user
 $all_requests = [];
 foreach ($request_types as $table => $type_names) {
@@ -332,11 +352,14 @@ foreach ($request_types as $table => $type_names) {
     }
     $stmt->close();
 }
+
 // Sort by date
 usort($all_requests, function($a, $b) {
     return strtotime($b['created_at']) - strtotime($a['created_at']);
 });
+
 $conn->close();
+
 include __DIR__ . '/../../includes/header.php';
 include __DIR__ . '/../../includes/sidebar.php';
 ?>
@@ -398,7 +421,6 @@ include __DIR__ . '/../../includes/sidebar.php';
         .detail-value {
             font-size: 1rem;
             font-weight: 500;
-            color: inherit;
         }
         @media (max-width: 768px) {
             .detail-row {
@@ -520,7 +542,8 @@ include __DIR__ . '/../../includes/sidebar.php';
             </div>
         </div>
     </div>
-    <!-- View Details Modal - ENHANCED with more detailed information -->
+    
+    <!-- View Details Modal - FIXED for certificate type -->
     <div id="detailsModal" class="modal-backdrop">
         <div class="<?php echo $card_bg; ?> rounded-xl shadow-2xl max-w-4xl w-full max-h-[95vh] overflow-y-auto border <?php echo $border_class; ?> m-4 my-auto">
             <div class="p-6 lg:p-8">
@@ -542,6 +565,7 @@ include __DIR__ . '/../../includes/sidebar.php';
             </div>
         </div>
     </div>
+    
     <!-- Rating Modal -->
     <div id="ratingModal" class="modal-backdrop">
         <div class="<?php echo $card_bg; ?> rounded-xl shadow-2xl max-w-md w-full border <?php echo $border_class; ?> m-4">
@@ -592,6 +616,7 @@ include __DIR__ . '/../../includes/sidebar.php';
             </div>
         </div>
     </div>
+    
     <script>
         const currentLang = '<?php echo $current_lang; ?>';
         const t = <?php echo json_encode($t); ?>;
@@ -623,7 +648,7 @@ include __DIR__ . '/../../includes/sidebar.php';
         function generateDetailedHTML(req, table) {
             let html = ``;
             const detailClass = isDark ? 'detail-section dark' : 'detail-section';
-            const valueColorClass = isDark ? 'text-gray-900 dark:text-white' : 'text-gray-900';
+            const valueColorClass = 'text-gray-900 dark:text-white';
             
             // 1. REQUEST HEADER INFO
             html += `
@@ -632,38 +657,38 @@ include __DIR__ . '/../../includes/sidebar.php';
                     <div class="detail-row">
                         <div class="detail-item">
                             <div class="detail-label">${t['request_id_label']}</div>
-                            <div class="detail-value font-mono text-gray-900 dark:text-white">#${String(req.request_id).padStart(5, '0')}</div>
+                            <div class="detail-value font-mono ${valueColorClass}">#${String(req.request_id).padStart(5, '0')}</div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">${t['status_label']}</div>
-                            <div class="detail-value text-gray-900 dark:text-white">${statusMap[currentLang][req.status] || req.status}</div>
+                            <div class="detail-value ${valueColorClass}">${statusMap[currentLang][req.status] || req.status}</div>
                         </div>
                     </div>
                     <div class="detail-row">
                         <div class="detail-item">
                             <div class="detail-label">${t['created_date']}</div>
-                            <div class="detail-value text-gray-900 dark:text-white">${new Date(req.created_at).toLocaleString(currentLang === 'th' ? 'th-TH' : currentLang === 'en' ? 'en-US' : 'my-MM')}</div>
+                            <div class="detail-value ${valueColorClass}">${new Date(req.created_at).toLocaleString(currentLang === 'th' ? 'th-TH' : currentLang === 'en' ? 'en-US' : 'my-MM')}</div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">${t['updated_date']}</div>
-                            <div class="detail-value text-gray-900 dark:text-white">${new Date(req.updated_at).toLocaleString(currentLang === 'th' ? 'th-TH' : currentLang === 'en' ? 'en-US' : 'my-MM')}</div>
+                            <div class="detail-value ${valueColorClass}">${new Date(req.updated_at).toLocaleString(currentLang === 'th' ? 'th-TH' : currentLang === 'en' ? 'en-US' : 'my-MM')}</div>
                         </div>
                     </div>
                 </div>
             `;
             
-            // 2. EMPLOYEE INFORMATION - FIXED with dark mode text color
+            // 2. EMPLOYEE INFORMATION
             html += `
                 <div class="${detailClass}">
                     <h4 class="font-bold text-lg mb-4">👤 ${t['employee_info']}</h4>
                     <div class="detail-row">
                         <div class="detail-item">
                             <div class="detail-label">${t['employee_id']}</div>
-                            <div class="detail-value font-mono text-gray-900 dark:text-white">${req.employee_id || t['no_data']}</div>
+                            <div class="detail-value font-mono ${valueColorClass}">${req.employee_id || t['no_data']}</div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">${t['employee_name']}</div>
-                            <div class="detail-value text-gray-900 dark:text-white">${req.employee_name || t['no_data']}</div>
+                            <div class="detail-value ${valueColorClass}">${req.employee_name || t['no_data']}</div>
                         </div>
                     </div>
                 </div>
@@ -677,53 +702,73 @@ include __DIR__ . '/../../includes/sidebar.php';
                         <div class="detail-row">
                             <div class="detail-item">
                                 <div class="detail-label">${t['leave_type']}</div>
-                                <div class="detail-value text-gray-900 dark:text-white">${req.leave_type || t['no_data']}</div>
+                                <div class="detail-value ${valueColorClass}">${req.leave_type || t['no_data']}</div>
                             </div>
                             <div class="detail-item">
                                 <div class="detail-label">${t['total_days']}</div>
-                                <div class="detail-value text-gray-900 dark:text-white">${req.total_days || t['no_data']} ${t['total_days']}</div>
+                                <div class="detail-value ${valueColorClass}">${req.total_days || t['no_data']} ${t['total_days']}</div>
                             </div>
                         </div>
                         <div class="detail-row">
                             <div class="detail-item">
                                 <div class="detail-label">${t['start_date']}</div>
-                                <div class="detail-value text-gray-900 dark:text-white">${req.start_date ? new Date(req.start_date).toLocaleDateString() : t['no_data']}</div>
+                                <div class="detail-value ${valueColorClass}">${req.start_date ? new Date(req.start_date).toLocaleDateString() : t['no_data']}</div>
                             </div>
                             <div class="detail-item">
                                 <div class="detail-label">${t['end_date']}</div>
-                                <div class="detail-value text-gray-900 dark:text-white">${req.end_date ? new Date(req.end_date).toLocaleDateString() : t['no_data']}</div>
+                                <div class="detail-value ${valueColorClass}">${req.end_date ? new Date(req.end_date).toLocaleDateString() : t['no_data']}</div>
                             </div>
                         </div>
-                        ${req.reason ? `<div class="detail-item mt-4"><div class="detail-label">${t['leave_reason']}</div><div class="detail-value break-words text-gray-900 dark:text-white">${req.reason}</div></div>` : ''}
+                        ${req.reason ? `<div class="detail-item mt-4"><div class="detail-label">${t['leave_reason']}</div><div class="detail-value break-words ${valueColorClass}">${req.reason}</div></div>` : ''}
                     </div>
                 `;
             }
             
             if (table === 'certificate_requests') {
+                // Get certificate type name based on language
+                let certTypeName = t['no_data'];
+                if (req.cert_type_id) {
+                    if (currentLang === 'th' && req.type_name_th) {
+                        certTypeName = req.type_name_th;
+                    } else if (currentLang === 'en' && req.type_name_en) {
+                        certTypeName = req.type_name_en;
+                    } else if (currentLang === 'my' && req.type_name_my) {
+                        certTypeName = req.type_name_my;
+                    } else {
+                        certTypeName = req.type_name_th || req.type_name_en || t['no_data'];
+                    }
+                }
+                
                 html += `
                     <div class="${detailClass}">
                         <h4 class="font-bold text-lg mb-4">📄 ${t['certificate_request']}</h4>
                         <div class="detail-row">
                             <div class="detail-item">
-                                <div class="detail-label">${t['certificate_no']}</div>
-                                <div class="detail-value font-mono text-gray-900 dark:text-white">${req.certificate_no || t['no_data']}</div>
+                                <div class="detail-label">${t['certificate_type']}</div>
+                                <div class="detail-value ${valueColorClass}">${certTypeName}</div>
                             </div>
                             <div class="detail-item">
-                                <div class="detail-label">${t['hiring_type']}</div>
-                                <div class="detail-value text-gray-900 dark:text-white">${req.hiring_type || t['no_data']}</div>
+                                <div class="detail-label">${t['certificate_no']}</div>
+                                <div class="detail-value font-mono ${valueColorClass}">${req.certificate_no || t['no_data']}</div>
                             </div>
                         </div>
                         <div class="detail-row">
                             <div class="detail-item">
-                                <div class="detail-label">${t['date_of_hire']}</div>
-                                <div class="detail-value text-gray-900 dark:text-white">${req.date_of_hire ? new Date(req.date_of_hire).toLocaleDateString() : t['no_data']}</div>
+                                <div class="detail-label">${t['hiring_type']}</div>
+                                <div class="detail-value ${valueColorClass}">${req.hiring_type || t['no_data']}</div>
                             </div>
                             <div class="detail-item">
-                                <div class="detail-label">${t['base_salary']}</div>
-                                <div class="detail-value font-mono text-gray-900 dark:text-white">${req.base_salary ? parseFloat(req.base_salary).toLocaleString() : t['no_data']}</div>
+                                <div class="detail-label">${t['date_of_hire']}</div>
+                                <div class="detail-value ${valueColorClass}">${req.date_of_hire ? new Date(req.date_of_hire).toLocaleDateString() : t['no_data']}</div>
                             </div>
                         </div>
-                        ${req.purpose ? `<div class="detail-item mt-4"><div class="detail-label">${t['purpose']}</div><div class="detail-value break-words text-gray-900 dark:text-white">${req.purpose}</div></div>` : ''}
+                        <div class="detail-row">
+                            <div class="detail-item">
+                                <div class="detail-label">${t['base_salary']}</div>
+                                <div class="detail-value font-mono ${valueColorClass}">${req.base_salary ? parseFloat(req.base_salary).toLocaleString() : t['no_data']}</div>
+                            </div>
+                        </div>
+                        ${req.purpose ? `<div class="detail-item mt-4"><div class="detail-label">${t['purpose']}</div><div class="detail-value break-words ${valueColorClass}">${req.purpose}</div></div>` : ''}
                     </div>
                 `;
             }
@@ -735,18 +780,18 @@ include __DIR__ . '/../../includes/sidebar.php';
                         <div class="detail-row">
                             <div class="detail-item">
                                 <div class="detail-label">${t['route']}</div>
-                                <div class="detail-value text-gray-900 dark:text-white">${req.route || t['no_data']}</div>
+                                <div class="detail-value ${valueColorClass}">${req.route || t['no_data']}</div>
                             </div>
                             <div class="detail-item">
                                 <div class="detail-label">${t['pickup_location']}</div>
-                                <div class="detail-value text-gray-900 dark:text-white">${req.pickup_location || t['no_data']}</div>
+                                <div class="detail-value ${valueColorClass}">${req.pickup_location || t['no_data']}</div>
                             </div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">${t['start_date_bus']}</div>
-                            <div class="detail-value text-gray-900 dark:text-white">${req.start_date ? new Date(req.start_date).toLocaleDateString() : t['no_data']}</div>
+                            <div class="detail-value ${valueColorClass}">${req.start_date ? new Date(req.start_date).toLocaleDateString() : t['no_data']}</div>
                         </div>
-                        ${req.reason ? `<div class="detail-item mt-4"><div class="detail-label">${t['reason']}</div><div class="detail-value break-words text-gray-900 dark:text-white">${req.reason}</div></div>` : ''}
+                        ${req.reason ? `<div class="detail-item mt-4"><div class="detail-label">${t['reason']}</div><div class="detail-value break-words ${valueColorClass}">${req.reason}</div></div>` : ''}
                     </div>
                 `;
             }
@@ -758,15 +803,15 @@ include __DIR__ . '/../../includes/sidebar.php';
                         ${req.assigned_locker_id ? `
                             <div class="detail-item">
                                 <div class="detail-label">${t['assigned_locker']}</div>
-                                <div class="detail-value font-mono text-gray-900 dark:text-white">Locker #${req.assigned_locker_id}</div>
+                                <div class="detail-value font-mono ${valueColorClass}">Locker #${req.assigned_locker_id}</div>
                             </div>
                         ` : `
                             <div class="detail-item">
                                 <div class="detail-label">${t['assigned_locker']}</div>
-                                <div class="detail-value text-gray-900 dark:text-white">${t['not_assigned']}</div>
+                                <div class="detail-value ${valueColorClass}">${t['not_assigned']}</div>
                             </div>
                         `}
-                        ${req.reason ? `<div class="detail-item mt-4"><div class="detail-label">${t['reason']}</div><div class="detail-value break-words text-gray-900 dark:text-white">${req.reason}</div></div>` : ''}
+                        ${req.reason ? `<div class="detail-item mt-4"><div class="detail-label">${t['reason']}</div><div class="detail-value break-words ${valueColorClass}">${req.reason}</div></div>` : ''}
                     </div>
                 `;
             }
@@ -778,18 +823,18 @@ include __DIR__ . '/../../includes/sidebar.php';
                         <div class="detail-row">
                             <div class="detail-item">
                                 <div class="detail-label">${t['request_type']}</div>
-                                <div class="detail-value text-gray-900 dark:text-white">${req.request_type || t['no_data']}</div>
+                                <div class="detail-value ${valueColorClass}">${req.request_type || t['no_data']}</div>
                             </div>
                             <div class="detail-item">
                                 <div class="detail-label">${t['quantity']}</div>
-                                <div class="detail-value text-gray-900 dark:text-white">${req.quantity || t['no_data']}</div>
+                                <div class="detail-value ${valueColorClass}">${req.quantity || t['no_data']}</div>
                             </div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">${t['items_list']}</div>
-                            <div class="detail-value break-words whitespace-pre-wrap text-gray-900 dark:text-white">${req.items_list || t['no_data']}</div>
+                            <div class="detail-value break-words whitespace-pre-wrap ${valueColorClass}">${req.items_list || t['no_data']}</div>
                         </div>
-                        ${req.reason ? `<div class="detail-item mt-4"><div class="detail-label">${t['reason']}</div><div class="detail-value break-words text-gray-900 dark:text-white">${req.reason}</div></div>` : ''}
+                        ${req.reason ? `<div class="detail-item mt-4"><div class="detail-label">${t['reason']}</div><div class="detail-value break-words ${valueColorClass}">${req.reason}</div></div>` : ''}
                     </div>
                 `;
             }
@@ -798,7 +843,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                 html += `
                     <div class="${detailClass}">
                         <h4 class="font-bold text-lg mb-4">🎫 ${t['id_card_request']}</h4>
-                        ${req.reason ? `<div class="detail-item"><div class="detail-label">${t['reason']}</div><div class="detail-value break-words text-gray-900 dark:text-white">${req.reason}</div></div>` : ''}
+                        ${req.reason ? `<div class="detail-item"><div class="detail-label">${t['reason']}</div><div class="detail-value break-words ${valueColorClass}">${req.reason}</div></div>` : ''}
                     </div>
                 `;
             }
@@ -807,7 +852,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                 html += `
                     <div class="${detailClass}">
                         <h4 class="font-bold text-lg mb-4">🧪 ${t['skill_test_request']}</h4>
-                        ${req.reason ? `<div class="detail-item"><div class="detail-label">${t['reason']}</div><div class="detail-value break-words text-gray-900 dark:text-white">${req.reason}</div></div>` : ''}
+                        ${req.reason ? `<div class="detail-item"><div class="detail-label">${t['reason']}</div><div class="detail-value break-words ${valueColorClass}">${req.reason}</div></div>` : ''}
                     </div>
                 `;
             }
@@ -818,7 +863,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                         <h4 class="font-bold text-lg mb-4">📃 ${t['document_submission']}</h4>
                         <div class="detail-item">
                             <div class="detail-label">${t['submission_date']}</div>
-                            <div class="detail-value text-gray-900 dark:text-white">${req.submission_date ? new Date(req.submission_date).toLocaleString() : t['no_data']}</div>
+                            <div class="detail-value ${valueColorClass}">${req.submission_date ? new Date(req.submission_date).toLocaleString() : t['no_data']}</div>
                         </div>
                     </div>
                 `;
@@ -832,7 +877,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                         <div class="detail-row">
                             <div class="detail-item">
                                 <div class="detail-label">${t['handler_id']}</div>
-                                <div class="detail-value font-mono text-gray-900 dark:text-white">${req.handler_id}</div>
+                                <div class="detail-value font-mono ${valueColorClass}">${req.handler_id}</div>
                             </div>
                         </div>
                     </div>
@@ -843,11 +888,11 @@ include __DIR__ . '/../../includes/sidebar.php';
             if (req.handler_remarks) {
                 html += `
                     <div class="bg-blue-50 dark:bg-blue-900 border-l-4 border-blue-500 p-4 rounded">
-                        <h4 class="font-bold mb-2 flex items-center text-gray-900 dark:text-white">
+                        <h4 class="font-bold mb-2 flex items-center ${valueColorClass}">
                             <span class="text-blue-500 mr-2">💬</span>
                             ${t['handler_remarks']}
                         </h4>
-                        <p class="break-words whitespace-pre-wrap text-gray-900 dark:text-white">${req.handler_remarks}</p>
+                        <p class="break-words whitespace-pre-wrap ${valueColorClass}">${req.handler_remarks}</p>
                     </div>
                 `;
             }
@@ -856,17 +901,17 @@ include __DIR__ . '/../../includes/sidebar.php';
             if (req.satisfaction_score) {
                 html += `
                     <div class="${detailClass}">
-                        <h4 class="font-bold text-lg mb-4">⭐ ให้คะแนน</h4>
+                        <h4 class="font-bold text-lg mb-4">⭐ ${t['satisfaction_score']}</h4>
                         <div class="detail-row">
                             <div class="detail-item">
                                 <div class="detail-label">ระดับความพึงพอใจ</div>
-                                <div class="detail-value text-gray-900 dark:text-white">${'★'.repeat(req.satisfaction_score)}${'☆'.repeat(5 - req.satisfaction_score)}</div>
+                                <div class="detail-value ${valueColorClass}">${'★'.repeat(req.satisfaction_score)}${'☆'.repeat(5 - req.satisfaction_score)}</div>
                             </div>
                         </div>
                         ${req.satisfaction_feedback ? `
                             <div class="detail-item mt-4">
-                                <div class="detail-label">ความเห็น</div>
-                                <div class="detail-value break-words text-gray-900 dark:text-white">${req.satisfaction_feedback}</div>
+                                <div class="detail-label">${t['satisfaction_feedback']}</div>
+                                <div class="detail-value break-words ${valueColorClass}">${req.satisfaction_feedback}</div>
                             </div>
                         ` : ''}
                     </div>
