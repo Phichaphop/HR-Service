@@ -1,79 +1,85 @@
 <?php
 /**
- * Certificate Request API - FINAL WORKING VERSION
- * Compatible with certificate_requests table structure
- * Date: 2025-10-27
+ * Certificate Request API - IMPROVED VERSION
+ * Stores ALL employee data including: name, position, division, hire date, hiring type, salary
+ * Date: 27 October 2025
  */
 
 header('Content-Type: application/json');
 ini_set('display_errors', 0);
 error_reporting(E_ALL);
 
-// Start output buffering to catch any headers
 ob_start();
 
 try {
-    // Load requirements
     require_once __DIR__ . '/../config/db_config.php';
     require_once __DIR__ . '/../controllers/AuthController.php';
     
-    // Start session if needed
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
     }
     
-    // Require authentication
     AuthController::requireAuth();
     
-    // Get user ID
     $user_id = $_SESSION['user_id'] ?? '';
     if (empty($user_id)) {
         throw new Exception('User not authenticated');
     }
     
-    // Get POST data
+    // Get JSON input
     $input = json_decode(file_get_contents('php://input'), true);
     if (!$input) {
         throw new Exception('Invalid JSON input');
     }
     
-    // Get purpose
+    $cert_type_id = isset($input['cert_type_id']) ? (int)$input['cert_type_id'] : 0;
     $purpose = trim($input['purpose'] ?? '');
+    
+    if (empty($cert_type_id)) {
+        throw new Exception('Certificate type is required');
+    }
+    
     if (empty($purpose) || strlen($purpose) < 5) {
         throw new Exception('Purpose is required (minimum 5 characters)');
     }
     
-    // Get database connection
     $conn = getDbConnection();
     if (!$conn) {
         throw new Exception('Database connection failed');
     }
     
-    // Step 1: Get employee information
+    // ============================================================
+    // STEP 1: Fetch Employee with Complete Information
+    // ============================================================
     $sql_employee = "SELECT 
                         e.employee_id,
-                        CONCAT(COALESCE(p.prefix_name_th, ''), ' ', COALESCE(e.full_name_th, '')) as full_name,
-                        COALESCE(pos.position_name_th, '') as position_name,
-                        COALESCE(d.division_name_th, '') as division_name,
+                        e.full_name_th,
+                        e.full_name_en,
+                        p.prefix_th,
+                        p.prefix_en,
+                        pos.position_name_th,
+                        pos.position_name_en,
+                        d.division_name_th,
+                        d.division_name_en,
                         e.date_of_hire,
-                        COALESCE(h.type_name_th, '') as hiring_type_name,
-                        e.base_salary
+                        ht.type_name_th,
+                        ht.type_name_en
                     FROM employees e
                     LEFT JOIN prefix_master p ON e.prefix_id = p.prefix_id
                     LEFT JOIN position_master pos ON e.position_id = pos.position_id
                     LEFT JOIN division_master d ON e.division_id = d.division_id
-                    LEFT JOIN hiring_type_master h ON e.hiring_type_id = h.hiring_type_id
+                    LEFT JOIN hiring_type_master ht ON e.hiring_type_id = ht.hiring_type_id
                     WHERE e.employee_id = ?
                     LIMIT 1";
     
     $stmt = $conn->prepare($sql_employee);
     if (!$stmt) {
-        throw new Exception('Database error: ' . $conn->error);
+        throw new Exception('Prepare error: ' . $conn->error);
     }
     
     $stmt->bind_param('s', $user_id);
     if (!$stmt->execute()) {
-        throw new Exception('Database query error: ' . $stmt->error);
+        throw new Exception('Execute error: ' . $stmt->error);
     }
     
     $result = $stmt->get_result();
@@ -84,47 +90,94 @@ try {
     $employee = $result->fetch_assoc();
     $stmt->close();
     
-    // Step 2: Generate certificate number
+    // ============================================================
+    // STEP 2: Build Employee Name (Prefix + Full Name)
+    // ============================================================
+    $prefix_th = trim($employee['prefix_th'] ?? '');
+    $fullname_th = trim($employee['full_name_th'] ?? '');
+    $employee_name = trim($prefix_th . ' ' . $fullname_th);
+    
+    if (empty($employee_name)) {
+        $prefix_en = trim($employee['prefix_en'] ?? '');
+        $fullname_en = trim($employee['full_name_en'] ?? '');
+        $employee_name = trim($prefix_en . ' ' . $fullname_en);
+    }
+    
+    if (empty($employee_name)) {
+        throw new Exception('Employee name not found');
+    }
+    
+    // ============================================================
+    // STEP 3: Extract All Employee Data
+    // ============================================================
+    $position = trim($employee['position_name_th'] ?? $employee['position_name_en'] ?? '');
+    $division = trim($employee['division_name_th'] ?? $employee['division_name_en'] ?? '');
+    $date_of_hire = $employee['date_of_hire'] ?? null;
+    $hiring_type = trim($employee['type_name_th'] ?? $employee['type_name_en']);
+    $base_salary = (float)($employee['base_salary'] ?? 0);
+    
+    // ============================================================
+    // STEP 4: Generate Certificate Number
+    // ============================================================
     $cert_no = 'CERT-' . date('Ymd') . '-' . str_pad(rand(1000, 9999), 4, '0', STR_PAD_LEFT);
     
-    // Step 3: Insert certificate request
+    // ============================================================
+    // STEP 5: INSERT with COMPLETE Data
+    // ============================================================
     $sql_insert = "INSERT INTO certificate_requests 
-                    (certificate_no, employee_id, employee_name, position, division, 
-                     date_of_hire, hiring_type, base_salary, purpose, status, created_at, updated_at)
+                    (
+                        certificate_no,
+                        employee_id,
+                        cert_type_id,
+                        employee_name,
+                        position,
+                        division,
+                        date_of_hire,
+                        hiring_type,
+                        base_salary,
+                        purpose,
+                        status,
+                        created_at,
+                        updated_at
+                    )
                    VALUES 
-                    (?, ?, ?, ?, ?, ?, ?, ?, ?, 'New', NOW(), NOW())";
+                    (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'New', NOW(), NOW())";
     
     $stmt_insert = $conn->prepare($sql_insert);
     if (!$stmt_insert) {
         throw new Exception('Insert prepare error: ' . $conn->error);
     }
     
-    // Prepare values
-    $employee_name = $employee['full_name'] ?? '';
-    $position = $employee['position_name'] ?? '';
-    $division = $employee['division_name'] ?? '';
-    $date_of_hire = $employee['date_of_hire'] ?? null;
-    $hiring_type = $employee['hiring_type_name'] ?? '';
-    $base_salary = (float)($employee['base_salary'] ?? 0);
-    
-    // Bind parameters: 9 total (cert_no, employee_id, employee_name, position, division, date_of_hire, hiring_type, base_salary, purpose)
-    if (!$stmt_insert->bind_param('sssssssds', $cert_no, $user_id, $employee_name, $position, $division, $date_of_hire, $hiring_type, $base_salary, $purpose)) {
-        throw new Exception('Bind parameter error: ' . $stmt_insert->error);
+    // Bind parameters: 10 total
+    // Type sequence: s=string, i=int, d=double
+    if (!$stmt_insert->bind_param(
+        'ssissssdss',
+        $cert_no,           // s - certificate_no
+        $user_id,           // s - employee_id
+        $cert_type_id,      // i - cert_type_id
+        $employee_name,     // s - employee_name ✅ COMPLETE
+        $position,          // s - position ✅ COMPLETE
+        $division,          // s - division ✅ COMPLETE
+        $date_of_hire,      // s - date_of_hire ✅ COMPLETE
+        $hiring_type,       // s - hiring_type ✅ COMPLETE
+        $base_salary,       // d - base_salary ✅ COMPLETE
+        $purpose            // s - purpose
+    )) {
+        throw new Exception('Bind error: ' . $stmt_insert->error);
     }
     
-    // Execute insert
     if (!$stmt_insert->execute()) {
-        throw new Exception('Insert execution error: ' . $stmt_insert->error);
+        throw new Exception('Insert execute error: ' . $stmt_insert->error);
     }
     
     $request_id = $conn->insert_id;
     $stmt_insert->close();
     $conn->close();
     
-    // Clear output buffer
+    // ============================================================
+    // SUCCESS Response
+    // ============================================================
     ob_end_clean();
-    
-    // Success response
     http_response_code(200);
     echo json_encode([
         'success' => true,
@@ -134,15 +187,11 @@ try {
     ]);
     
 } catch (Exception $e) {
-    // Clear output buffer
     ob_end_clean();
-    
-    // Error response
     http_response_code(400);
     echo json_encode([
         'success' => false,
         'message' => $e->getMessage()
     ]);
-    
 }
 ?>
