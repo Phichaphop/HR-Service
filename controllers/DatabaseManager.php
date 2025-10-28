@@ -410,7 +410,7 @@ class DatabaseManager {
             
             // Seed company info
             $conn->query("INSERT INTO company_info (company_name_th, company_name_en, phone, fax, address, representative_name) VALUES 
-                ('บริษัท ตัวอย่าง จำกัด', 'Sample Company Limited', '042-123-456', '042-123-457', '123 ถนนหลัก ตำบลหมากแข้ง อำเภอเมือง จังหวัดอุดรธานี 41000', 'นายสมชาย ใจดี')");
+                ('บริษัท แทร็กซ์ อินเตอร์เทรด จำกัด', 'Trax intertrade co., ltd.', '043-507-089-92', '043-507-091', '61 หมู่ 5 ถนนร้อยเอ็ด-กาฬสินธุ์ ต.จังหาร อ.จังหาร จ.ร้อยเอ็ด 45000', 'นายธีรภัทร์  เสมแก้ว')");
             
             // Seed localization (sample keys)
             $conn->query("INSERT INTO localization_master (key_id, th_text, en_text, my_text, category) VALUES 

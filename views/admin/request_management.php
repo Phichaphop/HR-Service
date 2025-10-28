@@ -804,14 +804,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                                          currentLang === 'my' ? 'လစာဖြည့်ပါ' : 
                                          'Enter Salary';
                 
-                const hiringTypeLabel = currentLang === 'th' ? 'ประเภทการจ้าง' : 
-                                       currentLang === 'my' ? 'အလုပ်ခန့်အပ်မှုအမျိုးအစား' : 
-                                       'Hiring Type';
-                
-                const selectHiringType = currentLang === 'th' ? 'เลือกประเภทการจ้าง' : 
-                                        currentLang === 'my' ? 'အမျိုးအစားရွေးပါ' : 
-                                        'Select Hiring Type';
-                
                 const saveSalaryBtn = currentLang === 'th' ? '💾 บันทึกข้อมูลเงินเดือน' : 
                                      currentLang === 'my' ? '💾 လစာအချက်အလက်သိမ်းဆည်းပါ' : 
                                      '💾 Save Salary Information';
@@ -821,7 +813,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                                       '📄 Generate Certificate';
                 
                 const currentSalary = request.base_salary || 0;
-                const currentHiringType = request.hiring_type_id || '';
                 
                 html += `
                     <!-- Salary Information Form -->
@@ -833,49 +824,26 @@ include __DIR__ . '/../../includes/sidebar.php';
                             ${salaryLabel}
                         </h4>
                         
-                        <form id="salaryForm" onsubmit="updateEmployeeSalary(event, '${request.employee_id}')">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                <div>
-                                    <label class="block text-sm font-medium ${textClass} mb-2">
-                                        ${currentLang === 'th' ? 'เงินเดือนปัจจุบัน (บาท)' : 
-                                          currentLang === 'my' ? 'လက်ရှိလစာ (ကျပ်)' : 
-                                          'Current Salary (THB)'}
-                                    </label>
-                                    <input type="number" 
-                                           name="base_salary" 
-                                           step="0.01" 
-                                           min="0"
-                                           value="${currentSalary}"
-                                           placeholder="${salaryPlaceholder}"
-                                           class="w-full px-4 py-2 border rounded-lg ${inputClass} focus:ring-2 focus:ring-yellow-500"
-                                           required>
-                                </div>
-                                
-                                <div>
-                                    <label class="block text-sm font-medium ${textClass} mb-2">
-                                        ${hiringTypeLabel}
-                                    </label>
-                                    <select name="hiring_type_id" 
-                                            class="w-full px-4 py-2 border rounded-lg ${inputClass} focus:ring-2 focus:ring-yellow-500"
-                                            required>
-                                        <option value="">${selectHiringType}</option>
-                                        <option value="1" ${currentHiringType == 1 ? 'selected' : ''}>
-                                            ${currentLang === 'th' ? 'พนักงานประจำ' : currentLang === 'my' ? 'အမြဲတမ်းဝန်ထမ်း' : 'Permanent'}
-                                        </option>
-                                        <option value="2" ${currentHiringType == 2 ? 'selected' : ''}>
-                                            ${currentLang === 'th' ? 'พนักงานชั่วคราว' : currentLang === 'my' ? 'ယာယီဝန်ထမ်း' : 'Temporary'}
-                                        </option>
-                                        <option value="3" ${currentHiringType == 3 ? 'selected' : ''}>
-                                            ${currentLang === 'th' ? 'พนักงานสัญญาจ้าง' : currentLang === 'my' ? 'စာချုပ်ဝန်ထမ်း' : 'Contract'}
-                                        </option>
-                                        <option value="4" ${currentHiringType == 4 ? 'selected' : ''}>
-                                            ${currentLang === 'th' ? 'พนักงานทดลองงาน' : currentLang === 'my' ? 'စမ်းသပ်ဝန်ထမ်း' : 'Probation'}
-                                        </option>
-                                        <option value="5" ${currentHiringType == 5 ? 'selected' : ''}>
-                                            ${currentLang === 'th' ? 'พนักงานพาร์ทไทม์' : currentLang === 'my' ? 'အချိန်ပိုင်းဝန်ထမ်း' : 'Part-time'}
-                                        </option>
-                                    </select>
-                                </div>
+                        <form id="salaryForm" onsubmit="updateEmployeeSalary(event, ${request.request_id})">
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium ${textClass} mb-2">
+                                    ${currentLang === 'th' ? 'เงินเดือนสำหรับหนังสือรับรองฉบับนี้ (บาท)' : 
+                                      currentLang === 'my' ? 'ဤလက်မှတ်အတွက်လစာ (ကျပ်)' : 
+                                      'Salary for this Certificate (THB)'}
+                                </label>
+                                <input type="number" 
+                                       name="base_salary" 
+                                       step="0.01" 
+                                       min="0"
+                                       value="${currentSalary}"
+                                       placeholder="${salaryPlaceholder}"
+                                       class="w-full px-4 py-2 border rounded-lg ${inputClass} focus:ring-2 focus:ring-yellow-500"
+                                       required>
+                                <p class="text-xs ${grayTextClass} mt-1">
+                                    ${currentLang === 'th' ? '💡 เงินเดือนนี้จะถูกบันทึกเฉพาะคำขอนี้เท่านั้น' : 
+                                      currentLang === 'my' ? '💡 ဤလစာကို ဤတောင်းဆိုမှုအတွက်သာသိမ်းဆည်းမည်' : 
+                                      '💡 This salary will be saved only for this specific request'}
+                                </p>
                             </div>
                             
                             <button type="submit" 
@@ -1049,15 +1017,14 @@ include __DIR__ . '/../../includes/sidebar.php';
             showToast(langMessage[currentLang] || langMessage['th'], 'info');
         }
         
-        // Update Employee Salary Function
-        function updateEmployeeSalary(event, employeeId) {
+        // Update Certificate Salary Function
+        function updateEmployeeSalary(event, requestId) {
             event.preventDefault();
             
             const formData = new FormData(event.target);
             const data = {
-                employee_id: employeeId,
-                base_salary: parseFloat(formData.get('base_salary')),
-                hiring_type_id: parseInt(formData.get('hiring_type_id'))
+                request_id: parseInt(requestId),
+                base_salary: parseFloat(formData.get('base_salary'))
             };
             
             // Disable submit button
@@ -1070,8 +1037,8 @@ include __DIR__ . '/../../includes/sidebar.php';
                                   'Saving...');
             
             const basePath = '<?php echo defined("BASE_PATH") ? BASE_PATH : ""; ?>';
-            const url = basePath ? `${basePath}/api/update_employee_salary.php` 
-                                 : `/api/update_employee_salary.php`;
+            const url = basePath ? `${basePath}/api/update_certificate_salary.php` 
+                                 : `/api/update_certificate_salary.php`;
             
             fetch(url, {
                 method: 'POST',
@@ -1090,16 +1057,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                     
                     // Reload modal to show updated data
                     setTimeout(() => {
-                        // Get current modal data
-                        const modal = document.getElementById('requestModal');
-                        if (modal) {
-                            // Extract table and request_id from the form context
-                            const form = event.target.closest('.space-y-6');
-                            if (form) {
-                                // Reload the modal content
-                                location.reload(); // Simple reload for now
-                            }
-                        }
+                        location.reload();
                     }, 1000);
                 } else {
                     const errorMessage = result.message || 'Error saving salary information';
