@@ -1,24 +1,22 @@
 <?php
 /**
- * My Requests Page - FIXED VERSION
+ * My Requests Page - FIXED VERSION WITH STAR RATING
  * Supports: Thai (ไทย), English (EN), Myanmar (မြန်မာ)
- * FIXES:
+ * FEATURES:
  * 1. Fixed Hiring Type, Date of Hire, Base Salary showing "No Data"
  * 2. Added certificate type display in certificate request details
  * 3. Proper dark mode text colors on all fields
+ * 4. STAR RATING: 5 stars left-to-right with interactive UI
  */
 require_once __DIR__ . '/../../config/db_config.php';
 require_once __DIR__ . '/../../controllers/AuthController.php';
 require_once __DIR__ . '/../../db/Localization.php';
-
 AuthController::requireAuth();
-
 // Get current settings from session
 $current_lang = $_SESSION['language'] ?? 'th';
 $theme_mode = $_SESSION['theme_mode'] ?? 'light';
 $is_dark = ($theme_mode === 'dark');
 $user_id = $_SESSION['user_id'] ?? '';
-
 // Theme colors based on dark mode
 $card_bg = $is_dark ? 'bg-gray-800' : 'bg-white';
 $text_class = $is_dark ? 'text-white' : 'text-gray-900';
@@ -26,7 +24,6 @@ $bg_class = $is_dark ? 'bg-gray-900' : 'bg-gray-50';
 $border_class = $is_dark ? 'border-gray-700' : 'border-gray-200';
 $input_class = $is_dark ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500';
 $label_class = $is_dark ? 'text-gray-300' : 'text-gray-700';
-
 // Multi-language translations - ENHANCED with more fields
 $translations = [
     'th' => [
@@ -63,43 +60,34 @@ $translations = [
         'reason' => 'เหตุผล',
         'remarks' => 'หมายเหตุ',
         'suggestion' => 'ข้อเสนอแนะ',
-        // Leave Request
         'leave_type' => 'ประเภทการลา',
         'start_date' => 'วันเริ่มต้น',
         'end_date' => 'วันสิ้นสุด',
         'total_days' => 'จำนวนวันที่ลา',
         'leave_reason' => 'เหตุผลการลา',
-        // Certificate Request
         'certificate_type' => 'ประเภทหนังสือรับรอง',
         'certificate_no' => 'เลขที่หนังสือรับรอง',
         'salary_info' => 'ข้อมูลเงินเดือน',
         'base_salary' => 'เงินเดือนพื้นฐาน',
         'hiring_type' => 'ประเภทการจ้าง',
         'date_of_hire' => 'วันที่เริ่มงาน',
-        // ID Card Request
         'card_reason' => 'เหตุผลการขอบัตร',
         'card_status' => 'สถานะบัตร',
-        // Shuttle Bus Request
         'route' => 'เส้นทาง',
         'pickup_location' => 'สถานที่รับ',
         'start_date_bus' => 'วันเริ่มใช้บริการ',
-        // Locker Request
         'locker_number' => 'หมายเลขล็อกเกอร์',
         'assigned_locker' => 'ล็อกเกอร์ที่ได้รับมอบหมาย',
-        // Supplies Request
         'request_type' => 'ประเภทคำขอ',
         'items_list' => 'รายการอุปกรณ์',
         'quantity' => 'จำนวน',
         'supplies_reason' => 'เหตุผลการขอเบิก',
-        // Skill Test
         'test_info' => 'ข้อมูลการสอบทักษะ',
-        // Document Submission
         'service_category' => 'หมวดหมู่บริการ',
         'service_type' => 'ประเภทบริการ',
         'submission_date' => 'วันที่ส่ง',
-        // Rating
         'rating_title' => 'ให้คะแนนความพึงพอใจ',
-        'rating_label' => 'คะแนน (1-5 ดาว)',
+        'rating_label' => 'เลือกคะแนน (1-5 ดาว)',
         'additional_feedback' => 'ความคิดเห็นเพิ่มเติม',
         'feedback_placeholder' => 'แสดงความคิดเห็น (ถ้ามี)',
         'submit_rating' => 'ส่งคะแนน',
@@ -122,6 +110,12 @@ $translations = [
         'not_assigned' => 'ยังไม่ได้มอบหมาย',
         'satisfaction_score' => 'ระดับความพึงพอใจ',
         'satisfaction_feedback' => 'ความเห็นของผู้ใช้',
+        'rating_1' => 'ไม่พอใจ',
+        'rating_2' => 'พอใจ',
+        'rating_3' => 'ปานกลาง',
+        'rating_4' => 'ดี',
+        'rating_5' => 'ดีเยี่ยม',
+        'please_select_rating' => 'กรุณาเลือกคะแนน',
     ],
     'en' => [
         'page_title' => 'My Requests',
@@ -184,7 +178,7 @@ $translations = [
         'service_type' => 'Service Type',
         'submission_date' => 'Submission Date',
         'rating_title' => 'Rate Satisfaction',
-        'rating_label' => 'Rating (1-5 Stars)',
+        'rating_label' => 'Select Rating (1-5 Stars)',
         'additional_feedback' => 'Additional Feedback',
         'feedback_placeholder' => 'Add your feedback (if any)',
         'submit_rating' => 'Submit Rating',
@@ -207,6 +201,12 @@ $translations = [
         'not_assigned' => 'Not Assigned Yet',
         'satisfaction_score' => 'Satisfaction Score',
         'satisfaction_feedback' => 'User Feedback',
+        'rating_1' => 'Poor',
+        'rating_2' => 'Fair',
+        'rating_3' => 'Average',
+        'rating_4' => 'Good',
+        'rating_5' => 'Excellent',
+        'please_select_rating' => 'Please select a rating',
     ],
     'my' => [
         'page_title' => 'ကျွန်ုပ်၏တောင်းခံမှုများ',
@@ -268,8 +268,8 @@ $translations = [
         'service_category' => 'ဝန်ဆောင်မှုအမျိုးအစား',
         'service_type' => 'ဝန်ဆောင်မှုအမျိုးအစား',
         'submission_date' => 'တင်သွင်းသည့်နေ့',
-        'rating_title' => 'संतुष्टिతां အဆင့်သတ်မှတ်ခြင်း',
-        'rating_label' => 'အဆင့် (၁-၅ ကြယ်)',
+        'rating_title' => 'ကျေးဇူးတင်မှုအဆင့်သတ်မှတ်ခြင်း',
+        'rating_label' => 'အဆင့်ရွေးချယ်ခြင်း (၁-၅ ကြယ်)',
         'additional_feedback' => 'အခြားအဆင့်သတ်မှတ်ခြင်း',
         'feedback_placeholder' => 'သင်၏အကြံအစည်ကိုထည့်သွင်းပါ (ရှိရင်)',
         'submit_rating' => 'အဆင့်သတ်မှတ်မှုတင်သွင်းမည်',
@@ -287,25 +287,27 @@ $translations = [
         'locker_request' => 'အိတ်ဆောင်တင်သွင်းမှုတောင်းခံမှု',
         'supplies_request' => 'ပရိယာယ်တောင်းခံမှု',
         'skill_test_request' => 'အရည်အချင်းစမ်းသပ်မှုတောင်းခံမှု',
-        'document_submission' => 'စာ类တင်သွင်းမှု',
+        'document_submission' => 'စာ၍တင်သွင်းမှု',
         'no_data' => 'အချက်အလက်မရှိ',
         'not_assigned' => 'ဒီတစ်ခါမှ မည့်အပ်မထားရသေးပါ',
         'satisfaction_score' => 'ကျေးဇူးတင်သောအဆင့်',
         'satisfaction_feedback' => 'အသုံးပြုသူအကြံအစည်',
+        'rating_1' => 'ကျေးဇူးမတင်သည်',
+        'rating_2' => 'ကျေးဇူးတင်သည်',
+        'rating_3' => 'ပျမ်းမျန်သည်',
+        'rating_4' => 'ကောင်းမွန်သည်',
+        'rating_5' => 'အလွန်ကောင်းမွန်သည်',
+        'please_select_rating' => 'အဆင့်ရွေးချယ်ပါ',
     ]
 ];
-
 // Get current language strings
 $t = $translations[$current_lang] ?? $translations['th'];
 $page_title = $t['page_title'];
-
 // Ensure session started
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
 $conn = getDbConnection();
-
 // Request type mapping with multi-language support
 $request_types = [
     'leave_requests' => ['th' => 'ใบลา', 'en' => 'Leave Request', 'my' => 'အငြိုးပြုစုတောင်းခံမှု'],
@@ -315,16 +317,14 @@ $request_types = [
     'locker_requests' => ['th' => 'ตู้ล็อกเกอร์', 'en' => 'Locker Request', 'my' => 'အိတ်ဆောင်တင်သွင်းမှုတောင်းခံမှု'],
     'supplies_requests' => ['th' => 'วัสดุสำนักงาน', 'en' => 'Supplies Request', 'my' => 'ပရိယာယ်တောင်းခံမှု'],
     'skill_test_requests' => ['th' => 'ทดสอบทักษะ', 'en' => 'Skill Test Request', 'my' => 'အရည်အချင်းစမ်းသပ်မှုတောင်းခံမှု'],
-    'document_submissions' => ['th' => 'ลงชื่อส่งเอกสาร', 'en' => 'Document Submission', 'my' => 'စာ類တင်သွင်းမှု']
+    'document_submissions' => ['th' => 'ลงชื่อส่งเอกสาร', 'en' => 'Document Submission', 'my' => 'စာ၍တင်သွင်းမှု']
 ];
-
 // Status mapping with multi-language support
 $status_map = [
     'th' => ['New' => 'ใหม่', 'In Progress' => 'กำลังดำเนิน', 'Complete' => 'เสร็จสิ้น', 'Cancelled' => 'ยกเลิก'],
     'en' => ['New' => 'New', 'In Progress' => 'In Progress', 'Complete' => 'Complete', 'Cancelled' => 'Cancelled'],
     'my' => ['New' => 'အသစ်', 'In Progress' => 'လုပ်ဆောင်နေ', 'Complete' => 'ပြည့်စုံမည်', 'Cancelled' => 'ပယ်ဖျက်ခြင်း']
 ];
-
 // Get all requests for this user
 $all_requests = [];
 foreach ($request_types as $table => $type_names) {
@@ -352,14 +352,11 @@ foreach ($request_types as $table => $type_names) {
     }
     $stmt->close();
 }
-
 // Sort by date
 usort($all_requests, function($a, $b) {
     return strtotime($b['created_at']) - strtotime($a['created_at']);
 });
-
 $conn->close();
-
 include __DIR__ . '/../../includes/header.php';
 include __DIR__ . '/../../includes/sidebar.php';
 ?>
@@ -426,6 +423,63 @@ include __DIR__ . '/../../includes/sidebar.php';
             .detail-row {
                 grid-template-columns: 1fr;
             }
+        }
+        
+        /* STAR RATING STYLES */
+        .star-container {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin: 1.5rem 0;
+        }
+        
+        .star-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.5rem;
+            transition: transform 0.2s ease, filter 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .star-button:hover {
+            transform: scale(1.15);
+            filter: brightness(1.2);
+        }
+        
+        .star-button svg {
+            width: 3rem;
+            height: 3rem;
+            transition: all 0.2s ease;
+        }
+        
+        .star-button.empty svg {
+            color: #d1d5db;
+            fill: #d1d5db;
+        }
+        
+        .star-button.filled svg {
+            color: #fcd34d;
+            fill: #fcd34d;
+        }
+        
+        .star-button.filled svg:hover {
+            filter: brightness(1.1);
+        }
+        
+        .dark .star-button.empty svg {
+            color: #6b7280;
+            fill: #6b7280;
+        }
+        
+        .rating-label {
+            text-align: center;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-top: 1rem;
+            min-height: 1.5rem;
         }
     </style>
 </head>
@@ -543,7 +597,7 @@ include __DIR__ . '/../../includes/sidebar.php';
         </div>
     </div>
     
-    <!-- View Details Modal - FIXED for certificate type -->
+    <!-- View Details Modal -->
     <div id="detailsModal" class="modal-backdrop">
         <div class="<?php echo $card_bg; ?> rounded-xl shadow-2xl max-w-4xl w-full max-h-[95vh] overflow-y-auto border <?php echo $border_class; ?> m-4 my-auto">
             <div class="p-6 lg:p-8">
@@ -556,7 +610,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                     </button>
                 </div>
                 <div id="detailsContent" class="space-y-6">
-                    <!-- Content loaded via JavaScript -->
                     <div class="text-center py-12">
                         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
                         <p class="mt-4"><?php echo $t['error_loading']; ?></p>
@@ -566,7 +619,7 @@ include __DIR__ . '/../../includes/sidebar.php';
         </div>
     </div>
     
-    <!-- Rating Modal -->
+    <!-- Rating Modal - WITH STAR RATING UI -->
     <div id="ratingModal" class="modal-backdrop">
         <div class="<?php echo $card_bg; ?> rounded-xl shadow-2xl max-w-md w-full border <?php echo $border_class; ?> m-4">
             <div class="p-6">
@@ -582,18 +635,25 @@ include __DIR__ . '/../../includes/sidebar.php';
                 <form id="ratingForm" onsubmit="submitRating(event)">
                     <input type="hidden" id="rating_request_id">
                     <input type="hidden" id="rating_table">
+                    <input type="hidden" id="rating_score" name="score">
                     
                     <div class="mb-6">
-                        <label class="block text-sm font-medium <?php echo $text_class; ?> mb-3 text-center"><?php echo $t['rating_label']; ?></label>
-                        <div class="flex justify-center space-x-2">
-                            <?php for ($i = 5; $i >= 1; $i--): ?>
-                                <label class="cursor-pointer">
-                                    <input type="radio" name="score" value="<?php echo $i; ?>" required class="sr-only peer">
-                                    <svg class="w-12 h-12 text-gray-300 peer-checked:text-yellow-400 hover:text-yellow-300 transition" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        <label class="block text-sm font-medium <?php echo $text_class; ?> mb-3"><?php echo $t['rating_label']; ?></label>
+                        
+                        <!-- STAR RATING (Left to Right: 1-5) -->
+                        <div class="star-container" id="starContainer">
+                            <?php for ($i = 1; $i <= 5; $i++): ?>
+                                <button type="button" class="star-button empty" data-rating="<?php echo $i; ?>" onclick="selectRating(<?php echo $i; ?>)">
+                                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+                                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                                     </svg>
-                                </label>
+                                </button>
                             <?php endfor; ?>
+                        </div>
+                        
+                        <!-- Rating Label -->
+                        <div class="rating-label" id="ratingLabel">
+                            <?php echo $t['please_select_rating']; ?>
                         </div>
                     </div>
                     
@@ -622,6 +682,38 @@ include __DIR__ . '/../../includes/sidebar.php';
         const t = <?php echo json_encode($t); ?>;
         const statusMap = <?php echo json_encode($status_map); ?>;
         const isDark = <?php echo json_encode($is_dark); ?>;
+        
+        // Rating labels for different scores
+        const ratingLabels = {
+            1: t['rating_1'],
+            2: t['rating_2'],
+            3: t['rating_3'],
+            4: t['rating_4'],
+            5: t['rating_5']
+        };
+        
+        let currentRating = 0;
+        
+        // SELECT RATING (Click star)
+        function selectRating(score) {
+            currentRating = score;
+            document.getElementById('rating_score').value = score;
+            
+            // Update UI - make stars yellow
+            const buttons = document.querySelectorAll('#starContainer .star-button');
+            buttons.forEach((btn, index) => {
+                if (index < score) {
+                    btn.classList.remove('empty');
+                    btn.classList.add('filled');
+                } else {
+                    btn.classList.add('empty');
+                    btn.classList.remove('filled');
+                }
+            });
+            
+            // Update label
+            document.getElementById('ratingLabel').textContent = ratingLabels[score] || '';
+        }
         
         function viewDetails(id, table) {
             const modal = document.getElementById('detailsModal');
@@ -951,24 +1043,38 @@ include __DIR__ . '/../../includes/sidebar.php';
         }
         
         function rateRequest(id, table) {
+            currentRating = 0;
             document.getElementById('rating_request_id').value = id;
             document.getElementById('rating_table').value = table;
+            document.getElementById('ratingForm').reset();
+            
+            // Reset stars
+            document.querySelectorAll('#starContainer .star-button').forEach(btn => {
+                btn.classList.add('empty');
+                btn.classList.remove('filled');
+            });
+            document.getElementById('ratingLabel').textContent = t['please_select_rating'];
+            
             document.getElementById('ratingModal').classList.add('active');
         }
         
         function closeRatingModal() {
             document.getElementById('ratingModal').classList.remove('active');
-            document.getElementById('ratingForm').reset();
         }
         
         function submitRating(event) {
             event.preventDefault();
             
+            if (currentRating === 0) {
+                alert(t['please_select_rating']);
+                return;
+            }
+            
             const formData = new FormData(event.target);
             const data = {
                 request_id: document.getElementById('rating_request_id').value,
                 table: document.getElementById('rating_table').value,
-                score: formData.get('score'),
+                score: currentRating,
                 feedback: formData.get('feedback')
             };
             
