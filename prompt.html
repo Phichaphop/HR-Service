@@ -19,3 +19,53 @@ Request ID Card
 ที่นี้ช่วยแก้ไขให้หน้า documents.php รองรับได้ 3 ภาษาที คง page header สวยๆ ไว่ด้วยนะหมายถึงการออกแบบ
 
 ฉันต้องการ update base_salary ในตาราง certificate_requests
+
+------
+
+<div style="text-align: center; line-height: 1.8;">
+
+    <h2 style="margin-bottom: 0;">หนังสือรับรอเงินเดือน</h2>
+    <p style="margin-top: 0;">เลขที่ {certificate_no}</p><br>
+
+    <p style="text-indent: 50px; text-align: justify;">
+        หนังสือรับรองฉบับนี้ ขอรับรองว่าบุคคลผู้มีนามข้างล่างนี้ ปัจจุบันเป็นพนักงานของ<br>
+        <b>{company_name}</b>
+    </p>
+
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        ชื่อ-สกุล: {employee_name}<br>
+    </div>
+
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        รหัสพนักงาน: {employee_id}<br>
+    </div>
+
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        ตำแหน่ง: {position}<br>
+    </div>
+
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        สังกัด: {division}<br>
+    </div>
+
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        ประเภทพนักงาน: {hiring_type}
+    </div>
+
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        ได้เข้าทำงานกับบริษัทฯ ตั้งแต่วันที่ {date_of_hire} จนถึงปัจจุบัน
+    </div>
+
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        โดยมีฐานเงินเดือน <b>{base_salary}</b> ({base_salary_text})
+    </div>
+
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        รายได้ที่กล่าวมาข้างต้นไม่รวมรายได้อื่นที่พนักงานได้รับต่อเดือน
+    </div>
+    <br>
+    <p style="text-indent: 50px; text-align: justify;">
+        ขอรับรองว่า ข้อความข้างต้นเป็นความจริงทุกประการ
+    </p>
+
+</div>

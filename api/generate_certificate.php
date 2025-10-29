@@ -1,4 +1,5 @@
 <?php
+
 /**
  * ENHANCED: Generate Certificate - Dynamic Template Version
  * File: /api/generate_certificate.php (UPDATED)
@@ -20,26 +21,26 @@ require_once __DIR__ . '/../controllers/AuthController.php';
 // ========== AUTHENTICATION ==========
 try {
     AuthController::requireRole(['admin', 'officer']);
-    
+
     $request_id = (int)($_GET['request_id'] ?? 0);
     $lang = $_GET['lang'] ?? $_SESSION['language'] ?? 'th';
-    
+
     if ($request_id <= 0) {
         http_response_code(400);
         die(json_encode(['error' => 'Invalid request ID']));
     }
-    
+
     if (!in_array($lang, ['th', 'en', 'my'])) {
         $lang = 'th';
     }
-    
+
     // ========== DATABASE CONNECTION ==========
     $conn = getDbConnection();
     if (!$conn) {
         http_response_code(500);
         die('Database connection failed');
     }
-    
+
     // ========== FETCH CERTIFICATE REQUEST WITH TEMPLATE ==========
     $sql = "
         SELECT 
@@ -65,7 +66,8 @@ try {
             comp.address,
             comp.phone,
             comp.fax,
-            comp.company_logo_path
+            comp.company_logo_path,
+            comp.representative_name
         FROM certificate_requests cr
         LEFT JOIN certificate_types ct ON cr.cert_type_id = ct.cert_type_id
         LEFT JOIN employees e ON cr.employee_id = e.employee_id
@@ -76,67 +78,69 @@ try {
         WHERE cr.request_id = ?
         LIMIT 1
     ";
-    
+
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $request_id);
     $stmt->execute();
     $result = $stmt->get_result();
     $data = $result->fetch_assoc();
     $stmt->close();
-    
+
     if (!$data) {
         http_response_code(404);
         die('Certificate request not found');
     }
-    
+
     // ========== VALIDATE REQUIRED DATA ==========
     if (empty($data['template_content'])) {
         http_response_code(400);
         die('Certificate template not found');
     }
-    
+
     if (empty($data['base_salary']) || $data['base_salary'] <= 0) {
         http_response_code(400);
         die('Base salary is missing or invalid');
     }
-    
+
     // ========== PREPARE REPLACEMENT DATA ==========
     $replacements = [
-        '{employee_name}' => htmlspecialchars($lang === 'en' 
+        '{employee_name}' => htmlspecialchars($lang === 'en'
             ? ($data['full_name_en'] ?? $data['full_name_th'] ?? '')
             : ($data['full_name_th'] ?? '')),
-        
+
         '{employee_id}' => htmlspecialchars($data['employee_id']),
-        
+
         '{position}' => htmlspecialchars($lang === 'en'
             ? ($data['position_name_en'] ?? $data['position_name_th'] ?? '')
             : ($data['position_name_th'] ?? '')),
-        
+
         '{division}' => htmlspecialchars($lang === 'en'
             ? ($data['division_name_en'] ?? $data['division_name_th'] ?? '')
             : ($data['division_name_th'] ?? '')),
-        
+
         '{date_of_hire}' => formatDate($data['date_of_hire'], $lang),
-        
+
         '{hiring_type}' => htmlspecialchars($lang === 'en'
             ? ($data['hiring_type_en'] ?? $data['hiring_type_th'] ?? '')
             : ($data['hiring_type_th'] ?? '')),
-        
+
         '{base_salary}' => number_format((float)$data['base_salary'], 2),
-        
+
         '{base_salary_text}' => $lang === 'th' ? numberToThaiText((float)$data['base_salary']) : '',
-        
+
         '{company_name}' => htmlspecialchars($lang === 'en'
             ? ($data['company_name_en'] ?? $data['company_name_th'] ?? '')
             : ($data['company_name_th'] ?? '')),
-        
+
         '{company_address}' => htmlspecialchars($data['address'] ?? ''),
-        
+
         '{company_phone}' => htmlspecialchars($data['phone'] ?? ''),
-        
+
+        '{representative_name}' => htmlspecialchars($data['representative_name'] ?? ''),
+
         '{issued_date}' => formatDate(date('Y-m-d'), $lang),
     ];
-    
+
     // ========== GENERATE CERTIFICATE NUMBER IF NOT EXISTS ==========
     if (empty($data['certificate_no'])) {
         $cert_no = 'CERT-' . date('Ymd') . '-' . str_pad(rand(1000, 9999), 4, '0', STR_PAD_LEFT);
@@ -147,31 +151,31 @@ try {
         $update_stmt->close();
         $data['certificate_no'] = $cert_no;
     }
-    
+
     $replacements['{certificate_no}'] = htmlspecialchars($data['certificate_no']);
-    
+
     // ========== GET CERTIFICATE TYPE TITLE ==========
     $cert_title_th = $data['type_name_th'] ?? 'หนังสือรับรอง';
     $cert_title_en = $data['type_name_en'] ?? 'Certificate';
     $cert_title_my = $data['type_name_my'] ?? 'လက်မှတ်';
-    
+
     $cert_title = $lang === 'en' ? $cert_title_en : ($lang === 'my' ? $cert_title_my : $cert_title_th);
-    
+
     // ========== REPLACE PLACEHOLDERS IN TEMPLATE ==========
     $template_html = $data['template_content'];
     foreach ($replacements as $placeholder => $value) {
         $template_html = str_replace($placeholder, $value, $template_html);
     }
-    
+
     // ========== BUILD COMPLETE HTML DOCUMENT ==========
     $logo_path = '';
     if (!empty($data['company_logo_path'])) {
         $logo_file = __DIR__ . '/../uploads/company/' . basename($data['company_logo_path']);
         if (file_exists($logo_file)) {
-            $logo_path = 'uploads/company/' . basename($data['company_logo_path']);
+            $logo_path = '../uploads/company/' . basename($data['company_logo_path']);
         }
     }
-    
+
     $html = <<<HTML
     <!DOCTYPE html>
     <html lang="$lang">
@@ -179,6 +183,22 @@ try {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>$cert_title</title>
+
+         <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="../assets/images/favicons/favicon.ico">
+    <link rel="icon" type="image/png" sizes="16x16" href="../assets/images/favicons/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href=../assets/images/favicons/favicon-32x32.png">
+
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="../assets/images/favicons/apple-touch-icon.png">
+
+    <!-- Android Chrome Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="../assets/images/favicons/android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="../assets/images/favicons/android-chrome-512x512.png">
+
+    <!-- Web App Manifest (Optional) -->
+    <link rel="manifest" href="/site.webmanifest">
+
         <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
         <style>
             * {
@@ -204,22 +224,22 @@ try {
             }
             
             .certificate-header {
-                text-align: center;
                 margin-bottom: 30px;
                 display: flex;
-                justify-content: center;
-                align-items: center;
                 gap: 20px;
+                border-bottom: 1px solid #ccc;
+                padding-bottom: 10px;
             }
             
             .logo-container {
                 width: 80px;
                 height: 80px;
-                background: #f0f0f0;
+                background: #000000;
                 border-radius: 8px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                padding: 3px;
             }
             
             .logo-container img {
@@ -229,13 +249,13 @@ try {
             }
             
             .company-info h2 {
-                font-size: 18px;
+                font-size: 26px;
                 color: #000;
                 margin-bottom: 5px;
             }
             
             .company-info p {
-                font-size: 12px;
+                font-size: 16px;
                 color: #666;
                 margin: 2px 0;
             }
@@ -269,7 +289,7 @@ try {
             
             .signature-section {
                 display: flex;
-                justify-content: space-between;
+                justify-content: center;
                 margin-top: 50px;
             }
             
@@ -281,12 +301,11 @@ try {
             .signature-line {
                 border-top: 1px solid #000;
                 width: 100%;
-                height: 50px;
-                margin-bottom: 10px;
+                height: 10px;
             }
             
             .signature-label {
-                font-size: 13px;
+                font-size: 16px;
                 font-weight: 600;
             }
             
@@ -351,12 +370,12 @@ HTML;
                 </div>
 HTML;
     }
-    
+
     $html .= <<<HTML
                 <div class="company-info">
                     <h2>{$replacements['{company_name}']}</h2>
                     <p>{$replacements['{company_address}']}</p>
-                    <p>Tel: {$replacements['{company_phone}']}</p>
+                    <p>โทร: {$replacements['{company_phone}']}</p>
                 </div>
             </div>
             
@@ -364,36 +383,35 @@ HTML;
             
             <div class="signature-section">
                 <div class="signature-box">
+                    <div class="signature-label">ให้ ไว้ ณ วันที่ {$replacements['{issued_date}']}</div><br><br><br><br>
                     <div class="signature-line"></div>
-                    <div class="signature-label">ลงชื่อ</div>
-                </div>
-                <div class="signature-box">
-                    <div class="signature-line"></div>
-                    <div class="signature-label">วันที่ {$replacements['{issued_date}']}</div>
+                    <div class="signature-label">({$replacements['{representative_name}']})</div>
+                    <div class="signature-label">ผู้จัดการฝ่ายทรัพยากรมนุษย์</div>
                 </div>
             </div>
         </div>
     </body>
     </html>
 HTML;
-    
+
     $conn->close();
-    
+
     // ========== OUTPUT HTML ==========
     header('Content-Type: text/html; charset=utf-8');
     echo $html;
-    
 } catch (Exception $e) {
     error_log('Certificate Generation Error: ' . $e->getMessage());
     http_response_code(500);
-    ?>
+?>
     <!DOCTYPE html>
     <html>
+
     <head>
         <meta charset="UTF-8">
         <title>Error</title>
         <script src="https://cdn.tailwindcss.com"></script>
     </head>
+
     <body class="bg-red-50 flex items-center justify-center min-h-screen">
         <div class="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
             <h1 class="text-2xl font-bold text-red-600 mb-4">⚠️ Error</h1>
@@ -401,70 +419,100 @@ HTML;
             <button onclick="window.close()" class="mt-6 bg-red-600 text-white px-6 py-2 rounded-lg">ปิด</button>
         </div>
     </body>
+
     </html>
-    <?php
+<?php
 }
 
 // ========== HELPER FUNCTIONS ==========
 
-function formatDate($date_string, $lang = 'th') {
+function formatDate($date_string, $lang = 'th')
+{
     if (empty($date_string)) return '';
-    
+
     $date = new DateTime($date_string);
     $day = $date->format('d');
     $month = (int)$date->format('m');
     $year = (int)$date->format('Y');
-    
-    $thai_months = ['', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 
-                    'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
-    
+
+    $thai_months = [
+        '',
+        'มกราคม',
+        'กุมภาพันธ์',
+        'มีนาคม',
+        'เมษายน',
+        'พฤษภาคม',
+        'มิถุนายน',
+        'กรกฎาคม',
+        'สิงหาคม',
+        'กันยายน',
+        'ตุลาคม',
+        'พฤศจิกายน',
+        'ธันวาคม'
+    ];
+
     if ($lang === 'th') {
         $year_buddhist = $year + 543;
         return "$day " . $thai_months[$month] . " $year_buddhist";
     } elseif ($lang === 'en') {
-        $months = ['', 'January', 'February', 'March', 'April', 'May', 'June',
-                   'July', 'August', 'September', 'October', 'November', 'December'];
+        $months = [
+            '',
+            'January',
+            'February',
+            'March',
+            'April',
+            'May',
+            'June',
+            'July',
+            'August',
+            'September',
+            'October',
+            'November',
+            'December'
+        ];
         return $months[$month] . " $day, $year";
     }
-    
+
     return "$day/" . str_pad($month, 2, '0', STR_PAD_LEFT) . "/$year";
 }
 
-function numberToThaiText($num) {
+function numberToThaiText($num)
+{
     $num = (int)$num;
     if ($num === 0) return 'ศูนย์';
-    
+
     $thaiNumbers = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
-    
+
     $text = '';
     $millions = (int)($num / 1000000);
     if ($millions > 0) {
         $text .= convertThaiGroup($millions) . 'ล้าน';
     }
-    
+
     $thousands = (int)(($num % 1000000) / 1000);
     if ($thousands > 0) {
         $text .= convertThaiGroup($thousands) . 'พัน';
     }
-    
+
     $hundreds = $num % 1000;
     if ($hundreds > 0) {
         $text .= convertThaiGroup($hundreds);
     }
-    
+
     return trim($text) . 'บาท';
 }
 
-function convertThaiGroup($num) {
+function convertThaiGroup($num)
+{
     $ones = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
     $tens = ['', 'สิบ', 'ยี่สิบ', 'สามสิบ', 'สี่สิบ', 'ห้าสิบ', 'หกสิบ', 'เจ็ดสิบ', 'แปดสิบ', 'เก้าสิบ'];
-    
+
     $text = '';
     $hundreds = (int)($num / 100);
     if ($hundreds > 0) {
         $text .= $ones[$hundreds] . 'ร้อย';
     }
-    
+
     $remainder = $num % 100;
     if ($remainder >= 10) {
         $tens_digit = (int)($remainder / 10);
@@ -476,7 +524,7 @@ function convertThaiGroup($num) {
     } else if ($remainder > 0) {
         $text .= $ones[$remainder];
     }
-    
+
     return $text;
 }
 ?>
