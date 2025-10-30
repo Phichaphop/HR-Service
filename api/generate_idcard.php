@@ -1,16 +1,16 @@
 <?php
 /**
  * API: Generate Employee ID Card
- * File: /api/generate_idcard.php
+ * File: /api/generate_id_card.php
  * 
  * ✅ ทำงานกับทั้ง URL parameters และ POST data
  * ✅ เข้ากันได้กับ existing request_management.php
  * ✅ สนับสนุน 3 ภาษา: TH, EN, MY
  * ✅ มี QR code เสมอ
+ * ✅ แก้ไข: ใช้ profile_pic_path แทน profile_pic_path
  */
 
 header('Content-Type: text/html; charset=utf-8');
-
 require_once __DIR__ . '/../config/db_config.php';
 require_once __DIR__ . '/../controllers/AuthController.php';
 
@@ -42,8 +42,8 @@ try {
     $sql = "
         SELECT 
             e.employee_id,
-            e.prefix_th,
-            e.prefix_en,
+            pfm.prefix_th,
+            pfm.prefix_en,
             e.full_name_th,
             e.full_name_en,
             pm.position_name_th,
@@ -56,39 +56,40 @@ try {
             ir.employee_id as req_emp_id,
             ir.status,
             ir.created_at,
-            c.company_name,
+            c.company_name_en,
             c.company_logo_path
         FROM id_card_requests ir
         JOIN employees e ON ir.employee_id = e.employee_id
+        LEFT JOIN prefix_master pfm ON e.prefix_id = pfm.prefix_id
         LEFT JOIN position_master pm ON e.position_id = pm.position_id
         LEFT JOIN division_master dm ON e.division_id = dm.division_id
         LEFT JOIN company_info c ON c.company_id = 1
         WHERE ir.request_id = ? AND e.employee_id = ?
         LIMIT 1
     ";
-
+    
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
         throw new Exception('Prepare failed: ' . $conn->error);
     }
-
+    
     $stmt->bind_param("is", $request_id, $employee_id);
     
     if (!$stmt->execute()) {
         throw new Exception('Execute failed: ' . $stmt->error);
     }
-
+    
     $result = $stmt->get_result();
-
+    
     if ($result->num_rows === 0) {
         $stmt->close();
         $conn->close();
         die('❌ ID Card request not found');
     }
-
+    
     $row = $result->fetch_assoc();
     $stmt->close();
-
+    
     // Get display name by language
     $prefix = ($lang === 'en') ? ($row['prefix_en'] ?? '') : ($row['prefix_th'] ?? '');
     $name = ($lang === 'en') ? ($row['full_name_en'] ?? '') : ($row['full_name_th'] ?? '');
@@ -96,30 +97,37 @@ try {
     $division = ($lang === 'en') ? ($row['division_name_en'] ?? '') : ($row['division_name_th'] ?? '');
     
     $display_name = trim($prefix . ' ' . $name);
-
+    
     // Generate QR code data (employee ID)
     $qr_data = $row['employee_id'];
-
-    // Get base path for images
-    $base_path = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF'], 2);
-
+    
     // Build profile pic URL
     $profile_pic = '';
     if (!empty($row['profile_pic_path'])) {
-        $profile_pic = $base_path . '/' . ltrim($row['profile_pic_path'], '/');
+        // If it's already a full URL, use it directly
+        if (strpos($row['profile_pic_path'], 'http') === 0) {
+            $profile_pic = $row['profile_pic_path'];
+        } else {
+            // Otherwise, build the full URL
+            $profile_pic = '../' . ltrim($row['profile_pic_path'], '/');
+        }
     }
-
+    
     // Build logo URL
     $logo_url = '';
     if (!empty($row['company_logo_path'])) {
-        $logo_url = $base_path . '/' . ltrim($row['company_logo_path'], '/');
+        if (strpos($row['company_logo_path'], 'http') === 0) {
+            $logo_url = $row['company_logo_path'];
+        } else {
+            $logo_url = '../' . ltrim($row['company_logo_path'], '/');
+        }
     }
-
+    
     $conn->close();
-
+    
     // Generate QR Code using free service
     $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=' . urlencode($qr_data);
-
+    
 } catch (Exception $e) {
     $conn->close();
     die('❌ Error: ' . htmlspecialchars($e->getMessage()));
@@ -133,26 +141,42 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Employee ID Card - <?php echo htmlspecialchars($row['employee_id']); ?></title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="../assets/images/favicons/favicon.ico">
+    <link rel="icon" type="image/png" sizes="16x16" href="../assets/images/favicons/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href=../assets/images/favicons/favicon-32x32.png">
+
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="../assets/images/favicons/apple-touch-icon.png">
+
+    <!-- Android Chrome Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="../assets/images/favicons/android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="../assets/images/favicons/android-chrome-512x512.png">
+
+    <!-- Web App Manifest (Optional) -->
+    <link rel="manifest" href="/site.webmanifest">
+
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
+        
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #f0f0f0;
             padding: 20px;
         }
-
+        
         .print-controls {
             display: block;
             text-align: center;
             margin-bottom: 20px;
             gap: 10px;
         }
-
+        
         .print-btn {
             background: #2c5aa0;
             color: white;
@@ -165,29 +189,29 @@ try {
             margin: 10px;
             transition: background 0.3s ease;
         }
-
+        
         .print-btn:hover {
             background: #1a3a5c;
         }
-
+        
         .print-btn.close-btn {
             background: #dc2626;
         }
-
+        
         .print-btn.close-btn:hover {
             background: #991b1b;
         }
-
+        
         /* ID Card Container */
         .card-container {
             display: flex;
             justify-content: center;
             margin-bottom: 20px;
         }
-
+        
         .id-card {
-            width: 540px;
-            height: 340px;
+            width: 480px;
+            height: 300px;
             background: linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%);
             border: 1px solid #ddd;
             border-radius: 12px;
@@ -196,7 +220,7 @@ try {
             overflow: hidden;
             position: relative;
         }
-
+        
         /* Left Section - Company Info & Logo */
         .card-left {
             width: 25%;
@@ -209,11 +233,11 @@ try {
             padding: 15px 10px;
             text-align: center;
         }
-
+        
         .company-logo {
             width: 60px;
             height: 60px;
-            background: white;
+            background: black;
             border-radius: 8px;
             display: flex;
             align-items: center;
@@ -221,26 +245,26 @@ try {
             overflow: hidden;
             margin-bottom: 5px;
         }
-
+        
         .company-logo img {
             max-width: 90%;
             max-height: 90%;
             object-fit: contain;
         }
-
+        
         .company-name {
             font-size: 12px;
             font-weight: bold;
             line-height: 1.2;
             margin-top: 5px;
         }
-
+        
         .card-issue-date {
             font-size: 9px;
             opacity: 0.8;
             margin-top: auto;
         }
-
+        
         /* Middle Section - Employee Photo & QR Code */
         .card-middle {
             width: 25%;
@@ -251,7 +275,7 @@ try {
             padding: 10px;
             background: #fafafa;
         }
-
+        
         .employee-photo {
             width: 80px;
             height: 100px;
@@ -264,13 +288,13 @@ try {
             overflow: hidden;
             margin-bottom: 8px;
         }
-
+        
         .employee-photo img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
-
+        
         .placeholder-photo {
             width: 100%;
             height: 100%;
@@ -281,7 +305,7 @@ try {
             font-size: 32px;
             color: #9ca3af;
         }
-
+        
         .qr-code {
             width: 60px;
             height: 60px;
@@ -294,12 +318,12 @@ try {
             justify-content: center;
             overflow: hidden;
         }
-
+        
         .qr-code img {
             width: 100%;
             height: 100%;
         }
-
+        
         /* Right Section - Employee Info */
         .card-right {
             width: 50%;
@@ -308,13 +332,13 @@ try {
             flex-direction: column;
             justify-content: space-between;
         }
-
+        
         .employee-info-row {
             margin-bottom: 10px;
             display: flex;
             align-items: flex-start;
         }
-
+        
         .info-label {
             font-size: 10px;
             font-weight: bold;
@@ -323,7 +347,7 @@ try {
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-
+        
         .info-value {
             font-size: 13px;
             font-weight: 600;
@@ -331,21 +355,21 @@ try {
             width: 65%;
             word-wrap: break-word;
         }
-
+        
         .employee-name {
             font-size: 16px !important;
             font-weight: bold !important;
             color: #2c5aa0 !important;
             margin-bottom: 5px;
         }
-
+        
         .employee-id {
             font-size: 11px;
             color: #666;
             font-family: 'Courier New', monospace;
             letter-spacing: 1px;
         }
-
+        
         .footer-line {
             border-top: 1px solid #ddd;
             padding-top: 10px;
@@ -354,7 +378,7 @@ try {
             color: #999;
             text-align: right;
         }
-
+        
         /* Print Styles */
         @media print {
             body {
@@ -362,28 +386,28 @@ try {
                 padding: 0;
                 margin: 0;
             }
-
+            
             .print-controls {
                 display: none !important;
             }
-
+            
             .card-container {
                 margin: 0;
                 padding: 0;
             }
-
+            
             .id-card {
                 margin: 0;
                 box-shadow: none;
                 page-break-after: avoid;
             }
-
+            
             @page {
                 size: landscape;
                 margin: 0.5cm;
             }
         }
-
+        
         /* Responsive */
         @media (max-width: 768px) {
             .id-card {
@@ -392,7 +416,7 @@ try {
                 height: auto;
                 aspect-ratio: 540/340;
             }
-
+            
             .print-btn {
                 padding: 10px 16px;
                 font-size: 14px;
@@ -468,7 +492,7 @@ try {
                     <div class="employee-id">
                         ID: <?php echo htmlspecialchars($row['employee_id']); ?>
                     </div>
-
+                    
                     <div class="employee-info-row" style="margin-top: 15px;">
                         <div class="info-label">
                             <?php echo ($lang === 'th') ? 'ตำแหน่ง' : (($lang === 'my') ? 'ရာထူး' : 'Position'); ?>
@@ -477,16 +501,16 @@ try {
                             <?php echo htmlspecialchars($position ?? '-'); ?>
                         </div>
                     </div>
-
+                    
                     <div class="employee-info-row">
                         <div class="info-label">
-                            <?php echo ($lang === 'th') ? 'แผนก' : (($lang === 'my') ? 'বিভাग' : 'Department'); ?>
+                            <?php echo ($lang === 'th') ? 'แผนก' : (($lang === 'my') ? 'ဌာန' : 'Department'); ?>
                         </div>
                         <div class="info-value">
                             <?php echo htmlspecialchars($division ?? '-'); ?>
                         </div>
                     </div>
-
+                    
                     <div class="employee-info-row">
                         <div class="info-label">
                             <?php echo ($lang === 'th') ? 'เบอร์โทร' : (($lang === 'my') ? 'ဖုန်း' : 'Phone'); ?>
@@ -496,7 +520,7 @@ try {
                         </div>
                     </div>
                 </div>
-
+                
                 <div class="footer-line">
                     <?php echo ($lang === 'th') ? 'บัตรพนักงาน' : (($lang === 'my') ? 'ဝန်ထမ်းကဒ်' : 'Employee ID Card'); ?>
                 </div>

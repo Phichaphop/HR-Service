@@ -185,19 +185,19 @@ try {
         <title>$cert_title</title>
 
          <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="../assets/images/favicons/favicon.ico">
-    <link rel="icon" type="image/png" sizes="16x16" href="../assets/images/favicons/favicon-16x16.png">
-    <link rel="icon" type="image/png" sizes="32x32" href=../assets/images/favicons/favicon-32x32.png">
+        <link rel="icon" type="image/x-icon" href="../assets/images/favicons/favicon.ico">
+        <link rel="icon" type="image/png" sizes="16x16" href="../assets/images/favicons/favicon-16x16.png">
+        <link rel="icon" type="image/png" sizes="32x32" href=../assets/images/favicons/favicon-32x32.png">
 
-    <!-- Apple Touch Icon -->
-    <link rel="apple-touch-icon" sizes="180x180" href="../assets/images/favicons/apple-touch-icon.png">
+        <!-- Apple Touch Icon -->
+        <link rel="apple-touch-icon" sizes="180x180" href="../assets/images/favicons/apple-touch-icon.png">
 
-    <!-- Android Chrome Icons -->
-    <link rel="icon" type="image/png" sizes="192x192" href="../assets/images/favicons/android-chrome-192x192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="../assets/images/favicons/android-chrome-512x512.png">
+        <!-- Android Chrome Icons -->
+        <link rel="icon" type="image/png" sizes="192x192" href="../assets/images/favicons/android-chrome-192x192.png">
+        <link rel="icon" type="image/png" sizes="512x512" href="../assets/images/favicons/android-chrome-512x512.png">
 
-    <!-- Web App Manifest (Optional) -->
-    <link rel="manifest" href="/site.webmanifest">
+        <!-- Web App Manifest (Optional) -->
+        <link rel="manifest" href="/site.webmanifest">
 
         <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
         <style>

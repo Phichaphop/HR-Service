@@ -15,6 +15,7 @@ class Localization {
      * @param string $lang Language code (th, en, my)
      * @return string The localized text
      */
+
     public static function getText($key_id, $lang = null) {
         // Get language from session if not provided
         if ($lang === null) {
@@ -176,4 +177,5 @@ function __($key_id) {
 function get_master($table, $id) {
     return Localization::getMasterData($table, $id);
 }
+
 ?>

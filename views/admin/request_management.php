@@ -1,32 +1,36 @@
 <?php
 /**
- * Request Management Page - FIXED VERSION
+ * Request Management Page - UPDATED VERSION WITH ID CARD GENERATION
  * Supports: Thai (ไทย), English (EN), Myanmar (မြန်မာ)
  * Features: Multi-language UI, Dark Mode, Mobile Responsive
  * Admin/Officer only - Manage all service requests
  * 
- * FIXES:
- * 1. Added employee name JOIN in getRequests()
- * 2. Enhanced modal to show full request details
- * 3. Display employee name in table
- * 4. FIXED: Display certificate type name instead of handler_id
+ * NEW FEATURES:
+ * 1. Added ID Card generation button for id_card_requests
+ * 2. Display employee photo in modal
+ * 3. One-click ID card generation
  */
+
 require_once __DIR__ . '/../../config/db_config.php';
 require_once __DIR__ . '/../../controllers/AuthController.php';
 require_once __DIR__ . '/../../db/Localization.php';
+
 // Require admin or officer role
 AuthController::requireRole(['admin', 'officer']);
+
 // Get current settings from session
 $current_lang = $_SESSION['language'] ?? 'th';
 $theme_mode = $_SESSION['theme_mode'] ?? 'light';
 $is_dark = ($theme_mode === 'dark');
 $user_id = $_SESSION['user_id'] ?? '';
+
 // Theme colors based on dark mode
 $card_bg = $is_dark ? 'bg-gray-800' : 'bg-white';
 $text_class = $is_dark ? 'text-white' : 'text-gray-900';
 $bg_class = $is_dark ? 'bg-gray-900' : 'bg-gray-50';
 $border_class = $is_dark ? 'border-gray-700' : 'border-gray-200';
 $input_class = $is_dark ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500';
+
 // Multi-language translations
 $translations = [
     'th' => [
@@ -73,6 +77,15 @@ $translations = [
         'request_info' => 'ข้อมูลคำขอ',
         'employee_info' => 'ข้อมูลพนักงาน',
         'certificate_type' => 'ประเภทหนังสือรับรอง',
+        'generate_id_card' => 'สร้างบัตรพนักงาน',
+        'id_card_info' => 'บัตรพนักงาน',
+        'upload_photo' => 'อัพโหลดรูปถ่าย',
+        'change_photo' => 'เปลี่ยนรูปถ่าย',
+        'uploading' => 'กำลังอัพโหลด...',
+        'photo_uploaded' => 'อัพโหลดรูปสำเร็จ',
+        'upload_failed' => 'อัพโหลดล้มเหลว',
+        'select_photo' => 'เลือกรูปถ่าย',
+        'max_5mb' => 'ไฟล์สูงสุด 5MB',
     ],
     'en' => [
         'page_title' => 'Request Management',
@@ -118,6 +131,15 @@ $translations = [
         'request_info' => 'Request Information',
         'employee_info' => 'Employee Information',
         'certificate_type' => 'Certificate Type',
+        'generate_id_card' => 'Generate ID Card',
+        'id_card_info' => 'Employee ID Card',
+        'upload_photo' => 'Upload Photo',
+        'change_photo' => 'Change Photo',
+        'uploading' => 'Uploading...',
+        'photo_uploaded' => 'Photo uploaded successfully',
+        'upload_failed' => 'Upload failed',
+        'select_photo' => 'Select Photo',
+        'max_5mb' => 'Max file size 5MB',
     ],
     'my' => [
         'page_title' => 'တောင်းခံမှုစီမံခန့်ခွဲမှု',
@@ -163,12 +185,24 @@ $translations = [
         'request_info' => 'တောင်းခံမှုအချက်အလက်',
         'employee_info' => 'အလုပ်သမားအချက်အလက်',
         'certificate_type' => 'Certificate Type',
+        'generate_id_card' => 'အိုင်ဒီကဒ်ဖန်တီးမည်',
+        'id_card_info' => 'အလုပ်သမားအိုင်ဒီကဒ်',
+        'upload_photo' => 'ဓာတ်ပုံတင်မည်',
+        'change_photo' => 'ဓာတ်ပုံပြောင်းမည်',
+        'uploading' => 'တင်နေသည်...',
+        'photo_uploaded' => 'ဓာတ်ပုံတင်ပြီးပါပြီ',
+        'upload_failed' => 'တင်မအောင်မြင်ပါ',
+        'select_photo' => 'ဓာတ်ပုံရွေးချယ်ပါ',
+        'max_5mb' => 'ဖိုင်အများဆုံး 5MB',
     ]
 ];
+
 // Get current language strings
 $t = $translations[$current_lang] ?? $translations['th'];
 $page_title = $t['page_title'];
+
 ensure_session_started();
+
 // Get filter parameters
 $status_filter = $_GET['status'] ?? 'all';
 $type_filter = $_GET['type'] ?? 'all';
@@ -176,19 +210,23 @@ $search = $_GET['search'] ?? '';
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $per_page = 20;
 $offset = ($page - 1) * $per_page;
+
 $conn = getDbConnection();
 if (!$conn) {
     die("Database connection failed");
 }
+
 // Build WHERE clause
 $where_conditions = ["1=1"];
 $params = [];
 $types = '';
+
 if ($status_filter !== 'all') {
     $where_conditions[] = "r.status = ?";
     $params[] = $status_filter;
     $types .= 's';
 }
+
 if (!empty($search)) {
     $where_conditions[] = "(r.employee_id LIKE ? OR e.full_name_th LIKE ? OR e.full_name_en LIKE ?)";
     $search_term = '%' . $search . '%';
@@ -197,13 +235,12 @@ if (!empty($search)) {
     $params[] = $search_term;
     $types .= 'sss';
 }
+
 $where_sql = implode(' AND ', $where_conditions);
-// Function to get requests from a table - FIXED with JOIN
+
+// Function to get requests from a table
 function getRequests($conn, $table, $type_name, $type_key, $where_sql, $params, $types, $offset, $per_page, $current_lang) {
-    // Determine the primary key column name
     $id_column = ($table === 'document_submissions') ? 'submission_id' : 'request_id';
-    
-    // Determine which name column to use
     $name_column = ($current_lang === 'en') ? 'e.full_name_en' : 'e.full_name_th';
     
     $sql = "SELECT 
@@ -246,7 +283,6 @@ function getRequests($conn, $table, $type_name, $type_key, $where_sql, $params, 
     }
     
     $result = $stmt->get_result();
-    
     $requests = [];
     while ($row = $result->fetch_assoc()) {
         $row['table_name'] = $table;
@@ -256,6 +292,7 @@ function getRequests($conn, $table, $type_name, $type_key, $where_sql, $params, 
     $stmt->close();
     return $requests;
 }
+
 // Request types configuration
 $request_types = [
     'leave_requests' => ['label_en' => 'Leave Request', 'label_th' => 'คำขอใบลา', 'label_my' => 'အငြိုးပြုစုတောင်းခံမှု'],
@@ -267,6 +304,7 @@ $request_types = [
     'skill_test_requests' => ['label_en' => 'Skill Test Request', 'label_th' => 'คำขอสอบทักษะ', 'label_my' => 'အရည်အချင်းစမ်းသပ်မှုတောင်းခံမှု'],
     'document_submissions' => ['label_en' => 'Document Submission', 'label_th' => 'ลงชื่อส่งเอกสาร', 'label_my' => 'စာ類တင်သွင်းမှု']
 ];
+
 // Get all requests based on type filter
 $all_requests = [];
 if ($type_filter === 'all') {
@@ -282,12 +320,15 @@ if ($type_filter === 'all') {
         $all_requests = getRequests($conn, $type_filter, $type_name, $type_filter, $where_sql, $params, $types, $offset, $per_page, $current_lang);
     }
 }
+
 // Sort by created_at DESC
 usort($all_requests, function($a, $b) {
     return strtotime($b['created_at']) - strtotime($a['created_at']);
 });
+
 // Limit to page size
 $all_requests = array_slice($all_requests, 0, $per_page);
+
 // Get statistics
 $stats = [
     'total' => 0,
@@ -296,6 +337,7 @@ $stats = [
     'complete' => 0,
     'cancelled' => 0
 ];
+
 foreach ($request_types as $table => $labels) {
     $result = $conn->query("SELECT status, COUNT(*) as count FROM $table GROUP BY status");
     if ($result) {
@@ -308,10 +350,13 @@ foreach ($request_types as $table => $labels) {
         }
     }
 }
+
 $conn->close();
+
 include __DIR__ . '/../../includes/header.php';
 include __DIR__ . '/../../includes/sidebar.php';
 ?>
+
 <!DOCTYPE html>
 <html lang="<?php echo $current_lang; ?>" class="<?php echo $is_dark ? 'dark' : ''; ?>">
 <head>
@@ -361,6 +406,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                     </div>
                 </div>
             </div>
+
             <!-- Statistics Cards -->
             <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
                 <div class="<?php echo $card_bg; ?> p-4 rounded-lg border <?php echo $border_class; ?> shadow-sm">
@@ -376,6 +422,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                         </div>
                     </div>
                 </div>
+
                 <div class="<?php echo $card_bg; ?> p-4 rounded-lg border <?php echo $border_class; ?> shadow-sm">
                     <div class="flex items-center justify-between">
                         <div>
@@ -389,6 +436,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                         </div>
                     </div>
                 </div>
+
                 <div class="<?php echo $card_bg; ?> p-4 rounded-lg border <?php echo $border_class; ?> shadow-sm">
                     <div class="flex items-center justify-between">
                         <div>
@@ -402,6 +450,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                         </div>
                     </div>
                 </div>
+
                 <div class="<?php echo $card_bg; ?> p-4 rounded-lg border <?php echo $border_class; ?> shadow-sm">
                     <div class="flex items-center justify-between">
                         <div>
@@ -415,6 +464,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                         </div>
                     </div>
                 </div>
+
                 <div class="<?php echo $card_bg; ?> p-4 rounded-lg border <?php echo $border_class; ?> shadow-sm">
                     <div class="flex items-center justify-between">
                         <div>
@@ -429,6 +479,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                     </div>
                 </div>
             </div>
+
             <!-- Filters -->
             <div class="<?php echo $card_bg; ?> rounded-lg shadow-sm p-6 mb-6 border <?php echo $border_class; ?>">
                 <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -439,6 +490,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                             placeholder="<?php echo $t['search_placeholder']; ?>"
                             class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> focus:ring-2 focus:ring-blue-500">
                     </div>
+
                     <!-- Status Filter -->
                     <div>
                         <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2"><?php echo $t['status']; ?></label>
@@ -450,6 +502,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                             <option value="Cancelled" <?php echo $status_filter === 'Cancelled' ? 'selected' : ''; ?>><?php echo $t['cancelled']; ?></option>
                         </select>
                     </div>
+
                     <!-- Type Filter -->
                     <div>
                         <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2"><?php echo $t['request_type']; ?></label>
@@ -471,6 +524,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                             <?php endforeach; ?>
                         </select>
                     </div>
+
                     <!-- Buttons -->
                     <div class="flex items-end space-x-2">
                         <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition">
@@ -482,6 +536,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                     </div>
                 </form>
             </div>
+
             <!-- Requests Table -->
             <div class="<?php echo $card_bg; ?> rounded-lg shadow-sm border <?php echo $border_class; ?> overflow-hidden">
                 <div class="overflow-x-auto">
@@ -511,7 +566,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($all_requests as $request): 
-                                    // Get language-specific type label
                                     $type_config = $request_types[$request['request_type_key']] ?? [];
                                     $type_label = '';
                                     if ($current_lang === 'th') {
@@ -559,7 +613,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                                             ?>
                                             <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium <?php echo $status_colors[$request['status']] ?? ''; ?>">
                                                 <?php 
-                                                // Get status in current language
                                                 $status_map = [
                                                     'th' => ['New' => 'ใหม่', 'In Progress' => 'กำลังดำเนิน', 'Complete' => 'เสร็จสิ้น', 'Cancelled' => 'ยกเลิก'],
                                                     'en' => ['New' => 'New', 'In Progress' => 'In Progress', 'Complete' => 'Complete', 'Cancelled' => 'Cancelled'],
@@ -596,6 +649,7 @@ include __DIR__ . '/../../includes/sidebar.php';
             </div>
         </div>
     </div>
+
     <!-- Request Detail Modal -->
     <div id="requestModal" class="modal-backdrop">
         <div class="<?php echo $card_bg; ?> rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border <?php echo $border_class; ?> m-4">
@@ -614,6 +668,7 @@ include __DIR__ . '/../../includes/sidebar.php';
             </div>
         </div>
     </div>
+
     <script>
         const t = <?php echo json_encode($t); ?>;
         const currentLang = '<?php echo $current_lang; ?>';
@@ -624,15 +679,14 @@ include __DIR__ . '/../../includes/sidebar.php';
             'en': {'New': 'New', 'In Progress': 'In Progress', 'Complete': 'Complete', 'Cancelled': 'Cancelled'},
             'my': {'New': 'အသစ်', 'In Progress': 'လုပ်ဆောင်နေ', 'Complete': 'ပြည့်စုံမည်', 'Cancelled': 'ပယ်ဖျက်ခြင်း'}
         };
+
         function openRequestModal(table, requestId) {
             const modal = document.getElementById('requestModal');
             const content = document.getElementById('modalContent');
             
-            // Show loading
             content.innerHTML = '<div class="text-center py-8"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div><p class="mt-4 <?php echo $text_class; ?>">' + t['loading'] + '</p></div>';
             modal.classList.add('active');
             
-            // Build API URL - handle both with and without BASE_PATH
             const basePath = '<?php echo defined("BASE_PATH") ? BASE_PATH : ""; ?>';
             const url = basePath ? `${basePath}/api/admin_get_request_details.php?table=${table}&id=${requestId}` 
                                  : `/api/admin_get_request_details.php?table=${table}&id=${requestId}`;
@@ -660,9 +714,11 @@ include __DIR__ . '/../../includes/sidebar.php';
                     content.innerHTML = `<div class="text-center py-8"><p class="text-red-600 font-medium">${t['error_loading']}</p></div>`;
                 });
         }
+
         function closeRequestModal() {
             document.getElementById('requestModal').classList.remove('active');
         }
+
         function generateRequestHTML(request, table) {
             const borderClass = '<?php echo $border_class; ?>';
             const textClass = '<?php echo $text_class; ?>';
@@ -673,7 +729,6 @@ include __DIR__ . '/../../includes/sidebar.php';
             
             const statusLabel = statusMap[currentLang][request.status] || request.status;
             
-            // Determine employee name based on language
             let employeeName = request.employee_id;
             if (currentLang === 'en' && request.full_name_en) {
                 employeeName = request.full_name_en;
@@ -681,7 +736,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                 employeeName = request.full_name_th;
             }
             
-            // Get position and division names
             let positionName = '';
             let divisionName = '';
             
@@ -693,8 +747,8 @@ include __DIR__ . '/../../includes/sidebar.php';
                 divisionName = request.division_name_th || '-';
             }
             
-            // Check if this is a certificate request
             const isCertificateRequest = (table === 'certificate_requests');
+            const isIDCardRequest = (table === 'id_card_requests');
             
             let html = `
                 <div class="space-y-6">
@@ -723,7 +777,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                                 <label class="text-sm font-medium ${grayTextClass}">${t['division']}</label>
                                 <p class="${textClass}">${divisionName}</p>
                             </div>
-                            <!-- FIXED: Certificate Type Display -->
                             ${isCertificateRequest ? `
                                 <div>
                                     <label class="text-sm font-medium ${grayTextClass}">${t['certificate_type']}</label>
@@ -766,7 +819,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                         </div>
                     </div>`;
             
-            // Add Salary Information Form and Certificate Generation Button if it's a certificate request
+            // Add Salary Information and Certificate Generation for certificate requests
             if (isCertificateRequest) {
                 const salaryLabel = currentLang === 'th' ? '💰 ข้อมูลเงินเดือน' : 
                                    currentLang === 'my' ? '💰 လစာအချက်အလက်' : 
@@ -878,6 +931,91 @@ include __DIR__ . '/../../includes/sidebar.php';
                     </div>`;
             }
             
+            // Add ID Card Generation Section for id_card_requests
+            if (isIDCardRequest) {
+                const idCardButtonText = currentLang === 'th' ? '🆔 สร้างบัตรพนักงาน' : 
+                                        currentLang === 'my' ? '🆔 အိုင်ဒီကဒ်ဖန်တီးမည်' : 
+                                        '🆔 Generate ID Card';
+                
+                const uploadPhotoText = currentLang === 'th' ? '📸 อัพโหลดรูปถ่าย' : 
+                                       currentLang === 'my' ? '📸 ဓာတ်ပုံတင်မည်' : 
+                                       '📸 Upload Photo';
+                
+                const changePhotoText = currentLang === 'th' ? '🔄 เปลี่ยนรูปถ่าย' : 
+                                       currentLang === 'my' ? '🔄 ဓာတ်ပုံပြောင်းမည်' : 
+                                       '🔄 Change Photo';
+                
+                html += `
+                    <!-- ID Card Generation Section -->
+                    <div class="p-4 bg-purple-50 dark:bg-purple-900 rounded-lg border border-purple-200 dark:border-purple-700">
+                        <h4 class="font-semibold ${textClass} mb-3 flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"></path>
+                            </svg>
+                            ${t['id_card_info']}
+                        </h4>
+                        
+                        <!-- Photo Display and Upload -->
+                        <div class="mb-4 flex flex-col items-center">
+                            <div class="relative mb-3" id="photoPreviewContainer-${request.request_id}">
+                                <img src="${request.profile_pic_url || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'128\' height=\'128\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23ccc\' stroke-width=\'2\'%3E%3Cpath d=\'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2\'/%3E%3Ccircle cx=\'12\' cy=\'7\' r=\'4\'/%3E%3C/svg%3E'}" 
+                                     alt="${employeeName}" 
+                                     id="photoPreview-${request.request_id}"
+                                     class="w-32 h-32 object-cover rounded-lg border-4 border-white dark:border-gray-700 shadow-lg"
+                                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'128\' height=\'128\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23ccc\' stroke-width=\'2\'%3E%3Cpath d=\'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2\'/%3E%3Ccircle cx=\'12\' cy=\'7\' r=\'4\'/%3E%3C/svg%3E'">
+                                ${request.profile_pic_url ? `
+                                    <div class="absolute -top-2 -right-2 bg-green-500 text-white rounded-full p-2">
+                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                        </svg>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            
+                            <!-- Upload Form -->
+                            <form id="photoUploadForm-${request.request_id}" class="w-full" onsubmit="uploadEmployeePhoto(event, '${request.employee_id}', ${request.request_id})">
+                                <input type="file" 
+                                       id="photoInput-${request.request_id}" 
+                                       name="photo" 
+                                       accept="image/jpeg,image/jpg,image/png,image/gif"
+                                       class="hidden"
+                                       onchange="previewPhoto(event, ${request.request_id})">
+                                <label for="photoInput-${request.request_id}" 
+                                       class="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition font-medium cursor-pointer flex items-center justify-center gap-2 mb-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
+                                    ${request.profile_pic_url ? changePhotoText : uploadPhotoText}
+                                </label>
+                                <p class="text-xs ${grayTextClass} text-center mb-2">
+                                    ${t['max_5mb']} • JPG, PNG, GIF
+                                </p>
+                                <button type="submit" 
+                                        id="uploadBtn-${request.request_id}"
+                                        class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition font-medium hidden">
+                                    💾 ${t['upload_photo']}
+                                </button>
+                            </form>
+                        </div>
+                        
+                        ${request.profile_pic_url ? `
+                            <button onclick="generateIDCard(${request.request_id}, '${request.employee_id}')" 
+                                class="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg transition font-medium flex items-center justify-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+                                </svg>
+                                ${idCardButtonText}
+                            </button>
+                        ` : `
+                            <div class="p-3 bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-100 rounded-lg text-center text-sm">
+                                ⚠️ ${currentLang === 'th' ? 'อัพโหลดรูปถ่ายพนักงานเพื่อสร้างบัตร' : 
+                                      currentLang === 'my' ? 'ကဒ်ဖန်တီးရန်ဓာတ်ပုံတင်ပါ' : 
+                                      'Upload photo to generate ID card'}
+                            </div>
+                        `}
+                    </div>`;
+            }
+            
             html += `
                     <!-- Status Update Section -->
                     <div class="pt-4 border-t ${borderClass}">
@@ -905,8 +1043,10 @@ include __DIR__ . '/../../includes/sidebar.php';
                     </div>
                 </div>
             `;
+            
             return html;
         }
+
         function updateRequestStatus(event, table, requestId) {
             event.preventDefault();
             
@@ -918,7 +1058,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                 handler_remarks: formData.get('remarks')
             };
             
-            // Disable submit button
             const submitBtn = event.target.querySelector('button[type="submit"]');
             const originalText = submitBtn.innerHTML;
             submitBtn.disabled = true;
@@ -929,16 +1068,12 @@ include __DIR__ . '/../../includes/sidebar.php';
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             })
-            .then(response => {
-                return response.json();
-            })
+            .then(response => response.json())
             .then(result => {
                 if (result.success) {
                     showToast(t['updated_successfully'], 'success');
                     closeRequestModal();
-                    setTimeout(() => {
-                        location.reload();
-                    }, 500);
+                    setTimeout(() => location.reload(), 500);
                 } else {
                     showToast(t['update_error'] + (result.message || 'Unknown error'), 'error');
                     submitBtn.disabled = false;
@@ -951,34 +1086,159 @@ include __DIR__ . '/../../includes/sidebar.php';
                 submitBtn.innerHTML = originalText;
             });
         }
+
         // Close modal on ESC key
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeRequestModal();
-            }
+            if (e.key === 'Escape') closeRequestModal();
         });
+
         // Close modal on outside click
         document.getElementById('requestModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeRequestModal();
-            }
+            if (e.target === this) closeRequestModal();
         });
+
         // Generate Certificate Function
         function generateCertificate(requestId, language) {
             const basePath = '<?php echo defined("BASE_PATH") ? BASE_PATH : ""; ?>';
             const url = basePath ? `${basePath}/api/generate_certificate.php?request_id=${requestId}&lang=${language}` 
                                  : `/api/generate_certificate.php?request_id=${requestId}&lang=${language}`;
             
-            // Open in new tab
             window.open(url, '_blank');
             
-            // Show success message
             const langMessage = {
                 'th': 'กำลังเปิดหนังสือรับรองในหน้าต่างใหม่...',
                 'en': 'Opening certificate in new window...',
                 'my': 'လက်မှတ်ကို ဝင်းဒိုးအသစ်တွင်ဖွင့်နေသည်...'
             };
             showToast(langMessage[currentLang] || langMessage['th'], 'info');
+        }
+        
+        // Generate ID Card Function
+        function generateIDCard(requestId, employeeId) {
+            const basePath = '<?php echo defined("BASE_PATH") ? BASE_PATH : ""; ?>';
+            const url = basePath ? `${basePath}/api/generate_id_card.php?request_id=${requestId}&employee_id=${employeeId}` 
+                                 : `/api/generate_id_card.php?request_id=${requestId}&employee_id=${employeeId}`;
+            
+            window.open(url, '_blank');
+            
+            const langMessage = {
+                'th': 'กำลังเปิดบัตรพนักงานในหน้าต่างใหม่...',
+                'en': 'Opening ID card in new window...',
+                'my': 'အိုင်ဒီကဒ်ကို ဝင်းဒိုးအသစ်တွင်ဖွင့်နေသည်...'
+            };
+            showToast(langMessage[currentLang] || langMessage['th'], 'info');
+        }
+        
+        // Preview Photo Function
+        function previewPhoto(event, requestId) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // Validate file size (5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                const message = {
+                    'th': 'ไฟล์ใหญ่เกิน 5MB',
+                    'en': 'File size exceeds 5MB',
+                    'my': 'ဖိုင်အရွယ်အစား 5MB ကျော်လွန်သည်'
+                };
+                showToast(message[currentLang] || message['th'], 'error');
+                event.target.value = '';
+                return;
+            }
+            
+            // Validate file type
+            if (!file.type.match('image/(jpeg|jpg|png|gif)')) {
+                const message = {
+                    'th': 'กรุณาเลือกไฟล์รูปภาพ (JPG, PNG, GIF)',
+                    'en': 'Please select an image file (JPG, PNG, GIF)',
+                    'my': 'ဓာတ်ပုံဖိုင်တစ်ခုကိုရွေးချယ်ပါ (JPG, PNG, GIF)'
+                };
+                showToast(message[currentLang] || message['th'], 'error');
+                event.target.value = '';
+                return;
+            }
+            
+            // Preview image
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById(`photoPreview-${requestId}`);
+                if (img) {
+                    img.src = e.target.result;
+                }
+            };
+            reader.readAsDataURL(file);
+            
+            // Show upload button
+            const uploadBtn = document.getElementById(`uploadBtn-${requestId}`);
+            if (uploadBtn) {
+                uploadBtn.classList.remove('hidden');
+            }
+        }
+        
+        // Upload Employee Photo Function
+        function uploadEmployeePhoto(event, employeeId, requestId) {
+            event.preventDefault();
+            
+            const fileInput = document.getElementById(`photoInput-${requestId}`);
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                const message = {
+                    'th': 'กรุณาเลือกรูปภาพ',
+                    'en': 'Please select an image',
+                    'my': 'ဓာတ်ပုံတစ်ခုကိုရွေးချယ်ပါ'
+                };
+                showToast(message[currentLang] || message['th'], 'error');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('photo', file);
+            formData.append('employee_id', employeeId);
+            
+            const uploadBtn = document.getElementById(`uploadBtn-${requestId}`);
+            const originalText = uploadBtn.innerHTML;
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<span class="inline-block animate-spin mr-2">⏳</span> ' + t['uploading'];
+            
+            const basePath = '<?php echo defined("BASE_PATH") ? BASE_PATH : ""; ?>';
+            const url = basePath ? `${basePath}/api/upload_employee_photo.php` 
+                                 : `/api/upload_employee_photo.php`;
+            
+            fetch(url, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showToast(t['photo_uploaded'], 'success');
+                    
+                    // Update image
+                    const img = document.getElementById(`photoPreview-${requestId}`);
+                    if (img && result.data && result.data.photo_url) {
+                        img.src = result.data.photo_url;
+                    }
+                    
+                    // Hide upload button
+                    uploadBtn.classList.add('hidden');
+                    
+                    // Reload modal after 1 second to show updated data
+                    setTimeout(() => {
+                        closeRequestModal();
+                        openRequestModal('id_card_requests', requestId);
+                    }, 1000);
+                } else {
+                    showToast(t['upload_failed'] + ': ' + (result.message || 'Unknown error'), 'error');
+                    uploadBtn.disabled = false;
+                    uploadBtn.innerHTML = originalText;
+                }
+            })
+            .catch(error => {
+                showToast(t['upload_failed'] + ': ' + error.message, 'error');
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = originalText;
+            });
         }
         
         // Update Certificate Salary Function
@@ -991,7 +1251,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                 base_salary: parseFloat(formData.get('base_salary'))
             };
             
-            // Disable submit button
             const submitBtn = event.target.querySelector('button[type="submit"]');
             const originalText = submitBtn.innerHTML;
             submitBtn.disabled = true;
@@ -1018,14 +1277,9 @@ include __DIR__ . '/../../includes/sidebar.php';
                         'my': 'လစာအချက်အလက်သိမ်းဆည်းပြီးပါပြီ'
                     };
                     showToast(successMessage[currentLang] || successMessage['th'], 'success');
-                    
-                    // Reload modal to show updated data
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1000);
+                    setTimeout(() => location.reload(), 1000);
                 } else {
-                    const errorMessage = result.message || 'Error saving salary information';
-                    showToast(errorMessage, 'error');
+                    showToast(result.message || 'Error saving salary information', 'error');
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = originalText;
                 }
@@ -1041,6 +1295,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                 submitBtn.innerHTML = originalText;
             });
         }
+
         // Toast notification function
         function showToast(message, type = 'info') {
             const bgColor = type === 'success' ? 'bg-green-500' : (type === 'error' ? 'bg-red-500' : 'bg-blue-500');
@@ -1049,11 +1304,10 @@ include __DIR__ . '/../../includes/sidebar.php';
             toast.textContent = message;
             document.body.appendChild(toast);
             
-            setTimeout(() => {
-                toast.remove();
-            }, 3000);
+            setTimeout(() => toast.remove(), 3000);
         }
     </script>
+
     <style>
         @keyframes fadeInUp {
             from {
@@ -1069,6 +1323,7 @@ include __DIR__ . '/../../includes/sidebar.php';
             animation: fadeInUp 0.3s ease-in-out;
         }
     </style>
+
     <?php include __DIR__ . '/../../includes/footer.php'; ?>
 </body>
 </html>
