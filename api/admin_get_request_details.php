@@ -124,6 +124,7 @@ try {
                 COALESCE(e.full_name_en, '') as full_name_en,
                 e.position_id,
                 e.division_id,
+                e.profile_pic_path AS profile_pic_url,
                 COALESCE(p.position_name_th, '') as position_name_th,
                 COALESCE(p.position_name_en, '') as position_name_en,
                 COALESCE(d.division_name_th, '') as division_name_th,

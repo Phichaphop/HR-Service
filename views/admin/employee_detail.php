@@ -98,13 +98,19 @@ include __DIR__ . '/../../includes/sidebar.php';
             <!-- ====== PROFILE HEADER CARD ====== -->
             <div class="<?php echo $theme['card_bg']; ?> rounded-lg shadow-lg p-6 mb-6 animate-fade-in border <?php echo $theme['border']; ?> transition-all duration-200">
                 <div class="flex flex-col md:flex-row items-start md:items-center gap-6">
+
+                    <?php 
                     
+                    $profile_pic = "../../" . $employee['profile_pic_path'];
+
+                    ?>
+
                     <!-- Profile Picture -->
                     <div class="flex-shrink-0">
                         <div class="relative group">
                             <div class="w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-4xl font-bold shadow-lg overflow-hidden">
-                                <?php if ($employee['profile_pic_path'] && file_exists($employee['profile_pic_path'])): ?>
-                                    <img src="<?php echo htmlspecialchars($employee['profile_pic_path']); ?>"
+                                <?php if ($profile_pic && file_exists($profile_pic)): ?>
+                                    <img src="<?php echo htmlspecialchars($profile_pic); ?>"
                                         alt="Profile" class="w-full h-full object-cover">
                                 <?php else: ?>
                                     <span><?php echo strtoupper(substr($employee['full_name_' . $language], 0, 1)); ?></span>

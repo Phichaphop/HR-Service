@@ -9,28 +9,28 @@
  * 1. Added ID Card generation button for id_card_requests
  * 2. Display employee photo in modal
  * 3. One-click ID card generation
+ * 
+ * FIXED:
+ * 1. Photo display in modal (JavaScript template literals)
+ * 2. Photo upload form rendering
+ * 3. SVG escaping issues (use DEFAULT_AVATAR_SVG constant)
  */
-
 require_once __DIR__ . '/../../config/db_config.php';
 require_once __DIR__ . '/../../controllers/AuthController.php';
 require_once __DIR__ . '/../../db/Localization.php';
-
 // Require admin or officer role
 AuthController::requireRole(['admin', 'officer']);
-
 // Get current settings from session
 $current_lang = $_SESSION['language'] ?? 'th';
 $theme_mode = $_SESSION['theme_mode'] ?? 'light';
 $is_dark = ($theme_mode === 'dark');
 $user_id = $_SESSION['user_id'] ?? '';
-
 // Theme colors based on dark mode
 $card_bg = $is_dark ? 'bg-gray-800' : 'bg-white';
 $text_class = $is_dark ? 'text-white' : 'text-gray-900';
 $bg_class = $is_dark ? 'bg-gray-900' : 'bg-gray-50';
 $border_class = $is_dark ? 'border-gray-700' : 'border-gray-200';
 $input_class = $is_dark ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500';
-
 // Multi-language translations
 $translations = [
     'th' => [
@@ -196,13 +196,10 @@ $translations = [
         'max_5mb' => 'ဖိုင်အများဆုံး 5MB',
     ]
 ];
-
 // Get current language strings
 $t = $translations[$current_lang] ?? $translations['th'];
 $page_title = $t['page_title'];
-
 ensure_session_started();
-
 // Get filter parameters
 $status_filter = $_GET['status'] ?? 'all';
 $type_filter = $_GET['type'] ?? 'all';
@@ -210,23 +207,19 @@ $search = $_GET['search'] ?? '';
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $per_page = 20;
 $offset = ($page - 1) * $per_page;
-
 $conn = getDbConnection();
 if (!$conn) {
     die("Database connection failed");
 }
-
 // Build WHERE clause
 $where_conditions = ["1=1"];
 $params = [];
 $types = '';
-
 if ($status_filter !== 'all') {
     $where_conditions[] = "r.status = ?";
     $params[] = $status_filter;
     $types .= 's';
 }
-
 if (!empty($search)) {
     $where_conditions[] = "(r.employee_id LIKE ? OR e.full_name_th LIKE ? OR e.full_name_en LIKE ?)";
     $search_term = '%' . $search . '%';
@@ -235,9 +228,7 @@ if (!empty($search)) {
     $params[] = $search_term;
     $types .= 'sss';
 }
-
 $where_sql = implode(' AND ', $where_conditions);
-
 // Function to get requests from a table
 function getRequests($conn, $table, $type_name, $type_key, $where_sql, $params, $types, $offset, $per_page, $current_lang) {
     $id_column = ($table === 'document_submissions') ? 'submission_id' : 'request_id';
@@ -292,7 +283,6 @@ function getRequests($conn, $table, $type_name, $type_key, $where_sql, $params, 
     $stmt->close();
     return $requests;
 }
-
 // Request types configuration
 $request_types = [
     'leave_requests' => ['label_en' => 'Leave Request', 'label_th' => 'คำขอใบลา', 'label_my' => 'အငြိုးပြုစုတောင်းခံမှု'],
@@ -304,7 +294,6 @@ $request_types = [
     'skill_test_requests' => ['label_en' => 'Skill Test Request', 'label_th' => 'คำขอสอบทักษะ', 'label_my' => 'အရည်အချင်းစမ်းသပ်မှုတောင်းခံမှု'],
     'document_submissions' => ['label_en' => 'Document Submission', 'label_th' => 'ลงชื่อส่งเอกสาร', 'label_my' => 'စာ類တင်သွင်းမှု']
 ];
-
 // Get all requests based on type filter
 $all_requests = [];
 if ($type_filter === 'all') {
@@ -320,15 +309,12 @@ if ($type_filter === 'all') {
         $all_requests = getRequests($conn, $type_filter, $type_name, $type_filter, $where_sql, $params, $types, $offset, $per_page, $current_lang);
     }
 }
-
 // Sort by created_at DESC
 usort($all_requests, function($a, $b) {
     return strtotime($b['created_at']) - strtotime($a['created_at']);
 });
-
 // Limit to page size
 $all_requests = array_slice($all_requests, 0, $per_page);
-
 // Get statistics
 $stats = [
     'total' => 0,
@@ -337,7 +323,6 @@ $stats = [
     'complete' => 0,
     'cancelled' => 0
 ];
-
 foreach ($request_types as $table => $labels) {
     $result = $conn->query("SELECT status, COUNT(*) as count FROM $table GROUP BY status");
     if ($result) {
@@ -350,13 +335,10 @@ foreach ($request_types as $table => $labels) {
         }
     }
 }
-
 $conn->close();
-
 include __DIR__ . '/../../includes/header.php';
 include __DIR__ . '/../../includes/sidebar.php';
 ?>
-
 <!DOCTYPE html>
 <html lang="<?php echo $current_lang; ?>" class="<?php echo $is_dark ? 'dark' : ''; ?>">
 <head>
@@ -386,6 +368,19 @@ include __DIR__ . '/../../includes/sidebar.php';
         .modal-backdrop.active {
             display: flex;
         }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .animate-fade-in-up {
+            animation: fadeInUp 0.3s ease-in-out;
+        }
     </style>
 </head>
 <body class="<?php echo $bg_class; ?> <?php echo $text_class; ?> theme-transition">
@@ -406,7 +401,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                     </div>
                 </div>
             </div>
-
             <!-- Statistics Cards -->
             <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
                 <div class="<?php echo $card_bg; ?> p-4 rounded-lg border <?php echo $border_class; ?> shadow-sm">
@@ -422,7 +416,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                         </div>
                     </div>
                 </div>
-
                 <div class="<?php echo $card_bg; ?> p-4 rounded-lg border <?php echo $border_class; ?> shadow-sm">
                     <div class="flex items-center justify-between">
                         <div>
@@ -436,7 +429,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                         </div>
                     </div>
                 </div>
-
                 <div class="<?php echo $card_bg; ?> p-4 rounded-lg border <?php echo $border_class; ?> shadow-sm">
                     <div class="flex items-center justify-between">
                         <div>
@@ -450,7 +442,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                         </div>
                     </div>
                 </div>
-
                 <div class="<?php echo $card_bg; ?> p-4 rounded-lg border <?php echo $border_class; ?> shadow-sm">
                     <div class="flex items-center justify-between">
                         <div>
@@ -464,7 +455,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                         </div>
                     </div>
                 </div>
-
                 <div class="<?php echo $card_bg; ?> p-4 rounded-lg border <?php echo $border_class; ?> shadow-sm">
                     <div class="flex items-center justify-between">
                         <div>
@@ -479,7 +469,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                     </div>
                 </div>
             </div>
-
             <!-- Filters -->
             <div class="<?php echo $card_bg; ?> rounded-lg shadow-sm p-6 mb-6 border <?php echo $border_class; ?>">
                 <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -490,7 +479,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                             placeholder="<?php echo $t['search_placeholder']; ?>"
                             class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> focus:ring-2 focus:ring-blue-500">
                     </div>
-
                     <!-- Status Filter -->
                     <div>
                         <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2"><?php echo $t['status']; ?></label>
@@ -502,7 +490,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                             <option value="Cancelled" <?php echo $status_filter === 'Cancelled' ? 'selected' : ''; ?>><?php echo $t['cancelled']; ?></option>
                         </select>
                     </div>
-
                     <!-- Type Filter -->
                     <div>
                         <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2"><?php echo $t['request_type']; ?></label>
@@ -524,7 +511,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                             <?php endforeach; ?>
                         </select>
                     </div>
-
                     <!-- Buttons -->
                     <div class="flex items-end space-x-2">
                         <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition">
@@ -536,7 +522,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                     </div>
                 </form>
             </div>
-
             <!-- Requests Table -->
             <div class="<?php echo $card_bg; ?> rounded-lg shadow-sm border <?php echo $border_class; ?> overflow-hidden">
                 <div class="overflow-x-auto">
@@ -649,7 +634,6 @@ include __DIR__ . '/../../includes/sidebar.php';
             </div>
         </div>
     </div>
-
     <!-- Request Detail Modal -->
     <div id="requestModal" class="modal-backdrop">
         <div class="<?php echo $card_bg; ?> rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border <?php echo $border_class; ?> m-4">
@@ -668,18 +652,22 @@ include __DIR__ . '/../../includes/sidebar.php';
             </div>
         </div>
     </div>
-
     <script>
         const t = <?php echo json_encode($t); ?>;
         const currentLang = '<?php echo $current_lang; ?>';
         const isDark = <?php echo $is_dark ? 'true' : 'false'; ?>;
+        
+        // ========================================
+        // DEFAULT AVATAR SVG - FIXED
+        // ========================================
+        const DEFAULT_AVATAR_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E";
         
         const statusMap = {
             'th': {'New': 'ใหม่', 'In Progress': 'กำลังดำเนิน', 'Complete': 'เสร็จสิ้น', 'Cancelled': 'ยกเลิก'},
             'en': {'New': 'New', 'In Progress': 'In Progress', 'Complete': 'Complete', 'Cancelled': 'Cancelled'},
             'my': {'New': 'အသစ်', 'In Progress': 'လုပ်ဆောင်နေ', 'Complete': 'ပြည့်စုံမည်', 'Cancelled': 'ပယ်ဖျက်ခြင်း'}
         };
-
+        
         function openRequestModal(table, requestId) {
             const modal = document.getElementById('requestModal');
             const content = document.getElementById('modalContent');
@@ -714,11 +702,14 @@ include __DIR__ . '/../../includes/sidebar.php';
                     content.innerHTML = `<div class="text-center py-8"><p class="text-red-600 font-medium">${t['error_loading']}</p></div>`;
                 });
         }
-
+        
         function closeRequestModal() {
             document.getElementById('requestModal').classList.remove('active');
         }
-
+        
+        // ========================================
+        // FIXED: generateRequestHTML Function
+        // ========================================
         function generateRequestHTML(request, table) {
             const borderClass = '<?php echo $border_class; ?>';
             const textClass = '<?php echo $text_class; ?>';
@@ -817,9 +808,12 @@ include __DIR__ . '/../../includes/sidebar.php';
                                 <p class="${textClass}">${request.handler_id || t['unassigned']}</p>
                             </div>
                         </div>
-                    </div>`;
+                    </div>
+            `;
             
-            // Add Salary Information and Certificate Generation for certificate requests
+            // ========================================
+            // CERTIFICATE REQUEST SECTION
+            // ========================================
             if (isCertificateRequest) {
                 const salaryLabel = currentLang === 'th' ? '💰 ข้อมูลเงินเดือน' : 
                                    currentLang === 'my' ? '💰 လစာအချက်အလက်' : 
@@ -838,6 +832,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                                       '📄 Generate Certificate';
                 
                 const currentSalary = request.base_salary || 0;
+                const formId = `salaryForm_${request.request_id}`;
                 
                 html += `
                     <!-- Salary Information Form -->
@@ -849,7 +844,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                             ${salaryLabel}
                         </h4>
                         
-                        <form id="salaryForm" onsubmit="updateEmployeeSalary(event, ${request.request_id})">
+                        <form id="${formId}" onsubmit="updateEmployeeSalary(event, ${request.request_id})">
                             <div class="mb-4">
                                 <label class="block text-sm font-medium ${textClass} mb-2">
                                     ${currentLang === 'th' ? 'เงินเดือนสำหรับหนังสือรับรองฉบับนี้ (บาท)' : 
@@ -928,10 +923,13 @@ include __DIR__ . '/../../includes/sidebar.php';
                                 </p>
                             </div>
                         `}
-                    </div>`;
+                    </div>
+                `;
             }
             
-            // Add ID Card Generation Section for id_card_requests
+            // ========================================
+            // ID CARD REQUEST SECTION - FIXED
+            // ========================================
             if (isIDCardRequest) {
                 const idCardButtonText = currentLang === 'th' ? '🆔 สร้างบัตรพนักงาน' : 
                                         currentLang === 'my' ? '🆔 အိုင်ဒီကဒ်ဖန်တီးမည်' : 
@@ -945,6 +943,9 @@ include __DIR__ . '/../../includes/sidebar.php';
                                        currentLang === 'my' ? '🔄 ဓာတ်ပုံပြောင်းမည်' : 
                                        '🔄 Change Photo';
                 
+                const photoUrl = request.profile_pic_url || DEFAULT_AVATAR_SVG;
+                const hasPhoto = !!request.profile_pic_url;
+                
                 html += `
                     <!-- ID Card Generation Section -->
                     <div class="p-4 bg-purple-50 dark:bg-purple-900 rounded-lg border border-purple-200 dark:border-purple-700">
@@ -957,13 +958,13 @@ include __DIR__ . '/../../includes/sidebar.php';
                         
                         <!-- Photo Display and Upload -->
                         <div class="mb-4 flex flex-col items-center">
-                            <div class="relative mb-3" id="photoPreviewContainer-${request.request_id}">
-                                <img src="${request.profile_pic_url || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'128\' height=\'128\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23ccc\' stroke-width=\'2\'%3E%3Cpath d=\'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2\'/%3E%3Ccircle cx=\'12\' cy=\'7\' r=\'4\'/%3E%3C/svg%3E'}" 
+                            <div class="relative mb-3">
+                                <img src="../../${photoUrl}" 
                                      alt="${employeeName}" 
-                                     id="photoPreview-${request.request_id}"
+                                     id="photoPreview_${request.request_id}"
                                      class="w-32 h-32 object-cover rounded-lg border-4 border-white dark:border-gray-700 shadow-lg"
-                                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'128\' height=\'128\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23ccc\' stroke-width=\'2\'%3E%3Cpath d=\'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2\'/%3E%3Ccircle cx=\'12\' cy=\'7\' r=\'4\'/%3E%3C/svg%3E'">
-                                ${request.profile_pic_url ? `
+                                     onerror="this.src='${DEFAULT_AVATAR_SVG}'">
+                                ${hasPhoto ? `
                                     <div class="absolute -top-2 -right-2 bg-green-500 text-white rounded-full p-2">
                                         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                             <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
@@ -973,32 +974,32 @@ include __DIR__ . '/../../includes/sidebar.php';
                             </div>
                             
                             <!-- Upload Form -->
-                            <form id="photoUploadForm-${request.request_id}" class="w-full" onsubmit="uploadEmployeePhoto(event, '${request.employee_id}', ${request.request_id})">
+                            <form id="photoUploadForm_${request.request_id}" class="w-full" onsubmit="uploadEmployeePhoto(event, '${request.employee_id}', ${request.request_id})">
                                 <input type="file" 
-                                       id="photoInput-${request.request_id}" 
+                                       id="photoInput_${request.request_id}" 
                                        name="photo" 
-                                       accept="image/jpeg,image/jpg,image/png,image/gif"
+                                       accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                                        class="hidden"
                                        onchange="previewPhoto(event, ${request.request_id})">
-                                <label for="photoInput-${request.request_id}" 
+                                <label for="photoInput_${request.request_id}" 
                                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition font-medium cursor-pointer flex items-center justify-center gap-2 mb-2">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                     </svg>
-                                    ${request.profile_pic_url ? changePhotoText : uploadPhotoText}
+                                    ${hasPhoto ? changePhotoText : uploadPhotoText}
                                 </label>
                                 <p class="text-xs ${grayTextClass} text-center mb-2">
-                                    ${t['max_5mb']} • JPG, PNG, GIF
+                                    ${t['max_5mb']} • JPG, PNG, GIF, WebP
                                 </p>
                                 <button type="submit" 
-                                        id="uploadBtn-${request.request_id}"
+                                        id="uploadBtn_${request.request_id}"
                                         class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition font-medium hidden">
                                     💾 ${t['upload_photo']}
                                 </button>
                             </form>
                         </div>
                         
-                        ${request.profile_pic_url ? `
+                        ${hasPhoto ? `
                             <button onclick="generateIDCard(${request.request_id}, '${request.employee_id}')" 
                                 class="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg transition font-medium flex items-center justify-center gap-2">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1013,9 +1014,13 @@ include __DIR__ . '/../../includes/sidebar.php';
                                       'Upload photo to generate ID card'}
                             </div>
                         `}
-                    </div>`;
+                    </div>
+                `;
             }
             
+            // ========================================
+            // STATUS UPDATE SECTION
+            // ========================================
             html += `
                     <!-- Status Update Section -->
                     <div class="pt-4 border-t ${borderClass}">
@@ -1046,7 +1051,128 @@ include __DIR__ . '/../../includes/sidebar.php';
             
             return html;
         }
-
+        
+        // ========================================
+        // FIXED: previewPhoto Function
+        // ========================================
+        function previewPhoto(event, requestId) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // Validate file size (5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                const message = {
+                    'th': 'ไฟล์ใหญ่เกิน 5MB',
+                    'en': 'File size exceeds 5MB',
+                    'my': 'ဖိုင်အရွယ်အစား 5MB ကျော်လွန်သည်'
+                };
+                showToast(message[currentLang] || message['th'], 'error');
+                event.target.value = '';
+                return;
+            }
+            
+            // Validate file type
+            if (!file.type.match('image/(jpeg|jpg|png|gif|webp)')) {
+                const message = {
+                    'th': 'กรุณาเลือกไฟล์รูปภาพ (JPG, PNG, GIF)',
+                    'en': 'Please select an image file (JPG, PNG, GIF)',
+                    'my': 'ဓာတ်ပုံဖိုင်တစ်ခုကိုရွေးချယ်ပါ (JPG, PNG, GIF)'
+                };
+                showToast(message[currentLang] || message['th'], 'error');
+                event.target.value = '';
+                return;
+            }
+            
+            // Preview image - FIXED
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imgId = `photoPreview_${requestId}`;
+                const img = document.getElementById(imgId);
+                if (img) {
+                    img.src = e.target.result;
+                }
+            };
+            reader.readAsDataURL(file);
+            
+            // Show upload button - FIXED
+            const uploadBtnId = `uploadBtn_${requestId}`;
+            const uploadBtn = document.getElementById(uploadBtnId);
+            if (uploadBtn) {
+                uploadBtn.classList.remove('hidden');
+            }
+        }
+        
+        // ========================================
+        // FIXED: uploadEmployeePhoto Function
+        // ========================================
+        function uploadEmployeePhoto(event, employeeId, requestId) {
+            event.preventDefault();
+            
+            const fileInputId = `photoInput_${requestId}`;
+            const fileInput = document.getElementById(fileInputId);
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                const message = {
+                    'th': 'กรุณาเลือกรูปภาพ',
+                    'en': 'Please select an image',
+                    'my': 'ဓာတ်ပုံတစ်ခုကိုရွေးချယ်ပါ'
+                };
+                showToast(message[currentLang] || message['th'], 'error');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('photo', file);
+            formData.append('employee_id', employeeId);
+            
+            const uploadBtnId = `uploadBtn_${requestId}`;
+            const uploadBtn = document.getElementById(uploadBtnId);
+            const originalText = uploadBtn.innerHTML;
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<span class="inline-block animate-spin mr-2">⏳</span> ' + t['uploading'];
+            
+            const basePath = '<?php echo defined("BASE_PATH") ? BASE_PATH : ""; ?>';
+            const url = basePath ? `${basePath}/api/upload_employee_photo.php` 
+                                 : `/api/upload_employee_photo.php`;
+            
+            fetch(url, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showToast(t['photo_uploaded'], 'success');
+                    
+                    // Update image - FIXED
+                    const imgId = `photoPreview_${requestId}`;
+                    const img = document.getElementById(imgId);
+                    if (img && result.data && result.data.photo_url) {
+                        img.src = result.data.photo_url;
+                    }
+                    
+                    // Hide upload button
+                    uploadBtn.classList.add('hidden');
+                    
+                    // Reload modal after 1 second
+                    setTimeout(() => {
+                        closeRequestModal();
+                        openRequestModal('id_card_requests', requestId);
+                    }, 1000);
+                } else {
+                    showToast(t['upload_failed'] + ': ' + (result.message || 'Unknown error'), 'error');
+                    uploadBtn.disabled = false;
+                    uploadBtn.innerHTML = originalText;
+                }
+            })
+            .catch(error => {
+                showToast(t['upload_failed'] + ': ' + error.message, 'error');
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = originalText;
+            });
+        }
+        
         function updateRequestStatus(event, table, requestId) {
             event.preventDefault();
             
@@ -1086,18 +1212,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                 submitBtn.innerHTML = originalText;
             });
         }
-
-        // Close modal on ESC key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') closeRequestModal();
-        });
-
-        // Close modal on outside click
-        document.getElementById('requestModal').addEventListener('click', function(e) {
-            if (e.target === this) closeRequestModal();
-        });
-
-        // Generate Certificate Function
+        
         function generateCertificate(requestId, language) {
             const basePath = '<?php echo defined("BASE_PATH") ? BASE_PATH : ""; ?>';
             const url = basePath ? `${basePath}/api/generate_certificate.php?request_id=${requestId}&lang=${language}` 
@@ -1113,7 +1228,6 @@ include __DIR__ . '/../../includes/sidebar.php';
             showToast(langMessage[currentLang] || langMessage['th'], 'info');
         }
         
-        // Generate ID Card Function
         function generateIDCard(requestId, employeeId) {
             const basePath = '<?php echo defined("BASE_PATH") ? BASE_PATH : ""; ?>';
             const url = basePath ? `${basePath}/api/generate_id_card.php?request_id=${requestId}&employee_id=${employeeId}` 
@@ -1129,119 +1243,6 @@ include __DIR__ . '/../../includes/sidebar.php';
             showToast(langMessage[currentLang] || langMessage['th'], 'info');
         }
         
-        // Preview Photo Function
-        function previewPhoto(event, requestId) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            // Validate file size (5MB)
-            if (file.size > 5 * 1024 * 1024) {
-                const message = {
-                    'th': 'ไฟล์ใหญ่เกิน 5MB',
-                    'en': 'File size exceeds 5MB',
-                    'my': 'ဖိုင်အရွယ်အစား 5MB ကျော်လွန်သည်'
-                };
-                showToast(message[currentLang] || message['th'], 'error');
-                event.target.value = '';
-                return;
-            }
-            
-            // Validate file type
-            if (!file.type.match('image/(jpeg|jpg|png|gif)')) {
-                const message = {
-                    'th': 'กรุณาเลือกไฟล์รูปภาพ (JPG, PNG, GIF)',
-                    'en': 'Please select an image file (JPG, PNG, GIF)',
-                    'my': 'ဓာတ်ပုံဖိုင်တစ်ခုကိုရွေးချယ်ပါ (JPG, PNG, GIF)'
-                };
-                showToast(message[currentLang] || message['th'], 'error');
-                event.target.value = '';
-                return;
-            }
-            
-            // Preview image
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = document.getElementById(`photoPreview-${requestId}`);
-                if (img) {
-                    img.src = e.target.result;
-                }
-            };
-            reader.readAsDataURL(file);
-            
-            // Show upload button
-            const uploadBtn = document.getElementById(`uploadBtn-${requestId}`);
-            if (uploadBtn) {
-                uploadBtn.classList.remove('hidden');
-            }
-        }
-        
-        // Upload Employee Photo Function
-        function uploadEmployeePhoto(event, employeeId, requestId) {
-            event.preventDefault();
-            
-            const fileInput = document.getElementById(`photoInput-${requestId}`);
-            const file = fileInput.files[0];
-            
-            if (!file) {
-                const message = {
-                    'th': 'กรุณาเลือกรูปภาพ',
-                    'en': 'Please select an image',
-                    'my': 'ဓာတ်ပုံတစ်ခုကိုရွေးချယ်ပါ'
-                };
-                showToast(message[currentLang] || message['th'], 'error');
-                return;
-            }
-            
-            const formData = new FormData();
-            formData.append('photo', file);
-            formData.append('employee_id', employeeId);
-            
-            const uploadBtn = document.getElementById(`uploadBtn-${requestId}`);
-            const originalText = uploadBtn.innerHTML;
-            uploadBtn.disabled = true;
-            uploadBtn.innerHTML = '<span class="inline-block animate-spin mr-2">⏳</span> ' + t['uploading'];
-            
-            const basePath = '<?php echo defined("BASE_PATH") ? BASE_PATH : ""; ?>';
-            const url = basePath ? `${basePath}/api/upload_employee_photo.php` 
-                                 : `/api/upload_employee_photo.php`;
-            
-            fetch(url, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (result.success) {
-                    showToast(t['photo_uploaded'], 'success');
-                    
-                    // Update image
-                    const img = document.getElementById(`photoPreview-${requestId}`);
-                    if (img && result.data && result.data.photo_url) {
-                        img.src = result.data.photo_url;
-                    }
-                    
-                    // Hide upload button
-                    uploadBtn.classList.add('hidden');
-                    
-                    // Reload modal after 1 second to show updated data
-                    setTimeout(() => {
-                        closeRequestModal();
-                        openRequestModal('id_card_requests', requestId);
-                    }, 1000);
-                } else {
-                    showToast(t['upload_failed'] + ': ' + (result.message || 'Unknown error'), 'error');
-                    uploadBtn.disabled = false;
-                    uploadBtn.innerHTML = originalText;
-                }
-            })
-            .catch(error => {
-                showToast(t['upload_failed'] + ': ' + error.message, 'error');
-                uploadBtn.disabled = false;
-                uploadBtn.innerHTML = originalText;
-            });
-        }
-        
-        // Update Certificate Salary Function
         function updateEmployeeSalary(event, requestId) {
             event.preventDefault();
             
@@ -1295,8 +1296,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                 submitBtn.innerHTML = originalText;
             });
         }
-
-        // Toast notification function
+        
         function showToast(message, type = 'info') {
             const bgColor = type === 'success' ? 'bg-green-500' : (type === 'error' ? 'bg-red-500' : 'bg-blue-500');
             const toast = document.createElement('div');
@@ -1306,24 +1306,17 @@ include __DIR__ . '/../../includes/sidebar.php';
             
             setTimeout(() => toast.remove(), 3000);
         }
+        
+        // Close modal on ESC key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeRequestModal();
+        });
+        
+        // Close modal on outside click
+        document.getElementById('requestModal').addEventListener('click', function(e) {
+            if (e.target === this) closeRequestModal();
+        });
     </script>
-
-    <style>
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        .animate-fade-in-up {
-            animation: fadeInUp 0.3s ease-in-out;
-        }
-    </style>
-
     <?php include __DIR__ . '/../../includes/footer.php'; ?>
 </body>
 </html>
