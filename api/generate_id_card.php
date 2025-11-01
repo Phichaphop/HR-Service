@@ -8,36 +8,29 @@
  * 
  * LAYOUT:
  * ✅ Header: Company Logo + Name
- * ✅ Body: Left (Photo + Name + Info) | Right (ID + QR)
+ * ✅ Body: Left (Photo + Name + Info) | Right (ID + QR + Barcode + Employee ID)
  * ✅ Footer: Issue Date + Signature Line
  */
-
 header('Content-Type: text/html; charset=utf-8');
 require_once __DIR__ . '/../config/db_config.php';
 require_once __DIR__ . '/../controllers/AuthController.php';
-
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 AuthController::requireAuth();
-
 $request_id = isset($_GET['request_id']) ? intval($_GET['request_id']) : (isset($_POST['request_id']) ? intval($_POST['request_id']) : 0);
 $employee_id = isset($_GET['employee_id']) ? trim($_GET['employee_id']) : (isset($_POST['employee_id']) ? trim($_POST['employee_id']) : '');
 $lang = isset($_GET['lang']) ? trim($_GET['lang']) : ($_SESSION['language'] ?? 'th');
-
 if (!in_array($lang, ['th', 'en', 'my'])) {
     $lang = 'th';
 }
-
 if (!$request_id || !$employee_id) {
     die('<div style="padding: 20px; background: #fee2e2; color: #991b1b; border-radius: 8px;">❌ Missing parameters</div>');
 }
-
 $conn = getDbConnection();
 if (!$conn) {
     die('<div style="padding: 20px; background: #fee2e2; color: #991b1b;">❌ Database connection failed</div>');
 }
-
 try {
     $sql = "
         SELECT 
@@ -77,19 +70,15 @@ try {
         WHERE icr.request_id = ? AND e.employee_id = ?
         LIMIT 1
     ";
-
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("is", $request_id, $employee_id);
     $stmt->execute();
     $result = $stmt->get_result();
-
     if ($result->num_rows === 0) {
         die('<div>❌ ID Card request not found</div>');
     }
-
     $row = $result->fetch_assoc();
     $stmt->close();
-
     $prefix = ($lang === 'en') ? ($row['prefix_en'] ?? '') : ($row['prefix_th'] ?? '');
     $name = ($lang === 'en') ? ($row['full_name_en'] ?? '') : ($row['full_name_th'] ?? '');
     $position = ($lang === 'en') ? ($row['position_name_en'] ?? '') : (($lang === 'my') ? ($row['position_name_my'] ?? '') : ($row['position_name_th'] ?? ''));
@@ -97,9 +86,11 @@ try {
     $division = ($lang === 'en') ? ($row['division_name_en'] ?? '') : (($lang === 'my') ? ($row['division_name_my'] ?? '') : ($row['division_name_th'] ?? ''));
     $section = ($lang === 'en') ? ($row['section_name_en'] ?? '') : (($lang === 'my') ? ($row['section_name_my'] ?? '') : ($row['section_name_th'] ?? ''));
     $company_name = ($lang === 'en') ? ($row['company_name_en'] ?? '') : ($row['company_name_th'] ?? '');
+    $display_name = trim($name);
 
-    $display_name = trim($prefix . ' ' . $name);
+    // QR Code และ Barcode URLs
     $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' . urlencode($row['employee_id']);
+    $barcode_url = 'https://bwipjs-api.metafloor.com/?bcid=code128&text=' . urlencode($row['employee_id']) . '&scale=2&height=10&includetext=false';
 
     $profile_pic = '';
     if (!empty($row['profile_pic_path'])) {
@@ -107,14 +98,12 @@ try {
             ? $row['profile_pic_path']
             : BASE_URL . '/' . ltrim($row['profile_pic_path'], '/');
     }
-
     $logo_url = '';
     if (!empty($row['company_logo_path'])) {
         $logo_url = (strpos($row['company_logo_path'], 'http') === 0)
             ? $row['company_logo_path']
             : BASE_URL . '/' . ltrim($row['company_logo_path'], '/');
     }
-
     $issue_date_obj = new DateTime($row['req_created_at']);
     if ($lang === 'th') {
         $day = $issue_date_obj->format('d');
@@ -124,7 +113,6 @@ try {
     } else {
         $issue_date_display = $issue_date_obj->format('d/m/Y');
     }
-
     $hire_date_display = '';
     if (!empty($row['date_of_hire'])) {
         $hire_date_obj = new DateTime($row['date_of_hire']);
@@ -137,15 +125,12 @@ try {
             $hire_date_display = $hire_date_obj->format('d/m/Y');
         }
     }
-
     $conn->close();
-
     $texts = [
-        'th' => ['position' => 'ตำแหน่ง', 'level' => 'ระดับ', 'division' => 'แผนก', 'section' => 'กอง', 'phone' => 'เบอร์โทร', 'hire_date' => 'วันเริ่มงาน', 'print' => 'พิมพ์บัตร', 'close' => 'ปิด', 'issue_date' => 'วันออกบัตร', 'signature' => 'ลายเซ็นผู้จัดการแผนกบุคคล', 'valid' => 'บัตรประจำตัวพนักงาน'],
-        'en' => ['position' => 'Position', 'level' => 'Level', 'division' => 'Department', 'section' => 'Section', 'phone' => 'Phone', 'hire_date' => 'Start Date', 'print' => 'Print Card', 'close' => 'Close', 'issue_date' => 'Issue Date', 'signature' => 'HR Manager Signature', 'valid' => 'Employee ID Card'],
-        'my' => ['position' => 'ရာထူး', 'level' => 'အဆင့်', 'division' => 'ဌာန', 'section' => 'ဘာဂ်', 'phone' => 'ဖုန်း', 'hire_date' => 'စတင်ရက်', 'print' => 'ပုံနှိပ်ကဒ်', 'close' => 'ပိတ်ရန်', 'issue_date' => 'ထုတ်ပြန်ချက်', 'signature' => 'HR Manager လက်မှတ်', 'valid' => 'အလုပ်သမား ID ကဒ်']
+        'th' => ['position' => 'ตำแหน่ง', 'level' => 'ระดับ', 'division' => 'แผนก', 'section' => 'หมวด', 'phone' => 'เบอร์โทร', 'hire_date' => 'วันเริ่มงาน', 'print' => 'พิมพ์บัตร', 'close' => 'ปิด', 'issue_date' => 'วันออกบัตร', 'signature' => 'ลายเซ็นผู้จัดการแผนกบุคคล', 'valid' => 'บัตรประจำตัวพนักงาน', 'emp_id' => 'รหัสพนักงาน'],
+        'en' => ['position' => 'Position', 'level' => 'Level', 'division' => 'Department', 'section' => 'Section', 'phone' => 'Phone', 'hire_date' => 'Start Date', 'print' => 'Print Card', 'close' => 'Close', 'issue_date' => 'Issue Date', 'signature' => 'HR Manager Signature', 'valid' => 'Employee ID Card', 'emp_id' => 'Employee ID'],
+        'my' => ['position' => 'ရာထူး', 'level' => 'အဆင့်', 'division' => 'ဌာန', 'section' => 'ဘာဂ်', 'phone' => 'ဖုန်း', 'hire_date' => 'စတင်ရက်', 'print' => 'ပုံနှိပ်ကဒ်', 'close' => 'ပိတ်ရန်', 'issue_date' => 'ထုတ်ပြန်ချက်', 'signature' => 'HR Manager လက်မှတ်', 'valid' => 'အလုပ်သမား ID ကဒ်', 'emp_id' => 'ဝန်ထမ်း ID']
     ];
-
     $t = $texts[$lang] ?? $texts['en'];
 } catch (Exception $e) {
     $conn->close();
@@ -160,15 +145,18 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Employee ID Card</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Monoton&family=Noto+Sans+Thai:wght@100..900&family=Sankofa+Display&family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            font-family: "Noto Sans Thai", sans-serif;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: #f0f0f0;
             min-height: 100vh;
             padding: 20px;
@@ -218,6 +206,8 @@ try {
             display: flex;
             justify-content: center;
             margin: 20px 0;
+            border: 1px solid #45474aff;
+            border-radius: 8px
         }
 
         .id-card {
@@ -270,7 +260,7 @@ try {
         }
 
         .company-subtitle {
-            font-size: 8px;
+            font-size: 14px;
             opacity: 0.8;
             margin-top: 2px;
             text-transform: uppercase;
@@ -278,7 +268,6 @@ try {
 
         .card-body {
             display: flex;
-            grid-template-columns: 0.9fr 1.2fr;
             gap: 10px;
             flex: 1;
             padding: 10px;
@@ -286,20 +275,39 @@ try {
         }
 
         .card-left {
+            flex: 0.6;
             display: flex;
-            flex-direction: row;
+            flex-direction: column;
             gap: 8px;
-            border-right: 1px solid #e5e7eb;
             padding-right: 10px;
+            min-height: 0;
+            overflow-y: hidden;
+        }
+
+        .card-center {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 8px;
+            border-radius: 4px;
+        }
+
+        .card-right {
+            flex: 0.8;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: center;
+            padding: 8px;
             min-height: 0;
             overflow-y: auto;
         }
 
         .employee-photo {
-            width: 100px;
-            height: 100px;
+            width: 100%;
+            height: auto;
             background: white;
-            border: 2px solid #3b82f6;
             border-radius: 3px;
             overflow: hidden;
             display: flex;
@@ -325,10 +333,11 @@ try {
         }
 
         .employee-name {
-            font-size: 12px;
+            font-size: 14px;
             font-weight: bold;
-            color: #1e40af;
+            color: #000000;
             line-height: 1.3;
+            text-align: center;
         }
 
         .employee-info {
@@ -340,62 +349,33 @@ try {
         }
 
         .info-row {
-            display: grid;
-            grid-template-columns: 60px 1fr;
-            gap: 6px;
-            align-items: flex-start;
-            font-size: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .info-label {
-            font-size: 7px;
+            font-size: 16px;
             font-weight: bold;
-            color: #3b82f6;
             text-transform: uppercase;
             letter-spacing: 0.2px;
+            margin-top: 5px;
         }
 
         .info-value {
-            font-size: 8px;
+            font-size: 16px;
             font-weight: 500;
-            color: #1f2937;
             word-break: break-word;
             line-height: 1.2;
-        }
-
-        .card-right {
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            gap: 8px;
-            align-items: center;
-            background: #f9fafb;
-            padding: 8px;
-            border: 1px solid #e5e7eb;
-            border-radius: 4px;
-        }
-
-        .employee-id-badge {
-            font-size: 11px;
-            font-weight: bold;
-            color: #1e40af;
-            background: white;
-            padding: 6px 10px;
-            border: 1px solid #3b82f6;
-            border-radius: 3px;
-            font-family: 'Courier New', monospace;
-            letter-spacing: 0.5px;
-            width: 100%;
-            text-align: center;
+            margin-top: 5px;
         }
 
         .qr-code-wrapper {
-            width: 100px;
-            height: 100px;
+            width: 130px;
+            height: 130px;
             background: white;
-            border: 2px solid #3b82f6;
-            border-radius: 3px;
-            padding: 2px;
+            border-radius: 4px;
+            padding: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -408,34 +388,45 @@ try {
             height: 100%;
         }
 
-        .card-footer {
-            border-top: 1px solid #e5e7eb;
-        }
-
-        .footer-item {
+        .barcode-wrapper {
+            width: 130px;
+            height: 40px;
+            background: white;
+            border-radius: 4px;
+            padding: 4px;
             display: flex;
-            flex-direction: column;
             align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
         }
 
-        .footer-label {
-            font-size: 7px;
+        .barcode-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .employee-id-display {
+            font-size: 13px;
             font-weight: bold;
-            color: #3b82f6;
-            text-transform: uppercase;
-            letter-spacing: 0.2px;
+            letter-spacing: 1px;
+            text-align: center;
+            padding: 4px 8px;
+            border-radius: 4px;
         }
 
-        .footer-date {
-            font-size: 9px;
-            font-weight: 600;
-            color: #1f2937;
+        .card-signature-label {
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 4px;
         }
 
         .signature-line {
             border-top: 1px solid #1f2937;
-            width: 100%;
-            height: 18px;
+            width: 180px;
+            margin: 6px;
         }
 
         @media print {
@@ -510,12 +501,11 @@ try {
             }
 
             .employee-name {
-                font-size: 10px;
+                font-size: 8px;
             }
 
             .info-row {
-                grid-template-columns: 50px 1fr;
-                gap: 4px;
+                gap: 3px;
             }
 
             .info-label {
@@ -528,116 +518,101 @@ try {
 
             .card-right {
                 padding: 4px;
-                gap: 4px;
-            }
-
-            .employee-id-badge {
-                font-size: 8px;
-                padding: 3px 6px;
+                gap: 3px;
             }
 
             .qr-code-wrapper {
-                width: 70px;
-                height: 70px;
+                width: 50px;
+                height: 50px;
+                padding: 2px;
+            }
+
+            .barcode-wrapper {
+                max-width: 70px;
+                height: 20px;
+                padding: 2px;
+            }
+
+            .employee-id-display {
+                font-size: 7px;
+                padding: 2px 4px;
+                letter-spacing: 0.5px;
             }
 
             .card-footer {
-                padding: 6px 8px;
+                padding: 4px 8px;
                 gap: 8px;
             }
 
-            .footer-label {
-                font-size: 6px;
+            .card-signature-label {
+                font-size: 5px;
+                margin-bottom: 2px;
             }
 
             .footer-date {
-                font-size: 7px;
+                font-size: 6px;
             }
 
             .signature-line {
-                height: 12px;
+                width: 60px;
+                margin-top: 2px;
             }
         }
 
-        @media (max-width: 640px) {
+        /* Small Mobile */
+        @media (max-width: 480px) {
+            .card-wrapper {
+                width: 100%;
+            }
+
             .id-card {
-                width: 95vw;
-                height: auto;
-                aspect-ratio: 540 / 340;
-            }
-
+                width: 100%;
+                height: auto
+             }
             .card-header {
-                padding: 10px 12px;
+                padding: 12px 15px;
             }
-
             .company-logo {
-                width: 40px;
-                height: 40px;
+                width: 45px;
+                height: 45px;
             }
-
             .company-name {
-                font-size: 11px;
+                font-size: 14px;
             }
-
+            .company-subtitle {
+                font-size: 10px;
+            }
             .card-body {
-                grid-template-columns: 1fr 1fr;
-                gap: 8px;
-                padding: 8px;
+                padding: 12px;
+                gap: 10px;
             }
-
-            .card-left {
-                gap: 6px;
-                padding-right: 8px;
-            }
-
-            .employee-photo {
-                width: 85px;
-                height: 85px;
-            }
-
             .employee-name {
-                font-size: 11px;
+                font-size: 12px;
             }
-
-            .info-row {
-                grid-template-columns: 50px 1fr;
-                gap: 4px;
-            }
-
             .info-label {
-                font-size: 6px;
+                font-size: 10px;
+                min-width: 65px;
             }
-
             .info-value {
-                font-size: 7px;
+                font-size: 10px;
             }
-
-            .card-right {
-                padding: 6px;
-                gap: 6px;
+            .qr-barcode-container {
+                max-width: 120px;
             }
-
-            .employee-id-badge {
-                font-size: 9px;
-                padding: 4px 8px;
-            }
-
             .qr-code-wrapper {
-                width: 85px;
-                height: 85px;
+                width: 75px;
+                height: 75px;
             }
-
-            .card-footer {
-                padding: 8px 10px;
-                gap: 12px;
+            .barcode-wrapper {
+                width: 75px;
+                height: 35px;
             }
-
-            .footer-label {
-                font-size: 6px;
+            .employee-id-display {
+                font-size: 11px;
+                padding: 5px 8px;
             }
-
-            .footer-date {
-                font-size: 8px;
+            .card-signature-label {
+                font-size: 9px;
             }
         }
     </style>
@@ -648,7 +623,6 @@ try {
         <button class="btn btn-print" onclick="window.print()"><span>🖨️</span><span><?php echo $t['print']; ?></span></button>
         <button class="btn btn-close" onclick="window.close()"><span>✕</span><span><?php echo $t['close']; ?></span></button>
     </div>
-
     <div class="card-wrapper">
         <div class="id-card">
             <div class="card-header">
@@ -667,71 +641,67 @@ try {
                 <div class="card-left">
                     <div class="employee-photo">
                         <?php if (!empty($profile_pic)): ?>
-                            <img src="<?php echo htmlspecialchars($profile_pic); ?>" alt="Photo" onerror="this.parentElement.innerHTML='<div class=\" placeholder-photo\">
+                            <img src="<?php echo htmlspecialchars($profile_pic); ?>" alt="Photo" onerror="this.parentElement.innerHTML='<div class=\'placeholder-photo\'>👤</div>'">
+                        <?php else: ?>
+                            <div class="placeholder-photo">👤</div>
+                        <?php endif; ?>
                     </div>
-                <?php else: ?>
-                    <div class="placeholder-photo">👤</div>
-                <?php endif; ?>
+                    <div class="employee-name"><?php echo htmlspecialchars($display_name); ?></div>
+                    <div class="employee-name"><?php echo htmlspecialchars($position ?: '—'); ?></div>
                 </div>
 
-                <div class="card-right">
-                    <div class="employee-name"><?php echo htmlspecialchars($display_name); ?></div>
-
+                <div class="card-center">
                     <div class="employee-info">
                         <div class="info-row">
-                            <div class="info-label"><?php echo $t['position']; ?></div>
-                            <div class="info-value"><?php echo htmlspecialchars($position ?: '—'); ?></div>
-                        </div>
-                        <?php if (!empty($level)): ?>
-                            <div class="info-row">
-                                <div class="info-label"><?php echo $t['level']; ?></div>
-                                <div class="info-value"><?php echo htmlspecialchars($level); ?></div>
-                            </div>
-                        <?php endif; ?>
-                        <div class="info-row">
-                            <div class="info-label"><?php echo $t['division']; ?></div>
+                            <div class="info-label"><?php echo $t['division']; ?>:</div>
                             <div class="info-value"><?php echo htmlspecialchars($division ?: '—'); ?></div>
                         </div>
                         <?php if (!empty($section)): ?>
                             <div class="info-row">
-                                <div class="info-label"><?php echo $t['section']; ?></div>
+                                <div class="info-label"><?php echo $t['section']; ?>:</div>
                                 <div class="info-value"><?php echo htmlspecialchars($section); ?></div>
                             </div>
                         <?php endif; ?>
                         <?php if (!empty($row['phone_no'])): ?>
                             <div class="info-row">
-                                <div class="info-label"><?php echo $t['phone']; ?></div>
+                                <div class="info-label"><?php echo $t['phone']; ?>:</div>
                                 <div class="info-value"><?php echo htmlspecialchars($row['phone_no']); ?></div>
                             </div>
                         <?php endif; ?>
                         <?php if (!empty($hire_date_display)): ?>
                             <div class="info-row">
-                                <div class="info-label"><?php echo $t['hire_date']; ?></div>
+                                <div class="info-label"><?php echo $t['hire_date']; ?>:</div>
                                 <div class="info-value"><?php echo htmlspecialchars($hire_date_display); ?></div>
                             </div>
                         <?php endif; ?>
+                        <?php if (!empty($issue_date_display)): ?>
+                            <div class="info-row">
+                                <div class="info-label"><?php echo $t['issue_date']; ?>:</div>
+                                <div class="info-value"><?php echo htmlspecialchars($issue_date_display); ?></div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="signature-box" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+                        <div class="signature-line"></div>
+                        <div class="card-signature-label"><?php echo $t['signature']; ?></div>
                     </div>
                 </div>
 
-                <div class="card-left">
+                <div class="card-right">
                     <div class="qr-code-wrapper">
                         <img src="<?php echo htmlspecialchars($qr_code_url); ?>" alt="QR Code">
                     </div>
+
+                    <div class="barcode-wrapper">
+                        <img src="<?php echo htmlspecialchars($barcode_url); ?>" alt="Barcode">
+                    </div>
+
+                    <div class="employee-id-display">
+                        <?php echo htmlspecialchars($row['employee_id']); ?>
+                    </div>
+
                 </div>
             </div>
-
-            <div class="card-footer">
-                <div class="footer-item">
-                    <div class="footer-label"><?php echo $t['issue_date']; ?></div>
-                    <div class="footer-date"><?php echo htmlspecialchars($issue_date_display); ?></div>
-                </div>
-
-                <div class="footer-item">
-                    <div class="footer-label"><?php echo $t['signature']; ?></div>
-                    <div class="signature-line"></div>
-                </div>
-            </div>
-
         </div>
     </div>
 </body>
