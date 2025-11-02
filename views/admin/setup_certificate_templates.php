@@ -94,9 +94,7 @@ while ($row = $result->fetch_assoc()) {
     $cert_types[] = $row;
 }
 
-// Include Header
 include __DIR__ . '/../../includes/header.php';
-// Include Sidebar
 include __DIR__ . '/../../includes/sidebar.php';
 ?>
 
@@ -264,7 +262,7 @@ function loadTemplate(typeId, typeName) {
     }
     
     // Fetch template content
-    fetch(`<?php echo BASE_PATH; ?>/api/get_certificate_template.php?cert_type_id=${typeId}`)
+    fetch(`<?php echo BASE_PATH; ?>/api/generate_certificate_form.php?cert_type_id=${typeId}`)
         .then(r => r.json())
         .then(data => {
             if (data.success) {
