@@ -1,4 +1,3 @@
-@ -0,0 +1,460 @@
 <?php
 /**
  * GET CERTIFICATE TEMPLATE API

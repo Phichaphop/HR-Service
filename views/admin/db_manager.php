@@ -27,6 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
 if (isset($_SESSION['db_manager_verified']) && 
     isset($_SESSION['db_manager_time']) && 
     (time() - $_SESSION['db_manager_time']) < 1800) {
@@ -299,6 +300,7 @@ $tables_exist = $db_exists && checkTablesExist();
             </div>
 
         <?php endif; ?>
+
     </div>
 
     <script>

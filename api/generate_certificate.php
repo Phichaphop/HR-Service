@@ -295,7 +295,7 @@ try {
             
             .signature-box {
                 text-align: center;
-                width: 30%;
+                width: auto;
             }
             
             .signature-line {

@@ -9,6 +9,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 SET sql_mode = '';
 
 -- Drop existing tables if they exist
+DROP TABLE IF EXISTS document_delivery;
 DROP TABLE IF EXISTS document_submissions;
 DROP TABLE IF EXISTS skill_test_requests;
 DROP TABLE IF EXISTS supplies_requests;
@@ -22,6 +23,7 @@ DROP TABLE IF EXISTS locker_usage_history;
 DROP TABLE IF EXISTS locker_master;
 DROP TABLE IF EXISTS company_info;
 DROP TABLE IF EXISTS employees;
+DROP TABLE IF EXISTS certificate_types;
 DROP TABLE IF EXISTS doc_type_master;
 DROP TABLE IF EXISTS service_type_master;
 DROP TABLE IF EXISTS service_category_master;
@@ -253,6 +255,21 @@ CREATE TABLE doc_type_master (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ===================================
+-- CERTIFICATE TYPES (ต้องสร้างก่อน certificate_requests)
+-- ===================================
+
+CREATE TABLE certificate_types (
+    cert_type_id INT PRIMARY KEY AUTO_INCREMENT,
+    type_name_th VARCHAR(200) NOT NULL,
+    type_name_en VARCHAR(200),
+    type_name_my VARCHAR(200),
+    template_content TEXT,
+    is_active TINYINT(1) DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ===================================
 -- EMPLOYEE & COMPANY DATA
 -- ===================================
 
@@ -294,7 +311,7 @@ CREATE TABLE employees (
     password VARCHAR(255),
     role_id INT,
     profile_pic_path VARCHAR(255),
-    theme_mode VARCHAR(10) DEFAULT 'light',
+    theme_color VARCHAR(20) DEFAULT 'blue',
     language_preference VARCHAR(5) DEFAULT 'th',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -341,7 +358,7 @@ CREATE TABLE locker_master (
     locker_number VARCHAR(20) UNIQUE NOT NULL,
     locker_location VARCHAR(100),
     status ENUM('Available', 'Occupied', 'Maintenance') DEFAULT 'Available',
-    current_owner_id VARCHAR(6),
+    current_owner_id VARCHAR(8),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (current_owner_id) REFERENCES employees(employee_id) ON DELETE SET NULL
@@ -350,7 +367,7 @@ CREATE TABLE locker_master (
 CREATE TABLE locker_usage_history (
     history_id INT PRIMARY KEY AUTO_INCREMENT,
     locker_id INT,
-    employee_id VARCHAR(6),
+    employee_id VARCHAR(8),
     assigned_date TIMESTAMP NULL DEFAULT NULL,
     returned_date TIMESTAMP NULL DEFAULT NULL,
     remarks TEXT,
@@ -369,7 +386,7 @@ CREATE TABLE online_documents (
     file_name_custom VARCHAR(255),
     file_path VARCHAR(500),
     doc_type_id INT,
-    upload_by VARCHAR(6),
+    upload_by VARCHAR(8),
     upload_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -383,14 +400,14 @@ CREATE TABLE online_documents (
 
 CREATE TABLE leave_requests (
     request_id INT PRIMARY KEY AUTO_INCREMENT,
-    employee_id VARCHAR(6),
+    employee_id VARCHAR(8),
     leave_type VARCHAR(100),
     start_date DATE,
     end_date DATE,
     total_days INT,
     reason TEXT,
     status ENUM('New', 'In Progress', 'Complete', 'Cancelled') DEFAULT 'New',
-    handler_id VARCHAR(6),
+    handler_id VARCHAR(8),
     handler_remarks TEXT,
     satisfaction_score INT CHECK (satisfaction_score BETWEEN 1 AND 5),
     satisfaction_feedback TEXT,
@@ -403,7 +420,8 @@ CREATE TABLE leave_requests (
 CREATE TABLE certificate_requests (
     request_id INT PRIMARY KEY AUTO_INCREMENT,
     certificate_no VARCHAR(50),
-    employee_id VARCHAR(6),
+    cert_type_id INT,
+    employee_id VARCHAR(8),
     employee_name VARCHAR(200),
     position VARCHAR(200),
     division VARCHAR(200),
@@ -412,22 +430,23 @@ CREATE TABLE certificate_requests (
     base_salary DECIMAL(10,2),
     purpose TEXT,
     status ENUM('New', 'In Progress', 'Complete', 'Cancelled') DEFAULT 'New',
-    handler_id VARCHAR(6),
+    handler_id VARCHAR(8),
     handler_remarks TEXT,
     satisfaction_score INT,
     satisfaction_feedback TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (employee_id) REFERENCES employees(employee_id),
+    FOREIGN KEY (cert_type_id) REFERENCES certificate_types(cert_type_id),
     FOREIGN KEY (handler_id) REFERENCES employees(employee_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE id_card_requests (
     request_id INT PRIMARY KEY AUTO_INCREMENT,
-    employee_id VARCHAR(6),
+    employee_id VARCHAR(8),
     reason VARCHAR(200),
     status ENUM('New', 'In Progress', 'Complete', 'Cancelled') DEFAULT 'New',
-    handler_id VARCHAR(6),
+    handler_id VARCHAR(8),
     handler_remarks TEXT,
     satisfaction_score INT,
     satisfaction_feedback TEXT,
@@ -439,13 +458,13 @@ CREATE TABLE id_card_requests (
 
 CREATE TABLE shuttle_bus_requests (
     request_id INT PRIMARY KEY AUTO_INCREMENT,
-    employee_id VARCHAR(6),
+    employee_id VARCHAR(8),
     route VARCHAR(200),
     pickup_location VARCHAR(200),
     start_date DATE,
     reason TEXT,
     status ENUM('New', 'In Progress', 'Complete', 'Cancelled') DEFAULT 'New',
-    handler_id VARCHAR(6),
+    handler_id VARCHAR(8),
     handler_remarks TEXT,
     satisfaction_score INT,
     satisfaction_feedback TEXT,
@@ -457,11 +476,11 @@ CREATE TABLE shuttle_bus_requests (
 
 CREATE TABLE locker_requests (
     request_id INT PRIMARY KEY AUTO_INCREMENT,
-    employee_id VARCHAR(6),
+    employee_id VARCHAR(8),
     reason TEXT,
     assigned_locker_id INT,
     status ENUM('New', 'In Progress', 'Complete', 'Cancelled') DEFAULT 'New',
-    handler_id VARCHAR(6),
+    handler_id VARCHAR(8),
     handler_remarks TEXT,
     satisfaction_score INT,
     satisfaction_feedback TEXT,
@@ -474,13 +493,13 @@ CREATE TABLE locker_requests (
 
 CREATE TABLE supplies_requests (
     request_id INT PRIMARY KEY AUTO_INCREMENT,
-    employee_id VARCHAR(6),
+    employee_id VARCHAR(8),
     request_type ENUM('Office Supplies', 'Work Equipment', 'Uniform', 'Safety Equipment'),
     items_list TEXT,
     quantity INT,
     reason TEXT,
     status ENUM('New', 'In Progress', 'Complete', 'Cancelled') DEFAULT 'New',
-    handler_id VARCHAR(6),
+    handler_id VARCHAR(8),
     handler_remarks TEXT,
     satisfaction_score INT,
     satisfaction_feedback TEXT,
@@ -492,12 +511,12 @@ CREATE TABLE supplies_requests (
 
 CREATE TABLE skill_test_requests (
     request_id INT PRIMARY KEY AUTO_INCREMENT,
-    employee_id VARCHAR(6),
+    employee_id VARCHAR(8),
     skill_name VARCHAR(200),
     test_date DATE,
     reason TEXT,
     status ENUM('New', 'In Progress', 'Complete', 'Cancelled') DEFAULT 'New',
-    handler_id VARCHAR(6),
+    handler_id VARCHAR(8),
     handler_remarks TEXT,
     satisfaction_score INT,
     satisfaction_feedback TEXT,
@@ -518,7 +537,7 @@ CREATE TABLE document_submissions (
     service_type_id INT,
     submission_date TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     status ENUM('New', 'In Progress', 'Complete', 'Cancelled') DEFAULT 'New',
-    handler_id VARCHAR(6),
+    handler_id VARCHAR(8),
     handler_remarks TEXT,
     satisfaction_score INT CHECK (satisfaction_score BETWEEN 1 AND 5),
     satisfaction_feedback TEXT,
@@ -531,50 +550,9 @@ CREATE TABLE document_submissions (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ===================================
--- INDEXES FOR PERFORMANCE
+-- DOCUMENT DELIVERY (ระบบลงชื่อส่งเอกสาร)
 -- ===================================
 
-CREATE INDEX idx_employee_username ON employees(username);
-CREATE INDEX idx_employee_role ON employees(role_id);
-CREATE INDEX idx_employee_status ON employees(status_id);
-CREATE INDEX idx_locker_status ON locker_master(status);
-CREATE INDEX idx_leave_status ON leave_requests(status);
-CREATE INDEX idx_cert_status ON certificate_requests(status);
-CREATE INDEX idx_doc_type ON online_documents(doc_type_id);
-CREATE INDEX idx_doc_submit_status ON document_submissions(status);
-
--- ===================================
--- เพิ่มตารางประเภทหนังสือรับรอง
--- ===================================
-
-CREATE TABLE certificate_types (
-    cert_type_id INT PRIMARY KEY AUTO_INCREMENT,
-    type_name_th VARCHAR(200) NOT NULL,
-    type_name_en VARCHAR(200),
-    type_name_my VARCHAR(200),
-    template_content TEXT,
-    is_active TINYINT(1) DEFAULT 1,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- แก้ไขตาราง certificate_requests เพื่อเพิ่มประเภท
-ALTER TABLE certificate_requests 
-ADD COLUMN cert_type_id INT AFTER certificate_no,
-ADD FOREIGN KEY (cert_type_id) REFERENCES certificate_types(cert_type_id);
-
--- ข้อมูลตัวอย่างประเภทหนังสือรับรอง
-INSERT INTO certificate_types (type_name_th, type_name_en, type_name_my, template_content) VALUES
-('หนังสือรับรองการทำงาน', 'Employment Certificate', 'အလုပ်အကိုင်အတည်ပြုလွှာ', 
-'ขอรับรองว่า {employee_name} รหัสพนักงาน {employee_id} ดำรงตำแหน่ง {position} สังกัด {division} ได้เข้าทำงานกับบริษัทฯ ตั้งแต่วันที่ {date_of_hire} จนถึงปัจจุบัน โดยมีฐานเงินเดือน {base_salary} บาทต่อเดือน'),
-
-('หนังสือรับรองเงินเดือน', 'Salary Certificate', 'လစာအတည်ပြုလွှာ', 
-'ขอรับรองว่า {employee_name} รหัสพนักงาน {employee_id} ปัจจุบันทำงานในตำแหน่ง {position} มีฐานเงินเดือน {base_salary} บาทต่อเดือน'),
-
-('หนังสือรับรองการเป็นพนักงาน', 'Employee Status Certificate', 'ဝန်ထမ်းအဆင့်အတည်ပြုလွှာ',
-'ขอรับรองว่า {employee_name} รหัสพนักงาน {employee_id} เป็นพนักงานของบริษัทฯ ในตำแหน่ง {position} สังกัด {division}');
-
--- สร้างตาราง document_delivery สำหรับระบบลงชื่อส่งเอกสาร
 CREATE TABLE document_delivery (
     delivery_id INT PRIMARY KEY AUTO_INCREMENT,
     employee_id VARCHAR(8) NOT NULL,
@@ -585,6 +563,23 @@ CREATE TABLE document_delivery (
     satisfaction_score INT CHECK (satisfaction_score BETWEEN 1 AND 5),
     delivery_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (employee_id) REFERENCES employees(employee_id),
     FOREIGN KEY (document_category_id) REFERENCES service_category_master(category_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ===================================
+-- INDEXES FOR PERFORMANCE
+-- ===================================
+
+CREATE INDEX idx_employee_username ON employees(username);
+CREATE INDEX idx_employee_role ON employees(role_id);
+CREATE INDEX idx_employee_status ON employees(status_id);
+CREATE INDEX idx_locker_status ON locker_master(status);
+CREATE INDEX idx_leave_status ON leave_requests(status);
+CREATE INDEX idx_cert_status ON certificate_requests(status);
+CREATE INDEX idx_cert_type ON certificate_requests(cert_type_id);
+CREATE INDEX idx_doc_type ON online_documents(doc_type_id);
+CREATE INDEX idx_doc_submit_status ON document_submissions(status);
+CREATE INDEX idx_doc_delivery_date ON document_delivery(delivery_date);
+CREATE INDEX idx_doc_delivery_emp ON document_delivery(employee_id);
