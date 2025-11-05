@@ -70,18 +70,15 @@ class DatabaseManager {
             return ['success' => false, 'message' => 'Database connection failed'];
         }
         
-        // Set SQL mode and execution time
-        @ini_set('max_execution_time', 300);
-        @ini_set('memory_limit', '256M');
+        // Fix SQL mode to allow NULL timestamps
         $conn->query("SET sql_mode = ''");
         $conn->query("SET SESSION sql_mode = ''");
-        $conn->query("SET FOREIGN_KEY_CHECKS = 0");
         
         // Read SQL schema file
         $sql_file = __DIR__ . '/../db/schema.sql';
         
         if (!file_exists($sql_file)) {
-            return ['success' => false, 'message' => 'Schema file not found at: ' . $sql_file];
+            return ['success' => false, 'message' => 'Schema file not found'];
         }
         
         $sql = file_get_contents($sql_file);
@@ -95,11 +92,8 @@ class DatabaseManager {
                 }
             } while ($conn->more_results() && $conn->next_result());
             
-            // Create triggers separately
+            // Create triggers separately (DELIMITER doesn't work in multi_query)
             self::createTriggers($conn);
-            
-            // Re-enable foreign keys
-            $conn->query("SET FOREIGN_KEY_CHECKS = 1");
             
             $conn->close();
             
@@ -193,7 +187,7 @@ class DatabaseManager {
     }
     
     /**
-     * Seed initial data - IMPROVED with better error handling
+     * Seed initial data
      */
     private static function seedInitialData() {
         $conn = getDbConnection();
@@ -206,33 +200,249 @@ class DatabaseManager {
         $conn->begin_transaction();
         
         try {
-            // Seed in order
-            self::seedRoles($conn);
-            self::seedPrefixes($conn);
-            self::seedSex($conn);
-            self::seedNationality($conn);
-            self::seedEducationLevel($conn);
-            self::seedStatus($conn);
-            self::seedFunctions($conn);
-            self::seedDivisions($conn);
-            self::seedDepartments($conn);
-            self::seedSections($conn);
-            self::seedOperations($conn);
-            self::seedPositions($conn);
-            self::seedPositionLevels($conn);
-            self::seedLabourCost($conn);
-            self::seedHiringTypes($conn);
-            self::seedCustomerZones($conn);
-            self::seedContributionLevels($conn);
-            self::seedTerminationReasons($conn);
-            self::seedServiceCategories($conn);
-            self::seedServiceTypes($conn);
-            self::seedDocTypes($conn);
-            self::seedCertificateTypes($conn);
-            self::seedEmployees($conn);
-            self::seedCompanyInfo($conn);
-            self::seedLocalization($conn);
-            self::seedLockers($conn);
+            // Seed roles
+            $conn->query("INSERT INTO roles (role_name, role_name_th, role_name_en, role_name_my) VALUES 
+                ('admin', 'ผู้ดูแลระบบ', 'Administrator', 'စီမံခန့်ခွဲသူ'),
+                ('officer', 'เจ้าหน้าที่', 'Officer', 'အရာရှိ'),
+                ('employee', 'พนักงาน', 'Employee', 'ဝန်ထမ်း')");
+            
+            // Seed prefix_master
+            $conn->query("INSERT INTO prefix_master (prefix_th, prefix_en, prefix_my) VALUES 
+                ('นาย', 'Mr.', 'မစ္စတာ'),
+                ('นาง', 'Mrs.', 'မစ္စစ်'),
+                ('นางสาว', 'Miss', 'မမ'),
+                ('ด.ช.', 'Master', 'မာစတာ'),
+                ('ด.ญ.', 'Miss', 'မမ')");
+            
+            // Seed sex_master
+            $conn->query("INSERT INTO sex_master (sex_name_th, sex_name_en, sex_name_my) VALUES 
+                ('ชาย', 'Male', 'ကျား'),
+                ('หญิง', 'Female', 'မ'),
+                ('ไม่ระบุ', 'Not Specified', 'သတ်မှတ်မထား')");
+            
+            // Seed nationality_master
+            $conn->query("INSERT INTO nationality_master (nationality_th, nationality_en, nationality_my) VALUES 
+                ('ไทย', 'Thai', 'ထိုင်း'),
+                ('พม่า', 'Myanmar', 'မြန်မာ'),
+                ('ลาว', 'Laos', 'လာအို'),
+                ('กัมพูชา', 'Cambodia', 'ကမ္ဘောဒီးယား'),
+                ('เวียดนาม', 'Vietnam', 'ဗီယက်နမ်')");
+            
+            // Seed education_level_master
+            $conn->query("INSERT INTO education_level_master (level_name_th, level_name_en, level_name_my) VALUES 
+                ('ประถมศึกษา', 'Primary School', 'မူလတန်း'),
+                ('มัธยมศึกษาตอนต้น', 'Lower Secondary', 'အလယ်တန်းအောက်'),
+                ('มัธyมศึกษาตอนปลาย', 'Upper Secondary', 'အထက်တန်း'),
+                ('ปวช.', 'Vocational Certificate', 'အသက်မွေးပညာ'),
+                ('ปวส.', 'High Vocational Certificate', 'အဆင့်မြင့်အသက်မွေးပညာ'),
+                ('ปริญญาตรี', 'Bachelor Degree', 'ဘွဲ့ရ'),
+                ('ปริญญาโท', 'Master Degree', 'မဟာဘွဲ့'),
+                ('ปริญญาเอก', 'Doctoral Degree', 'ပါရဂူဘွဲ့')");
+            
+            // Seed status_master
+            $conn->query("INSERT INTO status_master (status_name_th, status_name_en, status_name_my) VALUES 
+                ('ทำงานอยู่', 'Active', 'အလုပ်လုပ်နေ'),
+                ('ลาออก', 'Resigned', 'နုတ်ထွက်'),
+                ('เกษียณ', 'Retired', 'အငြိမ်းစား'),
+                ('ถูกไล่ออก', 'Terminated', 'ထုတ်ပယ်'),
+                ('พักงาน', 'On Leave', 'ခွင့်ယူ')");
+            
+            // Seed function_master
+            $conn->query("INSERT INTO function_master (function_name_th, function_name_en, function_name_my) VALUES 
+                ('ฝ่ายผลิต', 'Production', 'ထုတ်လုပ်ရေး'),
+                ('ฝ่ายคุณภาพ', 'Quality Assurance', 'အရည်အသွေး'),
+                ('ฝ่ายบริหาร', 'Administration', 'စီမံခန့်ခွဲရေး'),
+                ('ฝ่ายการเงิน', 'Finance', 'ဘဏ္ဍာရေး'),
+                ('ฝ่ายทรัพยากรบุคคล', 'Human Resources', 'လူ့စွမ်းအား'),
+                ('ฝ่ายจัดซื้อ', 'Purchasing', 'ဝယ်ယူရေး'),
+                ('ฝ่ายคลังสินค้า', 'Warehouse', 'သိုလှောင်ရုံ'),
+                ('ฝ่ายบำรุงรักษา', 'Maintenance', 'ပြုပြင်ထိန်းသိမ်းရေး')");
+            
+            // Seed division_master
+            $conn->query("INSERT INTO division_master (division_name_th, division_name_en, division_name_my) VALUES 
+                ('แผนกตัดเย็บ', 'Sewing Division', 'ချုပ်ရေးဌာန'),
+                ('แผนกบรรจุภัณฑ์', 'Packaging Division', 'ထုပ်ပိုးရေးဌာန'),
+                ('แผนกควบคุมคุณภาพ', 'QC Division', 'အရည်အသွေးထိန်းချုပ်ရေးဌာန'),
+                ('แผนกธุรการ', 'Admin Division', 'စီမံအုပ်ချုပ်ရေးဌာန'),
+                ('แผนกบัญชี', 'Accounting Division', 'စာရင်းကိုင်ဌာန')");
+            
+            // Seed department_master
+            $conn->query("INSERT INTO department_master (department_name_th, department_name_en, department_name_my) VALUES 
+                ('แผนกจัดส่ง', 'Shipping Department', 'ပို့ဆောင်ရေးဌာန'),
+                ('แผนกรับสินค้า', 'Receiving Department', 'လက်ခံရေးဌာန'),
+                ('แผนกจัดเก็บ', 'Storage Department', 'သိုလှောင်ရေးဌာန'),
+                ('แผนกทรัพยากรบุคคล', 'HR Department', 'လူ့စွမ်းအားဌာန'),
+                ('แผนกเงินเดือน', 'Payroll Department', 'လစာဌာန')");
+            
+            // Seed section_master
+            $conn->query("INSERT INTO section_master (section_name_th, section_name_en, section_name_my) VALUES 
+                ('แผนกผลิตชิ้นส่วน', 'Parts Production', 'အစိတ်အပိုင်းထုတ်လုပ်ရေး'),
+                ('แผนกประกอบ', 'Assembly', 'တပ်ဆင်ရေး'),
+                ('แผนกบรรจุหีบห่อ', 'Packing', 'ထုပ်ပိုးရေး'),
+                ('แผนกตรวจสอบคุณภาพ', 'Quality Inspection', 'အရည်အသွေးစစ်ဆေးရေး'),
+                ('แผนกซ่อมบำรุง', 'Maintenance', 'ပြုပြင်ထိန်းသိမ်းရေး')");
+            
+            // Seed operation_master
+            $conn->query("INSERT INTO operation_master (operation_name_th, operation_name_en, operation_name_my) VALUES 
+                ('งานตัด', 'Cutting', 'ဖြတ်တောက်ခြင်း'),
+                ('งานเย็บ', 'Sewing', 'ချုပ်ခြင်း'),
+                ('งานตรวจสอบ', 'Inspection', 'စစ်ဆေးခြင်း'),
+                ('งานบรรจุ', 'Packaging', 'ထုပ်ပိုးခြင်း'),
+                ('งานขนส่ง', 'Transportation', 'ပို့ဆောင်ခြင်း')");
+            
+            // Seed position_master
+            $conn->query("INSERT INTO position_master (position_name_th, position_name_en, position_name_my) VALUES 
+                ('ผู้จัดการ', 'Manager', 'မန်နေဂျာ'),
+                ('หัวหน้างาน', 'Supervisor', 'ကြီးကြပ်ရေးမှူး'),
+                ('พนักงานทั่วไป', 'General Worker', 'အလုပ်သမား'),
+                ('พนักงานคุณภาพ', 'QC Staff', 'အရည်အသွေးဝန်ထမ်း'),
+                ('ช่างเทคนิค', 'Technician', 'နည်းပညာရှင်'),
+                ('เจ้าหน้าที่ธุรการ', 'Admin Staff', 'အုပ်ချုပ်ရေးဝန်ထမ်း'),
+                ('พนักงานบัญชี', 'Accountant', 'စာရင်းကိုင်'),
+                ('พนักงานคลังสินค้า', 'Warehouse Staff', 'သိုလှောင်ရုံဝန်ထမ်း')");
+            
+            // Seed position_level_master
+            $conn->query("INSERT INTO position_level_master (level_name_th, level_name_en, level_name_my) VALUES 
+                ('ระดับ 1', 'Level 1', 'အဆင့် ၁'),
+                ('ระดับ 2', 'Level 2', 'အဆင့် ၂'),
+                ('ระดับ 3', 'Level 3', 'အဆင့် ၃'),
+                ('ระดับ 4', 'Level 4', 'အဆင့် ၄'),
+                ('ระดับ 5', 'Level 5', 'အဆင့် ၅')");
+            
+            // Seed labour_cost_master
+            $conn->query("INSERT INTO labour_cost_master (cost_name_th, cost_name_en, cost_name_my) VALUES 
+                ('ค่าแรงตรง', 'Direct Labor', 'တိုက်ရိုက်အလုပ်သမား'),
+                ('ค่าแรงอ้อม', 'Indirect Labor', 'သွယ်ဝိုက်အလုပ်သမား'),
+                ('ค่าแรงชั่วคราว', 'Temporary Labor', 'ယာယီအလုပ်သမား')");
+            
+            // Seed hiring_type_master
+            $conn->query("INSERT INTO hiring_type_master (type_name_th, type_name_en, type_name_my) VALUES 
+                ('พนักงานประจำ', 'Permanent', 'အမြဲတမ်း'),
+                ('พนักงานสัญญาจ้าง', 'Contract', 'စာချုပ်စနစ်'),
+                ('พนักงานรายวัน', 'Daily', 'နေ့စား'),
+                ('พนักงานชั่วคราว', 'Temporary', 'ယာယီ'),
+                ('พนักงานทดลองงาน', 'Probation', 'စမ်းသပ်ကာလ')");
+            
+            // Seed customer_zone_master
+            $conn->query("INSERT INTO customer_zone_master (zone_name_th, zone_name_en, zone_name_my) VALUES 
+                ('โซน A', 'Zone A', 'ဇုန် A'),
+                ('โซน B', 'Zone B', 'ဇုန် B'),
+                ('โซน C', 'Zone C', 'ဇုန် C'),
+                ('โซน D', 'Zone D', 'ဇုန် D'),
+                ('โซนทั่วไป', 'General Zone', 'ယေဘူယျဇုန်')");
+            
+            // Seed contribution_level_master
+            $conn->query("INSERT INTO contribution_level_master (level_name_th, level_name_en, level_name_my) VALUES 
+                ('ระดับสูง', 'High', 'မြင့်'),
+                ('ระดับกลาง', 'Medium', 'အလယ်အလတ်'),
+                ('ระดับต่ำ', 'Low', 'နိမ့်'),
+                ('ยังไม่ประเมิน', 'Not Evaluated', 'မသုံးသပ်ရသေး')");
+            
+            // Seed termination_reason_master
+            $conn->query("INSERT INTO termination_reason_master (reason_th, reason_en, reason_my) VALUES 
+                ('ลาออกเอง', 'Voluntary Resignation', 'ကိုယ်တိုင်နုတ်ထွက်'),
+                ('หมดสัญญา', 'Contract Ended', 'စာချုပ်ကုန်ဆုံး'),
+                ('ถูกไล่ออก', 'Termination', 'ထုတ်ပယ်'),
+                ('เกษียณอายุ', 'Retirement', 'အငြိမ်းစား'),
+                ('ย้ายงาน', 'Job Transfer', 'အလုပ်ပြောင်း')");
+            
+            // Seed service_category_master
+            $conn->query("INSERT INTO service_category_master (category_name_th, category_name_en, category_name_my) VALUES 
+                ('ใบลา', 'Leave Document', 'ခွင့်စာရွက်'),
+                ('เอกสารสแกนนิ้วไม่ติด', 'Fingerprint Issue', 'လက်ဗွေပြဿနာ'),
+                ('เอกสารบัญชีธนาคาร', 'Bank Document', 'ဘဏ်စာရွက်'),
+                ('ใบขออนุญาตออกนอกบริเวรบริษัท', 'Exit Permission', 'ထွက်ခွင့်လျှောက်လွှာ'),
+                ('หนังสือรับรอง', 'Certificate', 'အသိအမှတ်ပြုလက်မှတ်'),
+                ('เอกสารทั่วไป', 'General Document', 'ယေဘုယျစာရွက်')");
+            
+            // Seed service_type_master
+            $conn->query("INSERT INTO service_type_master (type_name_th, type_name_en, type_name_my) VALUES 
+                ('รายบุคคล', 'Individual', 'တစ်ဦးချင်း'),
+                ('รายกลุ่ม', 'Group', 'အုပ်စု')");
+            
+            // Seed doc_type_master
+            $conn->query("INSERT INTO doc_type_master (type_name_th, type_name_en, type_name_my) VALUES 
+                ('คู่มือพนักงาน', 'Employee Handbook', 'ဝန်ထမ်းလမ်းညွှန်'),
+                ('ระเบียบบริษัท', 'Company Regulations', 'ကုမ္ပဏီစည်းမျဉ်း'),
+                ('แบบฟอร์ม', 'Forms', 'ပုံစံ'),
+                ('ประกาศ', 'Announcements', 'ကြေညာချက်'),
+                ('เอกสารอื่นๆ', 'Other Documents', 'အခြားစာရွက်များ')");
+            
+            // Seed sample employees
+            $password_hash = password_hash('password123', PASSWORD_DEFAULT);
+            
+            // Calculate age and years for seed data
+            $employees_data = [
+                ['ADM001', 1, 'สมชาย ใจดี', 'Somchai Jaidee', 5, 4, 4, 1, 3, 1, 5, 2, 1, 5, 1, 1, 1, '1985-05-15', 6, '081-234-5678', 'อุดรธานี', '2020-01-01', 1, 'admin', 1],
+                ['OFC001', 2, 'สมหญิง รักงาน', 'Somying Rakngaan', 5, 4, 4, 1, 3, 6, 3, 2, 1, 5, 2, 2, 1, '1990-08-20', 6, '082-345-6789', 'อุดรธานี', '2021-03-15', 1, 'officer', 2],
+                ['EMP001', 1, 'สมศักดิ์ ขยัน', 'Somsak Kayan', 1, 1, 1, 1, 1, 3, 2, 1, 1, 1, 2, 1, 1, '1995-12-10', 4, '083-456-7890', 'อุดรธานี', '2022-06-01', 1, 'emp001', 3],
+                ['EMP002', 3, 'สมหมาย ดีงาม', 'Sommai Deengaam', 1, 1, 1, 2, 2, 3, 2, 1, 1, 1, 2, 2, 1, '1992-03-25', 3, '084-567-8901', 'อุดรธานี', '2022-07-15', 1, 'emp002', 3],
+                ['EMP003', 1, 'มานะ ทำงาน', 'Mana Tamngaan', 1, 1, 1, 3, 4, 3, 1, 1, 1, 2, 3, 1, 2, '1998-11-05', 3, '085-678-9012', 'อุดรธานี', '2023-01-10', 1, 'emp003', 3],
+                ['EMP004', 2, 'มาลี สวยงาม', 'Malee Suayngaam', 2, 3, 3, 4, 3, 4, 2, 1, 1, 2, 2, 2, 1, '1993-07-18', 5, '086-789-0123', 'อุดรธานี', '2022-09-01', 1, 'emp004', 3],
+                ['EMP005', 1, 'วิชัย ฉลาด', 'Wichai Chalat', 8, 5, 5, 5, 3, 5, 3, 2, 1, 3, 1, 1, 1, '1988-09-30', 6, '087-890-1234', 'อุดรธานี', '2021-11-20', 1, 'emp005', 3]
+            ];
+            
+            foreach ($employees_data as $emp) {
+                // Calculate age
+                $birthday = new DateTime($emp[17]);
+                $now = new DateTime();
+                $age = $now->diff($birthday)->y;
+                
+                // Calculate years of service
+                $hire_date = new DateTime($emp[21]);
+                $years_service = $now->diff($hire_date)->y;
+                
+                $stmt = $conn->prepare("INSERT INTO employees 
+                    (employee_id, prefix_id, full_name_th, full_name_en, function_id, division_id, department_id, 
+                    section_id, operation_id, position_id, position_level_id, labour_cost_id, hiring_type_id, 
+                    customer_zone_id, contribution_level_id, sex_id, nationality_id, birthday, age, education_level_id, 
+                    phone_no, address_province, date_of_hire, year_of_service, status_id, username, password, role_id) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                
+                $stmt->bind_param("sissiiiiiiiiiiiississssiissi",
+                    $emp[0], $emp[1], $emp[2], $emp[3], $emp[4], $emp[5], $emp[6], $emp[7], $emp[8], $emp[9],
+                    $emp[10], $emp[11], $emp[12], $emp[13], $emp[14], $emp[15], $emp[16], $emp[17], $age,
+                    $emp[18], $emp[19], $emp[20], $emp[21], $years_service, $emp[22], $emp[23], $password_hash, $emp[24]
+                );
+                $stmt->execute();
+                $stmt->close();
+            }
+            
+            // Seed company info
+            $conn->query("INSERT INTO company_info (company_name_th, company_name_en, phone, fax, address, representative_name) VALUES 
+                ('บริษัท แทร็กซ์ อินเตอร์เทรด จำกัด', 'Trax intertrade co., ltd.', '043-507-089-92', '043-507-091', '61 หมู่ 5 ถนนร้อยเอ็ด-กาฬสินธุ์ ต.จังหาร อ.จังหาร จ.ร้อยเอ็ด 45000', 'นายธีรภัทร์  เสมแก้ว')");
+            
+            // Seed localization (sample keys)
+            $conn->query("INSERT INTO localization_master (key_id, th_text, en_text, my_text, category) VALUES 
+                ('app_title', 'ระบบบริการทรัพยากรบุคคล', 'HR Service System', 'လူ့စွမ်းအားဝန်ဆောင်မှုစနစ်', 'general'),
+                ('login', 'เข้าสู่ระบบ', 'Login', 'ဝင်ရောက်ရန်', 'auth'),
+                ('logout', 'ออกจากระบบ', 'Logout', 'ထွက်ရန်', 'auth'),
+                ('username', 'ชื่อผู้ใช้', 'Username', 'အသုံးပြုသူအမည်', 'auth'),
+                ('password', 'รหัสผ่าน', 'Password', 'စကားဝှက်', 'auth'),
+                ('dashboard', 'หน้าหลัก', 'Dashboard', 'ပင်မစာမျက်နှာ', 'menu'),
+                ('employees', 'พนักงาน', 'Employees', 'ဝန်ထမ်းများ', 'menu'),
+                ('requests', 'คำขอ', 'Requests', 'တောင်းဆိုချက်များ', 'menu'),
+                ('settings', 'ตั้งค่า', 'Settings', 'ဆက်တင်များ', 'menu'),
+                ('save', 'บันทึก', 'Save', 'သိမ်းရန်', 'action'),
+                ('cancel', 'ยกเลิก', 'Cancel', 'ပယ်ဖျက်ရန်', 'action'),
+                ('edit', 'แก้ไข', 'Edit', 'ပြင်ဆင်ရန်', 'action'),
+                ('delete', 'ลบ', 'Delete', 'ဖျက်ရန်', 'action'),
+                ('submit', 'ส่ง', 'Submit', 'တင်သွင်းရန်', 'action'),
+                ('approve', 'อนุมัติ', 'Approve', 'အတည်ပြုရန်', 'action'),
+                ('reject', 'ปฏิเสธ', 'Reject', 'ငြင်းပယ်ရန်', 'action')");
+            
+            // Seed sample lockers
+            $conn->query("INSERT INTO locker_master (locker_number, locker_location, status) VALUES 
+                ('L001', 'ชั้น 1 - โซน A', 'Available'),
+                ('L002', 'ชั้น 1 - โซน A', 'Available'),
+                ('L003', 'ชั้น 1 - โซน B', 'Available'),
+                ('L004', 'ชั้น 1 - โซน B', 'Available'),
+                ('L005', 'ชั้น 2 - โซน A', 'Available'),
+                ('L006', 'ชั้น 2 - โซน A', 'Available'),
+                ('L007', 'ชั้น 2 - โซน B', 'Available'),
+                ('L008', 'ชั้น 2 - โซน B', 'Available'),
+                ('L009', 'ชั้น 3 - โซน A', 'Maintenance'),
+                ('L010', 'ชั้น 3 - โซน A', 'Available')");
             
             $conn->commit();
             $conn->close();
@@ -244,325 +454,6 @@ class DatabaseManager {
             $conn->close();
             return ['success' => false, 'message' => 'Error seeding data: ' . $e->getMessage()];
         }
-    }
-    
-    // ===== SEED FUNCTIONS =====
-    
-    private static function seedRoles($conn) {
-        $sql = "INSERT INTO roles (role_name, role_name_th, role_name_en, role_name_my) VALUES 
-            ('admin', 'ผู้ดูแลระบบ', 'Administrator', 'စီမံခန့်ခွဲသူ'),
-            ('officer', 'เจ้าหน้าที่', 'Officer', 'အရာရှိ'),
-            ('employee', 'พนักงาน', 'Employee', 'ဝန်ထမ်း')";
-        if (!$conn->query($sql)) throw new Exception("Roles: " . $conn->error);
-    }
-    
-    private static function seedPrefixes($conn) {
-        $sql = "INSERT INTO prefix_master (prefix_th, prefix_en, prefix_my) VALUES 
-            ('นาย', 'Mr.', 'မစ္စတာ'),
-            ('นาง', 'Mrs.', 'မစ္စစ်'),
-            ('นางสาว', 'Miss', 'မမ')";
-        if (!$conn->query($sql)) throw new Exception("Prefixes: " . $conn->error);
-    }
-    
-    private static function seedSex($conn) {
-        $sql = "INSERT INTO sex_master (sex_name_th, sex_name_en, sex_name_my) VALUES 
-            ('ชาย', 'Male', 'ကျား'),
-            ('หญิง', 'Female', 'မ'),
-            ('ไม่ระบุ', 'Not Specified', 'သတ်မှတ်မထား')";
-        if (!$conn->query($sql)) throw new Exception("Sex: " . $conn->error);
-    }
-    
-    private static function seedNationality($conn) {
-        $sql = "INSERT INTO nationality_master (nationality_th, nationality_en, nationality_my) VALUES 
-            ('ไทย', 'Thai', 'ထိုင်း'),
-            ('พม่า', 'Myanmar', 'မြန်မာ'),
-            ('อื่นๆ', 'Others', 'အခြား')";
-        if (!$conn->query($sql)) throw new Exception("Nationality: " . $conn->error);
-    }
-    
-    private static function seedEducationLevel($conn) {
-        $sql = "INSERT INTO education_level_master (level_name_th, level_name_en, level_name_my) VALUES 
-            ('ประถมศึกษา', 'Primary School', 'မူလတန်း'),
-            ('มัธยมศึกษาตอนต้น', 'Lower Secondary', 'အလယ်တန်းအောက်'),
-            ('มัธยมศึกษาตอนปลาย', 'Upper Secondary', 'အထက်တန်း'),
-            ('ปวช.', 'Vocational Certificate', 'အသက်မွေးပညာ'),
-            ('ปวส.', 'High Vocational Certificate', 'အဆင့်မြင့်အသက်မွေးပညာ'),
-            ('ปริญญาตรี', 'Bachelor Degree', 'ဘွဲ့ရ'),
-            ('ปริญญาโท', 'Master Degree', 'မဟာဘွဲ့'),
-            ('ปริญญาเอก', 'Doctoral Degree', 'ပါရဂူဘွဲ့')";
-        if (!$conn->query($sql)) throw new Exception("Education: " . $conn->error);
-    }
-    
-    private static function seedStatus($conn) {
-        $sql = "INSERT INTO status_master (status_name_th, status_name_en, status_name_my) VALUES 
-            ('ทำงานอยู่', 'Active', 'အလုပ်လုပ်နေ'),
-            ('ลาออก', 'Resigned', 'နုတ်ထွက်'),
-            ('เกษียณ', 'Retired', 'အငြိမ်းစား'),
-            ('ถูกไล่ออก', 'Terminated', 'ထုတ်ပယ်'),
-            ('พักงาน', 'On Leave', 'ခွင့်ယူ')";
-        if (!$conn->query($sql)) throw new Exception("Status: " . $conn->error);
-    }
-    
-    private static function seedFunctions($conn) {
-        $sql = "INSERT INTO function_master (function_name_th, function_name_en, function_name_my) VALUES 
-            ('Financial', 'Financial', 'ငွေကြေးဆိုင်ရာ'),
-            ('Human Resource', 'Human Resource', 'လူ့စွမ်းအား'),
-            ('Marketing', 'Marketing', 'စျေးကွက်လုပ်ငန်း'),
-            ('Operation', 'Operation', 'လုပ်ငန်းဆောင်ရွက်မှု')";
-        if (!$conn->query($sql)) throw new Exception("Functions: " . $conn->error);
-    }
-    
-    private static function seedDivisions($conn) {
-        $sql = "INSERT INTO division_master (division_name_th, division_name_en, division_name_my) VALUES 
-            ('Finance & Accounting', 'Finance & Accounting', 'ငွေကြေးနှင့်စာရင်းကိုင်'),
-            ('Human Resource', 'Human Resource', 'လူ့စွမ်းအား'),
-            ('Marketing', 'Marketing', 'စျေးကွက်လုပ်ငန်း'),
-            ('Merchandising', 'Merchandising', 'ကုန်ပစ္စည်းချွန်းကျင်း'),
-            ('Business Process Improvement', 'Business Process Improvement', 'စီးပွားရေးလုပ်ငန်းစဉ်ကိုတိုးတက်စေခြင်း'),
-            ('Information Technology', 'Information Technology', 'သတင်းအချက်အလက်နည်းပညာ'),
-            ('Production', 'Production', 'ထုတ်လုပ်ရေး'),
-            ('Quality Assurance', 'Quality Assurance', 'အရည်အသွေးသုံးသပ်ချက်')";
-        if (!$conn->query($sql)) throw new Exception("Divisions: " . $conn->error);
-    }
-    
-    private static function seedDepartments($conn) {
-        $departments = [
-            'Accounting', 'HR Business Partner', 'HR People Development',
-            'HR Shared Service', 'HR Talent Acquisition', 'Human Resource',
-            'Merchandising', 'Procurement', 'Business Process Improvement',
-            'Infrastructure', 'Production', 'Quality Assurance'
-        ];
-        
-        $values = [];
-        foreach ($departments as $dept) {
-            $esc = $conn->real_escape_string($dept);
-            $values[] = "('$esc', '$esc', '$esc')";
-        }
-        $sql = "INSERT INTO department_master (department_name_th, department_name_en, department_name_my) VALUES " . implode(',', $values);
-        if (!$conn->query($sql)) throw new Exception("Departments: " . $conn->error);
-    }
-    
-    private static function seedSections($conn) {
-        $sections = [
-            'Accounting', 'Cost Accounting', 'General Accounting',
-            'HR Business Partner', 'People Development', 'Compliance',
-            'HR Shared Service', 'Total Reward', 'Talent Acquisition',
-            'Human Resource', 'Merchandising', 'Procurement',
-            'Automation', 'Infrastructure', 'Production', 'Quality Control'
-        ];
-        
-        $values = [];
-        foreach ($sections as $sect) {
-            $esc = $conn->real_escape_string($sect);
-            $values[] = "('$esc', '$esc', '$esc')";
-        }
-        $sql = "INSERT INTO section_master (section_name_th, section_name_en, section_name_my) VALUES " . implode(',', $values);
-        if (!$conn->query($sql)) throw new Exception("Sections: " . $conn->error);
-    }
-    
-    private static function seedOperations($conn) {
-        $operations = [
-            'Accounting', 'Purchasing', 'HR Business Partner', 'People Development',
-            'Administration', 'Payroll', 'Talent Acquisition', 'Merchandising',
-            'Procurement', 'Automation', 'Infrastructure', 'Production',
-            'Quality Assurance', 'Maintenance', 'Planning'
-        ];
-        
-        $values = [];
-        foreach ($operations as $oper) {
-            $esc = $conn->real_escape_string($oper);
-            $values[] = "('$esc', '$esc', '$esc')";
-        }
-        $sql = "INSERT INTO operation_master (operation_name_th, operation_name_en, operation_name_my) VALUES " . implode(',', $values);
-        if (!$conn->query($sql)) throw new Exception("Operations: " . $conn->error);
-    }
-    
-    private static function seedPositions($conn) {
-        // REDUCED positions list for better performance
-        $positions = [
-            'Accounting Manager', 'HR Manager', 'Officer', 'Supervisor',
-            'Leader', 'Worker', 'Technician', 'Engineer',
-            'Clerk', 'Driver', 'Coordinator', 'Specialist'
-        ];
-        
-        $values = [];
-        foreach ($positions as $pos) {
-            $esc = $conn->real_escape_string($pos);
-            $values[] = "('$esc', '$esc', '$esc')";
-        }
-        $sql = "INSERT INTO position_master (position_name_th, position_name_en, position_name_my) VALUES " . implode(',', $values);
-        if (!$conn->query($sql)) throw new Exception("Positions: " . $conn->error);
-    }
-    
-    private static function seedPositionLevels($conn) {
-        $sql = "INSERT INTO position_level_master (level_name_th, level_name_en, level_name_my) VALUES 
-            ('Worker', 'Worker', 'အလုပ်သမား'),
-            ('Officer', 'Officer', 'အရာရှိ'),
-            ('Leader', 'Leader', 'ခေါ်ဆိုသူ'),
-            ('Supervisor', 'Supervisor', 'ကြီးကြပ်သူ'),
-            ('Manager', 'Manager', 'မန်နေဂျာ'),
-            ('Director', 'Director', 'ညွှန်ကြားရန်အရှင်')";
-        if (!$conn->query($sql)) throw new Exception("Position Levels: " . $conn->error);
-    }
-    
-    private static function seedLabourCost($conn) {
-        $sql = "INSERT INTO labour_cost_master (cost_name_th, cost_name_en, cost_name_my) VALUES 
-            ('Direct', 'Direct', 'တိုက်ရိုက်'),
-            ('Indirect', 'Indirect', 'သွယ်ဝိုက်'),
-            ('Support', 'Support', 'ကူညီ'),
-            ('Decoration', 'Decoration', 'အလှတရ')";
-        if (!$conn->query($sql)) throw new Exception("Labour Cost: " . $conn->error);
-    }
-    
-    private static function seedHiringTypes($conn) {
-        $sql = "INSERT INTO hiring_type_master (type_name_th, type_name_en, type_name_my) VALUES 
-            ('Daily', 'Daily', 'နေ့စား'),
-            ('Monthly', 'Monthly', 'လစာ')";
-        if (!$conn->query($sql)) throw new Exception("Hiring Types: " . $conn->error);
-    }
-    
-    private static function seedCustomerZones($conn) {
-        $sql = "INSERT INTO customer_zone_master (zone_name_th, zone_name_en, zone_name_my) VALUES 
-            ('Zone 1', 'Zone 1', 'ဇုန် ၁'),
-            ('Zone 2', 'Zone 2', 'ဇုန် ၂'),
-            ('Zone 3', 'Zone 3', 'ဇုန် ၃'),
-            ('Zone 4', 'Zone 4', 'ဇုန် ၄')";
-        if (!$conn->query($sql)) throw new Exception("Customer Zones: " . $conn->error);
-    }
-    
-    private static function seedContributionLevels($conn) {
-        $sql = "INSERT INTO contribution_level_master (level_name_th, level_name_en, level_name_my) VALUES 
-            ('C1', 'C1', 'C1'),
-            ('C2', 'C2', 'C2'),
-            ('C3', 'C3', 'C3'),
-            ('C4', 'C4', 'C4')";
-        if (!$conn->query($sql)) throw new Exception("Contribution Levels: " . $conn->error);
-    }
-    
-    private static function seedTerminationReasons($conn) {
-        $sql = "INSERT INTO termination_reason_master (reason_th, reason_en, reason_my) VALUES 
-            ('ลาออกเอง', 'Voluntary Resignation', 'ကိုယ်တိုင်နုတ်ထွက်'),
-            ('หมดสัญญา', 'Contract Ended', 'စာချုပ်ကုန်ဆုံး'),
-            ('ถูกไล่ออก', 'Termination', 'ထုတ်ပယ်'),
-            ('เกษียณอายุ', 'Retirement', 'အငြိမ်းစား'),
-            ('ย้ายงาน', 'Job Transfer', 'အလုပ်ပြောင်း')";
-        if (!$conn->query($sql)) throw new Exception("Termination Reasons: " . $conn->error);
-    }
-    
-    private static function seedServiceCategories($conn) {
-        $sql = "INSERT INTO service_category_master (category_name_th, category_name_en, category_name_my) VALUES 
-            ('ใบลา', 'Leave Form', 'ခွင့်စာရွက်'),
-            ('เอกสารสแกนนิ้ว', 'Finger Scan', 'လက်ဗွေစကင်း'),
-            ('เอกสารบัญชีธนาคาร', 'Bank Account', 'ဘဏ်အကောင့်'),
-            ('เอกสารบัตรประชาชน', 'ID Card', 'အသိအမှတ်ပြုလက်မှတ်'),
-            ('หนังสือรับรอง', 'Certificate', 'အသိအမှတ်ပြုလက်မှတ်')";
-        if (!$conn->query($sql)) throw new Exception("Service Categories: " . $conn->error);
-    }
-    
-    private static function seedServiceTypes($conn) {
-        $sql = "INSERT INTO service_type_master (type_name_th, type_name_en, type_name_my) VALUES 
-            ('รายบุคคล', 'Individual', 'တစ်ဦးချင်း'),
-            ('รายกลุ่ม', 'Group', 'အုပ်စု')";
-        if (!$conn->query($sql)) throw new Exception("Service Types: " . $conn->error);
-    }
-    
-    private static function seedDocTypes($conn) {
-        $sql = "INSERT INTO doc_type_master (type_name_th, type_name_en, type_name_my) VALUES 
-            ('คู่มือพนักงาน', 'Employee Handbook', 'ဝန်ထမ်းလမ်းညွှန်'),
-            ('ระเบียบบริษัท', 'Company Regulations', 'ကုမ္ပဏီစည်းမျဉ်း'),
-            ('แบบฟอร์ม', 'Forms', 'ပုံစံ'),
-            ('ประกาศ', 'Announcements', 'ကြေညာချက်'),
-            ('เอกสารอื่นๆ', 'Other Documents', 'အခြားစာရွက်များ')";
-        if (!$conn->query($sql)) throw new Exception("Doc Types: " . $conn->error);
-    }
-    
-    private static function seedCertificateTypes($conn) {
-        $stmt = $conn->prepare("INSERT INTO certificate_types (type_name_th, type_name_en, type_name_my, template_content) VALUES (?, ?, ?, ?)");
-        
-        $types = [
-            [
-                'หนังสือรับรองการทำงาน',
-                'Employment Certificate',
-                'အလုပ်အကိုင်အတည်ပြုလွှာ',
-                'Template for Employment Certificate'
-            ],
-            [
-                'หนังสือรับรองเงินเดือน',
-                'Salary Certificate',
-                'လစာအတည်ပြုလွှာ',
-                'Template for Salary Certificate'
-            ],
-            [
-                'หนังสือรับรองการเป็นพนักงาน',
-                'Employee Status Certificate',
-                'ဝန်ထမ်းအဆင့်အတည်ပြုလွှာ',
-                'Template for Employee Status Certificate'
-            ]
-        ];
-        
-        foreach ($types as $type) {
-            $stmt->bind_param("ssss", $type[0], $type[1], $type[2], $type[3]);
-            if (!$stmt->execute()) {
-                throw new Exception("Certificate Types: " . $stmt->error);
-            }
-        }
-        $stmt->close();
-    }
-    
-    private static function seedEmployees($conn) {
-        $password_hash = password_hash('password123', PASSWORD_DEFAULT);
-        
-        $employees = [
-            ['90681322', 1, 'Admin User', 'Admin User', 2, 2, 6, 9, 12, 2, 5, 1, 2, 1, 2, 1, 1, '1988-03-15', 6, '089-123-4567', 'Bangkok', '2019-01-15', 1, '90681322', 1],
-            ['90681323', 2, 'Officer User', 'Officer User', 2, 2, 6, 9, 12, 3, 2, 1, 2, 1, 3, 2, 1, '1992-07-20', 6, '089-234-5678', 'Bangkok', '2020-05-01', 1, '90681323', 2],
-            ['90681324', 1, 'Employee User', 'Employee User', 2, 2, 6, 9, 12, 3, 2, 1, 2, 2, 2, 1, 1, '1995-11-10', 6, '089-345-6789', 'Bangkok', '2021-02-01', 1, '90681324', 3]
-        ];
-        
-        $stmt = $conn->prepare("INSERT INTO employees 
-            (employee_id, prefix_id, full_name_th, full_name_en, function_id, division_id, department_id, 
-            section_id, operation_id, position_id, position_level_id, labour_cost_id, hiring_type_id, 
-            customer_zone_id, contribution_level_id, sex_id, nationality_id, birthday, education_level_id, 
-            phone_no, address_province, date_of_hire, status_id, username, password, role_id) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        
-        foreach ($employees as $emp) {
-            $stmt->bind_param("sissiiiiiiiiiiisissiisssi",
-                $emp[0], $emp[1], $emp[2], $emp[3], $emp[4], $emp[5], $emp[6], $emp[7], $emp[8], $emp[9],
-                $emp[10], $emp[11], $emp[12], $emp[13], $emp[14], $emp[15], $emp[16], $emp[17],
-                $emp[18], $emp[19], $emp[20], $emp[21], $emp[22], $emp[23], $password_hash, $emp[24]
-            );
-            if (!$stmt->execute()) {
-                throw new Exception("Employees: " . $stmt->error);
-            }
-        }
-        $stmt->close();
-    }
-    
-    private static function seedCompanyInfo($conn) {
-        $sql = "INSERT INTO company_info (company_name_th, company_name_en, phone, fax, address, representative_name) VALUES 
-            ('บริษัท แทร็กซ์ อินเตอร์เทรด จำกัด', 'Trax Intertrade Co., Ltd.', '043-507-089-92', '043-507-091', 
-            '61 หมู่ 5 ถนนร้อยเอ็ด-กาฬสินธุ์ ต.จังหาร อ.จังหาร จ.ร้อยเอ็ด 45000', 'นายธีรภัทร์ เสมแก้ว')";
-        if (!$conn->query($sql)) throw new Exception("Company Info: " . $conn->error);
-    }
-    
-    private static function seedLocalization($conn) {
-        $sql = "INSERT INTO localization_master (key_id, th_text, en_text, my_text, category) VALUES 
-            ('app_title', 'ระบบบริการทรัพยากรบุคคล', 'HR Service System', 'လူ့စွမ်းအားဝန်ဆောင်မှုစနစ်', 'general'),
-            ('login', 'เข้าสู่ระบบ', 'Login', 'ဝင်ရောက်ရန်', 'auth'),
-            ('logout', 'ออกจากระบบ', 'Logout', 'ထွက်ရန်', 'auth'),
-            ('dashboard', 'หน้าหลัก', 'Dashboard', 'ပင်မစာမျက်နှာ', 'menu'),
-            ('employees', 'พนักงาน', 'Employees', 'ဝန်ထမ်းများ', 'menu')";
-        if (!$conn->query($sql)) throw new Exception("Localization: " . $conn->error);
-    }
-    
-    private static function seedLockers($conn) {
-        $sql = "INSERT INTO locker_master (locker_number, locker_location, status) VALUES 
-            ('L001', 'Floor 1 - Zone A', 'Available'),
-            ('L002', 'Floor 1 - Zone A', 'Available'),
-            ('L003', 'Floor 1 - Zone B', 'Available'),
-            ('L004', 'Floor 2 - Zone A', 'Available'),
-            ('L005', 'Floor 2 - Zone B', 'Available')";
-        if (!$conn->query($sql)) throw new Exception("Lockers: " . $conn->error);
     }
 }
 ?>

@@ -128,7 +128,7 @@ try {
     $conn->close();
     $texts = [
         'th' => ['position' => 'ตำแหน่ง', 'level' => 'ระดับ', 'division' => 'แผนก', 'section' => 'หมวด', 'phone' => 'เบอร์โทร', 'hire_date' => 'วันเริ่มงาน', 'print' => 'พิมพ์บัตร', 'close' => 'ปิด', 'issue_date' => 'วันออกบัตร', 'signature' => 'ลายเซ็นผู้จัดการแผนกบุคคล', 'valid' => 'บัตรประจำตัวพนักงาน', 'emp_id' => 'รหัสพนักงาน'],
-        'en' => ['position' => 'Position', 'level' => 'Level', 'division' => 'Department', 'section' => 'Section', 'phone' => 'Phone', 'hire_date' => 'Start Date', 'print' => 'Print Card', 'close' => 'Close', 'issue_date' => 'Issue Date', 'signature' => 'HR Manager Signature', 'valid' => 'Employee ID Card', 'emp_id' => 'Employee ID'],
+        'en' => ['position' => 'Position', 'level' => 'Level', 'division' => 'Dept.', 'section' => 'Section', 'phone' => 'Phone', 'hire_date' => 'Start Date', 'print' => 'Print Card', 'close' => 'Close', 'issue_date' => 'Issue Date', 'signature' => 'HR Manager Signature', 'valid' => 'Employee ID Card', 'emp_id' => 'Employee ID'],
         'my' => ['position' => 'ရာထူး', 'level' => 'အဆင့်', 'division' => 'ဌာန', 'section' => 'ဘာဂ်', 'phone' => 'ဖုန်း', 'hire_date' => 'စတင်ရက်', 'print' => 'ပုံနှိပ်ကဒ်', 'close' => 'ပိတ်ရန်', 'issue_date' => 'ထုတ်ပြန်ချက်', 'signature' => 'HR Manager လက်မှတ်', 'valid' => 'အလုပ်သမား ID ကဒ်', 'emp_id' => 'ဝန်ထမ်း ID']
     ];
     $t = $texts[$lang] ?? $texts['en'];

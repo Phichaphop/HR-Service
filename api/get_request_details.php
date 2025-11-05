@@ -65,8 +65,8 @@ try {
                         cr.*,
                         e.full_name_th,
                         e.full_name_en,
-                        e.prefix_th,
-                        e.prefix_en,
+                        pfm.prefix_th,
+                        pfm.prefix_en,
                         e.phone_no,
                         e.profile_pic_path,
                         pm.position_name_th,
@@ -88,6 +88,7 @@ try {
                     LEFT JOIN department_master dept ON e.department_id = dept.department_id
                     LEFT JOIN section_master sm ON e.section_id = sm.section_id
                     LEFT JOIN certificate_types ct ON cr.cert_type_id = ct.cert_type_id
+                    LEFT JOIN prefix_master pfm ON e.prefix_id = pfm.prefix_id
                     WHERE cr.$id_column = ? AND cr.employee_id = ?";
             break;
             
@@ -96,8 +97,8 @@ try {
                         lr.*,
                         e.full_name_th,
                         e.full_name_en,
-                        e.prefix_th,
-                        e.prefix_en,
+                        pfm.prefix_th,
+                        pfm.prefix_en,
                         e.phone_no,
                         e.profile_pic_path,
                         pm.position_name_th,
@@ -114,6 +115,7 @@ try {
                     LEFT JOIN division_master dm ON e.division_id = dm.division_id
                     LEFT JOIN department_master dept ON e.department_id = dept.department_id
                     LEFT JOIN section_master sm ON e.section_id = sm.section_id
+                    LEFT JOIN prefix_master pfm ON e.prefix_id = pfm.prefix_id
                     WHERE lr.$id_column = ? AND lr.employee_id = ?";
             break;
             
@@ -123,8 +125,8 @@ try {
                         icr.*,
                         e.full_name_th,
                         e.full_name_en,
-                        e.prefix_th,
-                        e.prefix_en,
+                        pfm.prefix_th,
+                        pfm.prefix_en,
                         e.phone_no,
                         e.profile_pic_path,
                         pm.position_name_th,
@@ -135,7 +137,7 @@ try {
                         dept.department_name_en,
                         sm.section_name_th,
                         sm.section_name_en,
-                        c.company_name,
+                        c.company_name_th,
                         c.company_logo_path
                     FROM id_card_requests icr
                     LEFT JOIN employees e ON icr.employee_id = e.employee_id
@@ -144,6 +146,7 @@ try {
                     LEFT JOIN department_master dept ON e.department_id = dept.department_id
                     LEFT JOIN section_master sm ON e.section_id = sm.section_id
                     LEFT JOIN company_info c ON c.company_id = 1
+                    LEFT JOIN prefix_master pfm ON e.prefix_id = pfm.prefix_id
                     WHERE icr.$id_column = ? AND icr.employee_id = ?";
             break;
             
@@ -152,8 +155,8 @@ try {
                         sbr.*,
                         e.full_name_th,
                         e.full_name_en,
-                        e.prefix_th,
-                        e.prefix_en,
+                        pfm.prefix_th,
+                        pfm.prefix_en,
                         e.phone_no,
                         e.profile_pic_path,
                         pm.position_name_th,
@@ -170,6 +173,7 @@ try {
                     LEFT JOIN division_master dm ON e.division_id = dm.division_id
                     LEFT JOIN department_master dept ON e.department_id = dept.department_id
                     LEFT JOIN section_master sm ON e.section_id = sm.section_id
+                    LEFT JOIN prefix_master pfm ON e.prefix_id = pfm.prefix_id
                     WHERE sbr.$id_column = ? AND sbr.employee_id = ?";
             break;
             
@@ -178,8 +182,8 @@ try {
                         lr.*,
                         e.full_name_th,
                         e.full_name_en,
-                        e.prefix_th,
-                        e.prefix_en,
+                        pfm.prefix_th,
+                        pfm.prefix_en,
                         e.phone_no,
                         e.profile_pic_path,
                         pm.position_name_th,
@@ -196,6 +200,7 @@ try {
                     LEFT JOIN division_master dm ON e.division_id = dm.division_id
                     LEFT JOIN department_master dept ON e.department_id = dept.department_id
                     LEFT JOIN section_master sm ON e.section_id = sm.section_id
+                    LEFT JOIN prefix_master pfm ON e.prefix_id = pfm.prefix_id
                     WHERE lr.$id_column = ? AND lr.employee_id = ?";
             break;
             
@@ -204,8 +209,8 @@ try {
                         sr.*,
                         e.full_name_th,
                         e.full_name_en,
-                        e.prefix_th,
-                        e.prefix_en,
+                        pfm.prefix_th,
+                        pfm.prefix_en,
                         e.phone_no,
                         e.profile_pic_path,
                         pm.position_name_th,
@@ -222,6 +227,7 @@ try {
                     LEFT JOIN division_master dm ON e.division_id = dm.division_id
                     LEFT JOIN department_master dept ON e.department_id = dept.department_id
                     LEFT JOIN section_master sm ON e.section_id = sm.section_id
+                    LEFT JOIN prefix_master pfm ON e.prefix_id = pfm.prefix_id
                     WHERE sr.$id_column = ? AND sr.employee_id = ?";
             break;
             
@@ -230,8 +236,8 @@ try {
                         str.*,
                         e.full_name_th,
                         e.full_name_en,
-                        e.prefix_th,
-                        e.prefix_en,
+                        pfm.prefix_th,
+                        pfm.prefix_en,
                         e.phone_no,
                         e.profile_pic_path,
                         pm.position_name_th,
@@ -248,6 +254,7 @@ try {
                     LEFT JOIN division_master dm ON e.division_id = dm.division_id
                     LEFT JOIN department_master dept ON e.department_id = dept.department_id
                     LEFT JOIN section_master sm ON e.section_id = sm.section_id
+                    LEFT JOIN prefix_master pfm ON e.prefix_id = pfm.prefix_id
                     WHERE str.$id_column = ? AND str.employee_id = ?";
             break;
             
@@ -256,8 +263,8 @@ try {
                         ds.*,
                         e.full_name_th,
                         e.full_name_en,
-                        e.prefix_th,
-                        e.prefix_en,
+                        pfm.prefix_th,
+                        pfm.prefix_en,
                         e.phone_no,
                         e.profile_pic_path,
                         pm.position_name_th,
@@ -282,6 +289,7 @@ try {
                     LEFT JOIN section_master sm ON e.section_id = sm.section_id
                     LEFT JOIN service_category_master scm ON ds.service_category_id = scm.category_id
                     LEFT JOIN service_type_master stm ON ds.service_type_id = stm.type_id
+                    LEFT JOIN prefix_master pfm ON e.prefix_id = pfm.prefix_id
                     WHERE ds.$id_column = ? AND ds.employee_id = ?";
             break;
             
