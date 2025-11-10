@@ -1,31 +1,23 @@
 <?php
-
 /**
- * Request Certificate Form - FIXED VERSION
- * ✅ FIX: Corrected bind_param - removed duplicate binding
- * ✅ FIX: Added hiring_type_id to database query
- * ✅ FIX: Proper INSERT with all employee data
+ * Request Certificate Form - UPDATED VERSION
+ * ✅ FIX: Added redirect to my_requests.php after successful submission
+ * ✅ UPDATE: Standardized Layout Structure (Matches all request forms)
  */
-
 require_once __DIR__ . '/../../config/db_config.php';
 require_once __DIR__ . '/../../controllers/AuthController.php';
 require_once __DIR__ . '/../../db/Localization.php';
-
 AuthController::requireAuth();
-
 // Get current settings from session
 $current_lang = $_SESSION['language'] ?? 'th';
 $theme_mode = $_SESSION['theme_mode'] ?? 'light';
 $is_dark = ($theme_mode === 'dark');
 $user_id = $_SESSION['user_id'];
-
 // Theme colors based on dark mode
 $card_bg = $is_dark ? 'bg-gray-800' : 'bg-white';
 $text_class = $is_dark ? 'text-white' : 'text-gray-900';
-$bg_class = $is_dark ? 'bg-gray-900' : 'bg-gray-50';
 $border_class = $is_dark ? 'border-gray-700' : 'border-gray-200';
 $input_class = $is_dark ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500';
-
 // Multi-language translations
 $translations = [
     'th' => [
@@ -107,13 +99,10 @@ $translations = [
         'section' => 'အပိုင်းခွဲ',
     ]
 ];
-
 // Get current language strings
 $t = $translations[$current_lang] ?? $translations['th'];
 ensure_session_started();
-
 $conn = getDbConnection();
-
 // ✅ FIXED: Added hiring_type_id to SELECT
 $emp_sql = "SELECT e.*, 
  COALESCE(p.position_name_" . ($current_lang === 'en' ? 'en' : 'th') . ", p.position_name_th) as position_name,
@@ -130,13 +119,11 @@ $emp_sql = "SELECT e.*,
  LEFT JOIN section_master sec ON e.section_id = sec.section_id
  LEFT JOIN hiring_type_master ht ON e.hiring_type_id = ht.hiring_type_id
  WHERE e.employee_id = ?";
-
 $emp_stmt = $conn->prepare($emp_sql);
 $emp_stmt->bind_param("s", $user_id);
 $emp_stmt->execute();
 $employee = $emp_stmt->get_result()->fetch_assoc();
 $emp_stmt->close();
-
 // Get active certificate types with multi-language support
 $cert_types = [];
 $types_sql = "SELECT cert_type_id, 
@@ -149,15 +136,12 @@ $types_result = $conn->query($types_sql);
 while ($row = $types_result->fetch_assoc()) {
     $cert_types[] = $row;
 }
-
-// ✅ FIXED: Removed duplicate bind_param and corrected the logic
+// ✅ UPDATED: Redirect after successful submission
 $error = '';
 $success = '';
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $cert_type_id = $_POST['cert_type_id'] ?? '';
     $purpose = $_POST['purpose'] ?? '';
-
     if (empty($cert_type_id)) {
         $error = $t['please_select_type'];
     } else {
@@ -169,12 +153,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $hiring_type = $current_lang === 'en'
             ? ($employee['type_name_en'] ?? '')
             : ($employee['type_name_th'] ?? '');
-
         $base_salary = (float)($employee['base_salary'] ?? 0);
-
         // Generate certificate number
         $cert_no = 'CERT-' . date('Ymd') . '-' . str_pad(rand(1000, 9999), 4, '0', STR_PAD_LEFT);
-
         // ✅ FIXED: Corrected INSERT statement with proper placeholders
         $insert_sql = "INSERT INTO certificate_requests 
 (
@@ -193,9 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
  updated_at
 )
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'New', NOW(), NOW())";
-
         $insert_stmt = $conn->prepare($insert_sql);
-
         // ✅ FIXED: Single bind_param call with correct type string
         if (!$insert_stmt->bind_param(
             'ssisssdsss',
@@ -214,35 +193,25 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'New', NOW(), NOW())";
         } else if (!$insert_stmt->execute()) {
             $error = $t['error_occurred'] . ' ' . $insert_stmt->error;
         } else {
-            $success = $t['submitted_successfully'] . ' ' . $cert_no;
+            // ✅ UPDATED: Close connections and redirect after successful submission
+            $insert_stmt->close();
+            $conn->close();
+            // Redirect to my_requests with success message and request type
+            header("Location: " . BASE_PATH . "/views/employee/my_requests.php?request_type=certificate&success=1");
+            exit();
         }
-
         $insert_stmt->close();
     }
 }
-
 $conn->close();
-
 // Get display name
 $display_name = $current_lang === 'en' ? ($employee['full_name_en'] ?? $employee['full_name_th'] ?? 'Unknown') : ($employee['full_name_th'] ?? 'Unknown');
-
 include __DIR__ . '/../../includes/header.php';
 include __DIR__ . '/../../includes/sidebar.php';
 ?>
-
-<div class="flex-1 lg:ml-64 p-4 md:p-8 bg-gradient-to-br <?php echo $is_dark ? 'from-gray-900 via-gray-800 to-gray-900' : 'from-gray-50 via-gray-50 to-gray-100'; ?>">
-
-    <!-- Page Header -->
-    <div class="mb-8 bg-gradient-to-r from-green-600 to-teal-600 rounded-lg shadow-lg p-8">
-        <div>
-            <h1 class="text-4xl font-bold text-white mb-2"><?php echo $t['request_certificate']; ?></h1>
-            <p class="text-green-100 text-lg"><?php echo $t['page_subtitle']; ?></p>
-        </div>
-    </div>
-
-    <!-- Main Container -->
-    <div class="max-w-4xl mx-auto">
-
+<div class="lg:ml-64">
+    <div class="container mx-auto px-4 py-6 max-w-4xl">
+        
         <!-- Success/Error Messages -->
         <div id="alertContainer">
             <?php if ($success): ?>
@@ -263,11 +232,24 @@ include __DIR__ . '/../../includes/sidebar.php';
             <?php endif; ?>
         </div>
 
+        <!-- Page Header -->
+        <div class="mb-6 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-lg p-6">
+            <div class="flex items-center justify-between flex-col md:flex-row gap-4">
+                <div class="flex items-center">
+                    <svg class="w-10 h-10 text-white mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <div>
+                        <h1 class="text-3xl font-bold text-white"><?php echo $t['page_title']; ?></h1>
+                        <p class="text-blue-100 mt-1"><?php echo $t['page_subtitle']; ?></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Form Card -->
-        <div class="<?php echo $card_bg; ?> rounded-lg shadow-lg p-8 border <?php echo $border_class; ?>">
-
+        <div class="<?php echo $card_bg; ?> rounded-lg shadow-lg p-6 border <?php echo $border_class; ?>">
             <form method="POST" action="">
-
                 <!-- Employee Information Section (Read-Only) -->
                 <div class="mb-8 pb-8 border-b <?php echo $border_class; ?>">
                     <h3 class="text-xl font-bold <?php echo $text_class; ?> mb-6 flex items-center">
@@ -276,44 +258,37 @@ include __DIR__ . '/../../includes/sidebar.php';
                         </svg>
                         <?php echo $t['employee_information']; ?>
                     </h3>
-
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         <!-- Employee ID -->
                         <div>
                             <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1"><?php echo $t['employee_id']; ?></label>
                             <input type="text" readonly value="<?php echo htmlspecialchars($employee['employee_id'] ?? ''); ?>" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75">
                         </div>
-
                         <!-- Full Name -->
                         <div>
                             <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1"><?php echo $t['full_name']; ?></label>
                             <input type="text" readonly value="<?php echo htmlspecialchars($display_name ?? ''); ?>" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75">
                         </div>
-
                         <!-- Position -->
                         <div>
                             <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1"><?php echo $t['position']; ?></label>
                             <input type="text" readonly value="<?php echo htmlspecialchars($employee['position_name'] ?? ''); ?>" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75">
                         </div>
-
                         <!-- Division -->
                         <div>
                             <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1"><?php echo $t['division']; ?></label>
                             <input type="text" readonly value="<?php echo htmlspecialchars($employee['division_name'] ?? ''); ?>" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75">
                         </div>
-
                         <!-- Date of Hire -->
                         <div>
                             <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1"><?php echo $t['date_of_hire']; ?></label>
                             <input type="text" readonly value="<?php echo isset($employee['date_of_hire']) ? date('d-m-Y', strtotime($employee['date_of_hire'])) : ''; ?>" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75">
                         </div>
-
-                        <!-- ✅ FIXED: Hiring Type displays correctly -->
+                        <!-- Hiring Type -->
                         <div>
                             <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1"><?php echo $t['hiring_type']; ?></label>
                             <input type="text" readonly value="<?php echo htmlspecialchars($employee['hiring_type_name'] ?? ''); ?>" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75">
                         </div>
-
                         <!-- Base Salary -->
                         <div>
                             <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1"><?php echo $t['base_salary']; ?></label>
@@ -330,7 +305,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                         </svg>
                         <?php echo $t['certificate_type']; ?> <span class="text-red-500 ml-1">*</span>
                     </label>
-
                     <?php if (empty($cert_types)): ?>
                         <div class="text-center py-8 <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?>">
                             <p><?php echo $t['no_types_available']; ?></p>
@@ -372,8 +346,8 @@ include __DIR__ . '/../../includes/sidebar.php';
                 </div>
 
                 <!-- Form Actions -->
-                <div class="flex gap-4 justify-end pt-8 border-t <?php echo $border_class; ?>">
-                    <a href="<?php echo BASE_PATH; ?>/views/employee/my_requests.php" class="px-6 py-3 border rounded-lg <?php echo $border_class; ?> <?php echo $text_class; ?> hover:<?php echo $is_dark ? 'bg-gray-700' : 'bg-gray-50'; ?> transition font-medium">
+                <div class="flex gap-4 justify-end pt-6 border-t <?php echo $border_class; ?>">
+                    <a href="<?php echo BASE_PATH; ?>/index.php" class="px-6 py-3 border rounded-lg <?php echo $border_class; ?> <?php echo $text_class; ?> hover:<?php echo $is_dark ? 'bg-gray-700' : 'bg-gray-50'; ?> transition font-medium">
                         <?php echo $t['cancel']; ?>
                     </a>
                     <button type="submit" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-medium shadow-lg hover:shadow-xl">
@@ -387,5 +361,4 @@ include __DIR__ . '/../../includes/sidebar.php';
         </div>
     </div>
 </div>
-
 <?php include __DIR__ . '/../../includes/footer.php'; ?>

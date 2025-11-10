@@ -1,0 +1,12 @@
+[2025-11-05 17:59:59] [INFO] === DB Manager Handler Started ===
+[2025-11-05 17:59:59] [INFO] Session started
+[2025-11-05 17:59:59] [INFO] Loading config from: D:\Xampp\htdocs\HR-Service\views\admin/../../config/db_config.php
+[2025-11-05 23:59:59] [INFO] Config loaded successfully
+[2025-11-05 23:59:59] [INFO] Loading DatabaseManager from: D:\Xampp\htdocs\HR-Service\views\admin/../../controllers/DatabaseManager.php
+[2025-11-05 23:59:59] [INFO] DatabaseManager loaded successfully
+[2025-11-05 23:59:59] [INFO] Authentication verified
+[2025-11-05 23:59:59] [INFO] Action received: create_tables
+[2025-11-05 23:59:59] [INFO] Creating all tables and seeding data...
+[2025-11-05 23:59:59] [INFO] Tables created: FAILED
+[2025-11-05 23:59:59] [INFO] Final result: FAILED
+[2025-11-05 23:59:59] [INFO] === DB Manager Handler Completed ===

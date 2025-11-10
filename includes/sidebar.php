@@ -43,10 +43,10 @@ $menu_items = [
         'company_settings' => 'ตั้งค่าบริษัท',
         'settings' => 'ตั้งค่า',
         'logout' => 'ออกจากระบบ',
-        // Section Headers
         'employee_services' => 'บริการพนักงาน',
         'admin_tools' => 'เครื่องมือผู้ดูแล',
-        'system' => 'ระบบ'
+        'system' => 'ระบบ',
+        'setup_certificate' => 'ตั้งค่าใบรับรอง'
     ],
     'en' => [
         'dashboard' => 'Dashboard',
@@ -64,10 +64,10 @@ $menu_items = [
         'company_settings' => 'Company Settings',
         'settings' => 'Settings',
         'logout' => 'Logout',
-        // Section Headers
         'employee_services' => 'Employee Services',
         'admin_tools' => 'Admin Tools',
-        'system' => 'System'
+        'system' => 'System',
+        'setup_certificate' => 'Setup Certificate'
     ],
     'my' => [
         'dashboard' => 'မှတ်တမ်းဘုတ်',
@@ -85,10 +85,11 @@ $menu_items = [
         'company_settings' => 'ကုမ္ပဏီဆက်တင်များ',
         'settings' => 'ဆက်တင်များ',
         'logout' => 'ထွက်ရန်',
-        // Section Headers
         'employee_services' => 'ဝန်ထမ်းဝန်ဆောင်မှုများ',
         'admin_tools' => 'စီမံခန့်ခွဲသူကိရိယာများ',
-        'system' => 'စနစ်'
+        'system' => 'စနစ်',
+        'setup_certificate' => 'လက်မှတ်သမ္ပုလ်များစီမံခန့်ခွဲမည်'
+        
     ]
 ];
 
@@ -216,21 +217,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
             </a>
 
             <!-- Setup Certificate Templates - ADDED -->
-            <a href="<?php echo BASE_PATH; ?>/views/admin/setup_certificate_templates.php"
-                class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'setup_certificate_templates.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
+            <a href="<?php echo BASE_PATH; ?>/views/admin/certificate_management.php"
+                class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'setup_certificate.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
                 </svg>
-                <span class="font-medium">
-                    <?php
-                    $cert_labels = [
-                        'th' => 'ตั้งค่าใบรับรอง',
-                        'en' => 'Setup Certificate',
-                        'my' => 'လက်မှတ်သမ္ပုလ်များစီမံခန့်ခွဲမည်'
-                    ];
-                    echo $cert_labels[$current_lang] ?? $cert_labels['th'];
-                    ?>
-                </span>
+                <span class="font-medium"><?php echo $menu['setup_certificate']; ?></span>
             </a>
 
             <?php if ($user_role === 'admin'): ?>
@@ -254,32 +246,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <?php endif; ?>
 
         <?php endif; ?>
-
-        <!-- System Section -->
-        <div class="mt-6 mb-2">
-            <h3 class="px-4 text-xs font-semibold <?php echo $is_dark ? 'text-gray-500' : 'text-gray-400'; ?> uppercase tracking-wider">
-                <?php echo $menu['system']; ?>
-            </h3>
-        </div>
-
-        <!-- Settings -->
-        <a href="<?php echo BASE_PATH; ?>/views/settings.php"
-            class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'settings.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-            </svg>
-            <span class="font-medium"><?php echo $menu['settings']; ?></span>
-        </a>
-
-        <!-- Logout -->
-        <a href="<?php echo BASE_PATH; ?>/controllers/logout.php"
-            class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 hover:bg-red-100 dark:hover:bg-red-900/20 <?php echo $text_class; ?> hover:text-red-600 dark:hover:text-red-400 transition group">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-            </svg>
-            <span class="font-medium"><?php echo $menu['logout']; ?></span>
-        </a>
     </nav>
 
 </aside>
