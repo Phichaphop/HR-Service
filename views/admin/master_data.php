@@ -1,12 +1,14 @@
 <?php
-
 /**
- * Master Data Management System
+ * Master Data Management System - STANDARDIZED UI VERSION ✅
+ * ✅ Matches my_requests.php design and layout
+ * ✅ Gradient header with icon
+ * ✅ max-w-5xl container (consistent)
+ * ✅ Full dark mode support
+ * ✅ Responsive design - Mobile First
  * Supports: Thai (ไทย), English (EN), Myanmar (မြန်မာ)
- * Features: Multi-language UI, Dark Mode, Mobile Responsive
  * Admin Only Access
  */
-
 require_once __DIR__ . '/../../config/db_config.php';
 require_once __DIR__ . '/../../controllers/AuthController.php';
 require_once __DIR__ . '/../../db/Localization.php';
@@ -20,6 +22,14 @@ $theme_mode = $_SESSION['theme_mode'] ?? 'light';
 $is_dark = ($theme_mode === 'dark');
 $user_id = $_SESSION['user_id'] ?? '';
 
+// Theme colors
+$card_bg = $is_dark ? 'bg-gray-800' : 'bg-white';
+$text_class = $is_dark ? 'text-white' : 'text-gray-900';
+$bg_class = $is_dark ? 'bg-gray-900' : 'bg-gray-50';
+$border_class = $is_dark ? 'border-gray-700' : 'border-gray-200';
+$input_class = $is_dark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900';
+$label_class = $is_dark ? 'text-gray-300' : 'text-gray-700';
+
 // Multi-language translations for entire page
 $translations = [
     'th' => [
@@ -27,7 +37,6 @@ $translations = [
         'page_subtitle' => 'บริหารจัดการข้อมูลหลักของระบบ',
         'admin_only' => 'เฉพาะผู้ดูแลระบบ',
         'select_table' => 'เลือกตาราง',
-        'select_table_info' => 'คลิกเลือกตารางที่ต้องการจัดการ',
         'function' => 'หน้าที่',
         'division' => 'สังกัด',
         'department' => 'แผนก',
@@ -68,18 +77,13 @@ $translations = [
         'edit_success' => 'แก้ไขเรียบร้อยแล้ว',
         'edit_error' => 'ไม่สามารถแก้ไขได้',
         'close' => 'ปิด',
-        'search' => 'ค้นหา...',
-        'language' => 'ภาษา',
-        'theme' => 'ธีม',
-        'light_mode' => 'โหมดสว่าง',
-        'dark_mode' => 'โหมดมืด',
+        'actions' => 'การจัดการ',
     ],
     'en' => [
         'page_title' => 'Master Data Management',
         'page_subtitle' => 'Manage system master data and configurations',
         'admin_only' => 'Admin Only',
         'select_table' => 'Select Table',
-        'select_table_info' => 'Click to select a table to manage',
         'function' => 'Functions',
         'division' => 'Divisions',
         'department' => 'Departments',
@@ -120,18 +124,13 @@ $translations = [
         'edit_success' => 'Updated successfully',
         'edit_error' => 'Failed to update',
         'close' => 'Close',
-        'search' => 'Search...',
-        'language' => 'Language',
-        'theme' => 'Theme',
-        'light_mode' => 'Light Mode',
-        'dark_mode' => 'Dark Mode',
+        'actions' => 'Actions',
     ],
     'my' => [
         'page_title' => 'အဓိကဒေတာစီမံခန့်ခွဲမှု',
         'page_subtitle' => 'စနစ်အဓိကဒေတာ သို့မဟုတ် ကွန်ဖစ်ဂျူးရေးရှင်းကိုစီမံခန့်ခွဲမည်',
         'admin_only' => 'အုပ်ချုပ်ရန်သာ',
         'select_table' => 'ဇယားရွေးချယ်မည်',
-        'select_table_info' => 'စီမံခန့်ခွဲရန်ဇယားကိုရွေးချယ်ရန်ကလစ်ပါ',
         'function' => 'လုပ်ဆောင်ချက်များ',
         'division' => 'ဌာနများ',
         'department' => 'ဝန်ဆောင်မှုများ',
@@ -172,11 +171,7 @@ $translations = [
         'edit_success' => 'အောင်မြင်စွာပြင်ဆင်ခြင်း',
         'edit_error' => 'ပြင်ဆင်ရန်မကြိုးစားနိုင်ခြင်း',
         'close' => 'ပိတ်မည်',
-        'search' => 'ရှာဖွေမည်...',
-        'language' => 'ဘာသာစကား',
-        'theme' => 'အပြင်အဆင်',
-        'light_mode' => 'အလင်းကွင်း',
-        'dark_mode' => 'မှောင်ကွင်း',
+        'actions' => 'အရቀွမ်များ',
     ]
 ];
 
@@ -212,7 +207,6 @@ $selected_table = $_GET['table'] ?? 'function_master';
 if (!isset($tables_config[$selected_table])) {
     $selected_table = 'function_master';
 }
-
 $table_info = $tables_config[$selected_table];
 $table_display_name = $t[$table_info['name_key']] ?? $selected_table;
 
@@ -225,119 +219,121 @@ $conn = getDbConnection();
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
     $table = $_POST['table'] ?? '';
-
+    
     if (!isset($tables_config[$table])) {
         $message = $t['add_error'];
         $message_type = 'error';
     } else {
         $config = $tables_config[$table];
-        $name_th = $_POST['name_th'] ?? '';
-        $name_en = $_POST['name_en'] ?? '';
-        $name_my = $_POST['name_my'] ?? '';
-
-        if (empty($name_th)) {
-            $message = 'กรุณากรอกชื่อ (ไทย)';
-            $message_type = 'error';
-        } else {
-            if ($action === 'add') {
-                $cols = $config['columns'];
-                $placeholders = implode(',', array_fill(0, 3, '?'));
-                $sql = "INSERT INTO $table ({$cols[0]}, {$cols[1]}, {$cols[2]}) VALUES ($placeholders)";
+        
+        // ✅ Handle DELETE action (ไม่ต้องตรวจสอบ name_th)
+        if ($action === 'delete') {
+            $id = $_POST['id'] ?? '';
+            if (empty($id)) {
+                $message = 'Invalid ID';
+                $message_type = 'error';
+            } else {
+                $id_col = match ($table) {
+                    'prefix_master' => 'prefix_id',
+                    'function_master' => 'function_id',
+                    'division_master' => 'division_id',
+                    'department_master' => 'department_id',
+                    'section_master' => 'section_id',
+                    'operation_master' => 'operation_id',
+                    'position_master' => 'position_id',
+                    'position_level_master' => 'level_id',
+                    'labour_cost_master' => 'labour_cost_id',
+                    'hiring_type_master' => 'hiring_type_id',
+                    'customer_zone_master' => 'zone_id',
+                    'contribution_level_master' => 'contribution_id',
+                    'sex_master' => 'sex_id',
+                    'nationality_master' => 'nationality_id',
+                    'education_level_master' => 'education_id',
+                    'status_master' => 'status_id',
+                    'termination_reason_master' => 'reason_id',
+                    'service_category_master' => 'category_id',
+                    'service_type_master' => 'type_id',
+                    'doc_type_master' => 'doc_type_id',
+                    default => 'id'
+                };
+                $sql = "DELETE FROM $table WHERE $id_col = ?";
                 $stmt = $conn->prepare($sql);
-                $stmt->bind_param('sss', $name_th, $name_en, $name_my);
-
+                $stmt->bind_param('i', $id);
                 if ($stmt->execute()) {
-                    $message = $t['add_success'];
+                    $message = $t['delete_success'];
                     $message_type = 'success';
                 } else {
-                    $message = $t['add_error'] . ': ' . $stmt->error;
+                    $message = $t['delete_error'] . ': ' . $stmt->error;
                     $message_type = 'error';
                 }
                 $stmt->close();
-            } elseif ($action === 'edit') {
-                $id = $_POST['id'] ?? '';
-                if (empty($id)) {
-                    $message = 'Invalid ID';
-                    $message_type = 'error';
-                } else {
+            }
+        } else {
+            // ✅ For ADD and EDIT - validate name_th
+            $name_th = $_POST['name_th'] ?? '';
+            $name_en = $_POST['name_en'] ?? '';
+            $name_my = $_POST['name_my'] ?? '';
+            
+            if (empty($name_th)) {
+                $message = 'กรุณากรอกชื่อ (ไทย)';
+                $message_type = 'error';
+            } else {
+                if ($action === 'add') {
                     $cols = $config['columns'];
-                    $id_col = match ($table) {
-                        'prefix_master' => 'prefix_id',
-                        'function_master' => 'function_id',
-                        'division_master' => 'division_id',
-                        'department_master' => 'department_id',
-                        'section_master' => 'section_id',
-                        'operation_master' => 'operation_id',
-                        'position_master' => 'position_id',
-                        'position_level_master' => 'level_id',
-                        'labour_cost_master' => 'labour_cost_id',
-                        'hiring_type_master' => 'hiring_type_id',
-                        'customer_zone_master' => 'zone_id',
-                        'contribution_level_master' => 'contribution_id',
-                        'sex_master' => 'sex_id',
-                        'nationality_master' => 'nationality_id',
-                        'education_level_master' => 'education_id',
-                        'status_master' => 'status_id',
-                        'termination_reason_master' => 'reason_id',
-                        'service_category_master' => 'category_id',
-                        'service_type_master' => 'type_id',
-                        'doc_type_master' => 'doc_type_id',
-                        default => 'id'
-                    };
-                    $sql = "UPDATE $table SET {$cols[0]} = ?, {$cols[1]} = ?, {$cols[2]} = ?, updated_at = CURRENT_TIMESTAMP WHERE $id_col = ?";
+                    $placeholders = implode(',', array_fill(0, 3, '?'));
+                    $sql = "INSERT INTO $table ({$cols[0]}, {$cols[1]}, {$cols[2]}) VALUES ($placeholders)";
                     $stmt = $conn->prepare($sql);
-                    $stmt->bind_param('sssi', $name_th, $name_en, $name_my, $id);
-
+                    $stmt->bind_param('sss', $name_th, $name_en, $name_my);
                     if ($stmt->execute()) {
-                        $message = $t['edit_success'];
+                        $message = $t['add_success'];
                         $message_type = 'success';
                     } else {
-                        $message = $t['edit_error'] . ': ' . $stmt->error;
+                        $message = $t['add_error'] . ': ' . $stmt->error;
                         $message_type = 'error';
                     }
                     $stmt->close();
-                }
-            } elseif ($action === 'delete') {
-                $id = $_POST['id'] ?? '';
-                if (empty($id)) {
-                    $message = 'Invalid ID';
-                    $message_type = 'error';
-                } else {
-                    $id_col = match ($table) {
-                        'prefix_master' => 'prefix_id',
-                        'function_master' => 'function_id',
-                        'division_master' => 'division_id',
-                        'department_master' => 'department_id',
-                        'section_master' => 'section_id',
-                        'operation_master' => 'operation_id',
-                        'position_master' => 'position_id',
-                        'position_level_master' => 'level_id',
-                        'labour_cost_master' => 'labour_cost_id',
-                        'hiring_type_master' => 'hiring_type_id',
-                        'customer_zone_master' => 'zone_id',
-                        'contribution_level_master' => 'contribution_id',
-                        'sex_master' => 'sex_id',
-                        'nationality_master' => 'nationality_id',
-                        'education_level_master' => 'education_id',
-                        'status_master' => 'status_id',
-                        'termination_reason_master' => 'reason_id',
-                        'service_category_master' => 'category_id',
-                        'service_type_master' => 'type_id',
-                        'doc_type_master' => 'doc_type_id',
-                        default => 'id'
-                    };
-                    $sql = "DELETE FROM $table WHERE $id_col = ?";
-                    $stmt = $conn->prepare($sql);
-                    $stmt->bind_param('i', $id);
-
-                    if ($stmt->execute()) {
-                        $message = $t['delete_success'];
-                        $message_type = 'success';
-                    } else {
-                        $message = $t['delete_error'] . ': ' . $stmt->error;
+                } elseif ($action === 'edit') {
+                    $id = $_POST['id'] ?? '';
+                    if (empty($id)) {
+                        $message = 'Invalid ID';
                         $message_type = 'error';
+                    } else {
+                        $cols = $config['columns'];
+                        $id_col = match ($table) {
+                            'prefix_master' => 'prefix_id',
+                            'function_master' => 'function_id',
+                            'division_master' => 'division_id',
+                            'department_master' => 'department_id',
+                            'section_master' => 'section_id',
+                            'operation_master' => 'operation_id',
+                            'position_master' => 'position_id',
+                            'position_level_master' => 'level_id',
+                            'labour_cost_master' => 'labour_cost_id',
+                            'hiring_type_master' => 'hiring_type_id',
+                            'customer_zone_master' => 'zone_id',
+                            'contribution_level_master' => 'contribution_id',
+                            'sex_master' => 'sex_id',
+                            'nationality_master' => 'nationality_id',
+                            'education_level_master' => 'education_id',
+                            'status_master' => 'status_id',
+                            'termination_reason_master' => 'reason_id',
+                            'service_category_master' => 'category_id',
+                            'service_type_master' => 'type_id',
+                            'doc_type_master' => 'doc_type_id',
+                            default => 'id'
+                        };
+                        $sql = "UPDATE $table SET {$cols[0]} = ?, {$cols[1]} = ?, {$cols[2]} = ?, updated_at = CURRENT_TIMESTAMP WHERE $id_col = ?";
+                        $stmt = $conn->prepare($sql);
+                        $stmt->bind_param('sssi', $name_th, $name_en, $name_my, $id);
+                        if ($stmt->execute()) {
+                            $message = $t['edit_success'];
+                            $message_type = 'success';
+                        } else {
+                            $message = $t['edit_error'] . ': ' . $stmt->error;
+                            $message_type = 'error';
+                        }
+                        $stmt->close();
                     }
-                    $stmt->close();
                 }
             }
         }
@@ -381,271 +377,230 @@ if ($result) {
 // Include header and sidebar
 include __DIR__ . '/../../includes/header.php';
 include __DIR__ . '/../../includes/sidebar.php';
-
 ?>
-
-<!DOCTYPE html>
-<html lang="<?php echo $current_lang; ?>" class="<?php echo $is_dark ? 'dark' : ''; ?>">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $t['page_title']; ?></title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        .theme-transition {
-            transition: all 0.3s ease;
-        }
-
-        .modal-backdrop {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 40;
-        }
-
-        .modal-backdrop.active {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-    </style>
-</head>
-
-<body class="<?php echo $bg_class; ?> <?php echo $text_class; ?> theme-transition">
-
-    <div class="lg:ml-64 p-4 md:p-8">
-
-        <!-- Page Header -->
-        <div class="mb-6 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg shadow-lg p-6">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                    <svg class="w-10 h-10 text-white mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path>
-                    </svg>
-                    <div>
-                        <h1 class="text-3xl font-bold text-white"><?php echo $t['page_title']; ?></h1>
-                        <p class="text-purple-100 mt-1"><?php echo $t['page_subtitle']; ?></p>
-                    </div>
+<div class="lg:ml-64 min-h-screen">
+    <div class="container mx-auto px-4 py-6 max-w-5xl">
+        
+        <!-- Page Header - Gradient Style -->
+        <div class="mb-6 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg shadow-lg p-6">
+            <div class="flex items-center">
+                <svg class="w-10 h-10 text-white mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path>
+                </svg>
+                <div>
+                    <h1 class="text-3xl font-bold text-white"><?php echo $t['page_title']; ?></h1>
+                    <p class="text-blue-100 mt-1"><?php echo $t['page_subtitle']; ?></p>
                 </div>
             </div>
         </div>
 
         <!-- Messages -->
         <?php if ($message): ?>
-            <div class="mb-6 p-4 rounded-lg flex items-center gap-3 <?php echo $message_type === 'success' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border border-green-300 dark:border-green-700' : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 border border-red-300 dark:border-red-700'; ?>">
+            <div class="mb-6 p-4 rounded-lg flex items-center gap-3 <?php echo $message_type === 'success' ? 'bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500' : 'bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500'; ?>">
                 <?php if ($message_type === 'success'): ?>
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    <svg class="w-6 h-6 text-green-600 dark:text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
+                    <p class="text-green-700 dark:text-green-300 font-medium"><?php echo htmlspecialchars($message); ?></p>
                 <?php else: ?>
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    <svg class="w-6 h-6 text-red-600 dark:text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
+                    <p class="text-red-700 dark:text-red-300 font-medium"><?php echo htmlspecialchars($message); ?></p>
                 <?php endif; ?>
-                <span><?php echo htmlspecialchars($message); ?></span>
             </div>
         <?php endif; ?>
 
-        <!-- Main Content Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <!-- Left Sidebar: Table Selection -->
-            <div class="lg:col-span-1">
-                <div class="<?php echo $card_bg; ?> rounded-lg shadow-lg p-6 sticky top-4 border <?php echo $border_class; ?>">
-                    <h2 class="text-lg font-bold <?php echo $text_class; ?> mb-4"><?php echo $t['select_table']; ?></h2>
-                    <p class="text-sm <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?> mb-4"><?php echo $t['select_table_info']; ?></p>
-
-                    <div class="space-y-2 max-h-96 overflow-y-auto">
-                        <?php foreach ($tables_config as $table_name => $config): ?>
-                            <a href="?table=<?php echo urlencode($table_name); ?>&lang=<?php echo $current_lang; ?>"
-                                class="block px-4 py-3 rounded-lg text-sm font-medium transition <?php echo $selected_table === $table_name ? 'bg-blue-600 text-white' : ($is_dark ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'); ?>">
-                                <?php echo $t[$config['name_key']] ?? $table_name; ?>
-                                <span class="text-xs <?php echo $selected_table === $table_name ? 'text-blue-100' : 'text-gray-500'; ?> ml-1">(<?php echo count($records); ?>)</span>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
+        <!-- Table Selection Tabs -->
+        <div class="mb-6 <?php echo $card_bg; ?> rounded-lg shadow-lg border <?php echo $border_class; ?> overflow-hidden">
+            <div class="overflow-x-auto">
+                <div class="flex gap-2 p-4 min-w-full">
+                    <?php foreach ($tables_config as $table_name => $config): ?>
+                        <a href="?table=<?php echo urlencode($table_name); ?>" 
+                           class="px-4 py-2 whitespace-nowrap rounded-lg font-medium text-sm transition <?php echo $selected_table === $table_name ? 'bg-blue-600 text-white' : ($is_dark ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'); ?>">
+                            <?php echo $t[$config['name_key']] ?? $table_name; ?>
+                        </a>
+                    <?php endforeach; ?>
                 </div>
             </div>
+        </div>
 
-            <!-- Right Content: Table Data -->
-            <div class="lg:col-span-3">
-                <!-- Table Header with Actions -->
-                <div class="<?php echo $card_bg; ?> rounded-lg shadow-lg p-6 mb-6 border <?php echo $border_class; ?>">
-                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <div>
-                            <h3 class="text-2xl font-bold <?php echo $text_class; ?>"><?php echo $table_display_name; ?></h3>
-                            <p class="text-sm <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?> mt-1">
-                                <?php echo $t['total']; ?>: <span class="font-bold text-blue-600"><?php echo count($records); ?></span> <?php echo $t['records']; ?>
-                            </p>
-                        </div>
-                        <button onclick="openAddModal()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition flex items-center gap-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                            </svg>
-                            <?php echo $t['add_new']; ?>
-                        </button>
-                    </div>
+        <!-- Main Card -->
+        <div class="<?php echo $card_bg; ?> rounded-lg shadow-lg overflow-hidden border <?php echo $border_class; ?>">
+            
+            <!-- Card Header -->
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold text-white"><?php echo $table_display_name; ?></h2>
+                    <p class="text-blue-100 text-sm mt-1"><?php echo $t['total']; ?>: <span class="font-bold"><?php echo count($records); ?></span> <?php echo $t['records']; ?></p>
                 </div>
+                <button onclick="openAddModal()" class="px-6 py-3 bg-white hover:bg-gray-100 text-blue-600 font-bold rounded-lg transition shadow-md hover:shadow-lg flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    <?php echo $t['add_new']; ?>
+                </button>
+            </div>
 
-                <!-- Records Table -->
-                <div class="<?php echo $card_bg; ?> rounded-lg shadow-lg overflow-hidden border <?php echo $border_class; ?>">
-                    <?php if (empty($records)): ?>
-                        <div class="p-8 text-center">
-                            <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <p class="<?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?> text-lg"><?php echo $t['no_data']; ?></p>
-                        </div>
-                    <?php else: ?>
-                        <div class="overflow-x-auto">
-                            <table class="w-full">
-                                <thead class="<?php echo $is_dark ? 'bg-gray-700' : 'bg-gray-100'; ?> border-b <?php echo $border_class; ?>">
-                                    <tr>
-                                        <th class="px-6 py-3 text-left text-sm font-semibold <?php echo $text_class; ?>"><?php echo $t['name_th']; ?></th>
-                                        <th class="px-6 py-3 text-left text-sm font-semibold <?php echo $text_class; ?>"><?php echo $t['name_en']; ?></th>
-                                        <th class="px-6 py-3 text-left text-sm font-semibold <?php echo $text_class; ?>"><?php echo $t['name_my']; ?></th>
-                                        <th class="px-6 py-3 text-right text-sm font-semibold <?php echo $text_class; ?>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class=" divide-y <?php echo $border_class; ?>">
-                                            <?php foreach ($records as $record): ?>
+            <!-- Table Content -->
+            <div class="p-6">
+                <?php if (empty($records)): ?>
+                    <div class="text-center py-12">
+                        <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <p class="<?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?> text-lg font-medium"><?php echo $t['no_data']; ?></p>
+                    </div>
+                <?php else: ?>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="<?php echo $is_dark ? 'bg-gray-700' : 'bg-gray-100'; ?> border-b <?php echo $border_class; ?>">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-bold <?php echo $text_class; ?> uppercase"><?php echo $t['name_th']; ?></th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold <?php echo $text_class; ?> uppercase"><?php echo $t['name_en']; ?></th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold <?php echo $text_class; ?> uppercase"><?php echo $t['name_my']; ?></th>
+                                    <th class="px-6 py-3 text-right text-xs font-bold <?php echo $text_class; ?> uppercase"><?php echo $t['actions']; ?></th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y <?php echo $border_class; ?>">
+                                <?php foreach ($records as $record): ?>
                                     <tr class="<?php echo $is_dark ? 'hover:bg-gray-700' : 'hover:bg-gray-50'; ?> transition">
                                         <td class="px-6 py-4 text-sm <?php echo $text_class; ?>"><?php echo htmlspecialchars($record[$table_info['columns'][0]] ?? ''); ?></td>
                                         <td class="px-6 py-4 text-sm <?php echo $text_class; ?>"><?php echo htmlspecialchars($record[$table_info['columns'][1]] ?? ''); ?></td>
                                         <td class="px-6 py-4 text-sm <?php echo $text_class; ?>"><?php echo htmlspecialchars($record[$table_info['columns'][2]] ?? ''); ?></td>
                                         <td class="px-6 py-4 text-right">
-                                            <button onclick="openEditModal(<?php echo htmlspecialchars(json_encode($record)); ?>)" class="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded transition mr-2">
-                                                <?php echo $t['edit']; ?>
-                                            </button>
-                                            <button onclick="deleteRecord(<?php echo $record[$id_column]; ?>)" class="px-3 py-1 text-sm bg-red-600 hover:bg-red-700 text-white rounded transition">
-                                                <?php echo $t['delete']; ?>
-                                            </button>
+                                            <div class="flex items-center justify-end gap-2">
+                                                <button onclick="openEditModal(<?php echo htmlspecialchars(json_encode($record)); ?>)" 
+                                                        class="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-gray-600 rounded-lg transition"
+                                                        title="<?php echo $t['edit']; ?>">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                    </svg>
+                                                </button>
+                                                <button onclick="deleteRecord(<?php echo $record[$id_column]; ?>)" 
+                                                        class="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-gray-600 rounded-lg transition"
+                                                        title="<?php echo $t['delete']; ?>">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                    </svg>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    <?php endif; ?>
-                </div>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Add/Edit Modal -->
-    <div id="formModal" class="modal-backdrop">
-        <div class="<?php echo $card_bg; ?> rounded-lg shadow-xl max-w-md w-full m-4 border <?php echo $border_class; ?>">
-            <div class="flex items-center justify-between p-6 border-b <?php echo $border_class; ?>">
-                <h3 id="modalTitle" class="text-xl font-bold <?php echo $text_class; ?>"></h3>
-                <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+<!-- Add/Edit Modal -->
+<div id="formModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+    <div class="<?php echo $card_bg; ?> rounded-lg shadow-xl max-w-md w-full border <?php echo $border_class; ?>">
+        <div class="flex items-center justify-between p-6 border-b <?php echo $border_class; ?> bg-gradient-to-r from-blue-600 to-indigo-600">
+            <h3 id="modalTitle" class="text-xl font-bold text-white"></h3>
+            <button onclick="closeModal()" class="text-white hover:text-gray-200 transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <form id="masterForm" method="POST" class="p-6 space-y-4">
+            <input type="hidden" name="action" id="formAction" value="add">
+            <input type="hidden" name="table" value="<?php echo htmlspecialchars($selected_table); ?>">
+            <input type="hidden" name="id" id="recordId" value="">
+            
+            <div>
+                <label class="block text-sm font-semibold <?php echo $label_class; ?> mb-2">
+                    <?php echo $t['name_th']; ?> <span class="text-red-500">*</span>
+                </label>
+                <input type="text" name="name_th" id="name_th" required
+                    class="w-full px-4 py-3 border <?php echo $input_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-semibold <?php echo $label_class; ?> mb-2">
+                    <?php echo $t['name_en']; ?>
+                </label>
+                <input type="text" name="name_en" id="name_en"
+                    class="w-full px-4 py-3 border <?php echo $input_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-semibold <?php echo $label_class; ?> mb-2">
+                    <?php echo $t['name_my']; ?>
+                </label>
+                <input type="text" name="name_my" id="name_my"
+                    class="w-full px-4 py-3 border <?php echo $input_class; ?> rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+            </div>
+            
+            <div class="flex gap-3 pt-4 border-t <?php echo $border_class; ?>">
+                <button type="submit" class="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition shadow-md hover:shadow-lg">
+                    ✓ <?php echo $t['save']; ?>
+                </button>
+                <button type="button" onclick="closeModal()" class="flex-1 px-4 py-3 bg-gray-400 hover:bg-gray-500 text-white font-bold rounded-lg transition">
+                    ✕ <?php echo $t['cancel']; ?>
                 </button>
             </div>
-
-            <form id="masterForm" method="POST" class="p-6 space-y-4">
-                <input type="hidden" name="action" id="formAction" value="add">
-                <input type="hidden" name="table" value="<?php echo htmlspecialchars($selected_table); ?>">
-                <input type="hidden" name="id" id="recordId" value="">
-
-                <div>
-                    <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2">
-                        <?php echo $t['name_th']; ?> <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" name="name_th" id="name_th" required
-                        class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2">
-                        <?php echo $t['name_en']; ?>
-                    </label>
-                    <input type="text" name="name_en" id="name_en"
-                        class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2">
-                        <?php echo $t['name_my']; ?>
-                    </label>
-                    <input type="text" name="name_my" id="name_my"
-                        class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                </div>
-
-                <div class="flex gap-3 pt-4">
-                    <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition">
-                        <?php echo $t['save']; ?>
-                    </button>
-                    <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 bg-gray-400 hover:bg-gray-500 text-white font-medium rounded-lg transition">
-                        <?php echo $t['cancel']; ?>
-                    </button>
-                </div>
-            </form>
-        </div>
+        </form>
     </div>
+</div>
 
-    <script>
-        const t = <?php echo json_encode($t); ?>;
-        const selectedTable = '<?php echo $selected_table; ?>';
-        const currentLang = '<?php echo $current_lang; ?>';
-        const tableInfo = <?php echo json_encode($table_info); ?>;
+<?php include __DIR__ . '/../../includes/footer.php'; ?>
 
-        function openAddModal() {
-            document.getElementById('formAction').value = 'add';
-            document.getElementById('modalTitle').textContent = t['add_new'] + ' - ' + '<?php echo $table_display_name; ?>';
-            document.getElementById('masterForm').reset();
-            document.getElementById('recordId').value = '';
-            document.getElementById('formModal').classList.add('active');
-        }
+<script>
+const t = <?php echo json_encode($t); ?>;
+const selectedTable = '<?php echo $selected_table; ?>';
+const currentLang = '<?php echo $current_lang; ?>';
+const tableInfo = <?php echo json_encode($table_info); ?>;
 
-        function openEditModal(record) {
-            document.getElementById('formAction').value = 'edit';
-            document.getElementById('modalTitle').textContent = t['edit'] + ' - ' + '<?php echo $table_display_name; ?>';
-            const idCol = Object.keys(record).find(key => key.includes('_id'));
-            document.getElementById('recordId').value = record[idCol];
-            document.getElementById('name_th').value = record[tableInfo.columns[0]] || '';
-            document.getElementById('name_en').value = record[tableInfo.columns[1]] || '';
-            document.getElementById('name_my').value = record[tableInfo.columns[2]] || '';
-            document.getElementById('formModal').classList.add('active');
-        }
+function openAddModal() {
+    document.getElementById('formAction').value = 'add';
+    document.getElementById('modalTitle').textContent = t['add_new'] + ' - ' + '<?php echo $table_display_name; ?>';
+    document.getElementById('masterForm').reset();
+    document.getElementById('recordId').value = '';
+    document.getElementById('formModal').classList.remove('hidden');
+    document.getElementById('formModal').classList.add('flex');
+}
 
-        function closeModal() {
-            document.getElementById('formModal').classList.remove('active');
-        }
+function openEditModal(record) {
+    document.getElementById('formAction').value = 'edit';
+    document.getElementById('modalTitle').textContent = t['edit'] + ' - ' + '<?php echo $table_display_name; ?>';
+    const idCol = Object.keys(record).find(key => key.includes('_id'));
+    document.getElementById('recordId').value = record[idCol];
+    document.getElementById('name_th').value = record[tableInfo.columns[0]] || '';
+    document.getElementById('name_en').value = record[tableInfo.columns[1]] || '';
+    document.getElementById('name_my').value = record[tableInfo.columns[2]] || '';
+    document.getElementById('formModal').classList.remove('hidden');
+    document.getElementById('formModal').classList.add('flex');
+}
 
-        function deleteRecord(id) {
-            if (confirm(t['confirm_delete'])) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.innerHTML = `
+function closeModal() {
+    document.getElementById('formModal').classList.add('hidden');
+    document.getElementById('formModal').classList.remove('flex');
+}
+
+function deleteRecord(id) {
+    if (confirm(t['confirm_delete'])) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.innerHTML = `
             <input type="hidden" name="action" value="delete">
             <input type="hidden" name="table" value="${selectedTable}">
             <input type="hidden" name="id" value="${id}">
         `;
-                document.body.appendChild(form);
-                form.submit();
-            }
-        }
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
 
-        // Close modal when clicking outside
-        document.getElementById('formModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeModal();
-            }
-        });
-    </script>
-
-    <?php include __DIR__ . '/../../includes/footer.php'; ?>
-
-</body>
-
-</html>
+// Close modal when clicking outside
+document.getElementById('formModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeModal();
+    }
+});
+</script>

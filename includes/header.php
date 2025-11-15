@@ -1,8 +1,9 @@
 <?php
-
 /**
  * Reusable Header Component (Multi-language Support)
  * รองรับ TH / EN / MY
+ * 
+ * UPDATE: Display employee profile picture with fallback avatar
  */
 // ดึงข้อมูล theme และ user แบบรวม
 extract(get_theme_vars());
@@ -56,35 +57,26 @@ $header_lang = [
 // Get current language content
 $h = $header_lang[$_SESSION['language']] ?? $header_lang['th'];
 ?>
-
 <!DOCTYPE html>
 <html lang="<?php echo $language; ?>" class="<?php echo $is_dark ? 'dark' : ''; ?>">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $page_title ?? 'HR Service'; ?> - <?php echo __('app_title'); ?></title>
-
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="<?php echo BASE_PATH; ?>/assets/images/favicons/favicon.ico">
     <link rel="icon" type="image/png" sizes="16x16" href="<?php echo BASE_PATH; ?>/assets/images/favicons/favicon-16x16.png">
     <link rel="icon" type="image/png" sizes="32x32" href="<?php echo BASE_PATH; ?>/assets/images/favicons/favicon-32x32.png">
-
     <!-- Apple Touch Icon -->
     <link rel="apple-touch-icon" sizes="180x180" href="<?php echo BASE_PATH; ?>/assets/images/favicons/apple-touch-icon.png">
-
     <!-- Android Chrome Icons -->
     <link rel="icon" type="image/png" sizes="192x192" href="<?php echo BASE_PATH; ?>/assets/images/favicons/android-chrome-192x192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="<?php echo BASE_PATH; ?>/assets/images/favicons/android-chrome-512x512.png">
-
     <!-- Web App Manifest (Optional) -->
     <link rel="manifest" href="<?php echo BASE_PATH; ?>/site.webmanifest">
-
     <!-- Theme Color (สีที่แสดงในแถบเบราว์เซอร์บนมือถือ) -->
     <meta name="theme-color" content="<?php echo $is_dark ? '#1f2937' : '#ffffff'; ?>">
-
     <script src="https://cdn.tailwindcss.com"></script>
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Monoton&family=Noto+Sans+Thai:wght@100..900&family=Sankofa+Display&family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
@@ -116,46 +108,44 @@ $h = $header_lang[$_SESSION['language']] ?? $header_lang['th'];
         .theme-transition {
             transition: all 0.3s ease;
         }
-
         html {
             scroll-behavior: smooth;
         }
-
         /* Custom scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
         }
-
         ::-webkit-scrollbar-track {
             background: <?php echo $is_dark ? '#1f2937' : '#f1f5f9'; ?>;
         }
-
         ::-webkit-scrollbar-thumb {
             background: <?php echo $is_dark ? '#4b5563' : '#cbd5e1'; ?>;
             border-radius: 4px;
         }
-
         ::-webkit-scrollbar-thumb:hover {
             background: <?php echo $is_dark ? '#6b7280' : '#94a3b8'; ?>;
         }
-
         /* Language dropdown hover effect */
         .language-option:hover {
             background-color: <?php echo $is_dark ? '#374151' : '#f3f4f6'; ?>;
         }
-
         * {
             font-family: "Noto Sans Thai", sans-serif;
+        }
+        /* Profile image styling */
+        .profile-img {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .profile-img:hover {
+            transform: scale(1.05);
         }
     </style>
     <?php if (isset($extra_head)) echo $extra_head; ?>
 </head>
-
 <body class="<?php echo $bg_class; ?> theme-transition" data-base-path="<?php echo BASE_PATH; ?>">
     <!-- Mobile Menu Overlay -->
     <div id="mobileMenuOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden" onclick="toggleMobileMenu()"></div>
-
     <!-- Top Bar (Mobile & Desktop) -->
     <header class="<?php echo $header_bg; ?> shadow-sm sticky top-0 z-30 theme-transition lg:ml-64 border-b <?php echo $border_class; ?>">
         <div class="flex items-center justify-between px-4 py-3">
@@ -169,7 +159,6 @@ $h = $header_lang[$_SESSION['language']] ?? $header_lang['th'];
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                     </svg>
                 </button>
-
                 <!-- Page Title -->
                 <div>
                     <h2 class="text-lg md:text-xl font-semibold <?php echo $text_class; ?>">
@@ -182,7 +171,6 @@ $h = $header_lang[$_SESSION['language']] ?? $header_lang['th'];
                             'Request Management' => ['th' => 'จัดการคำขอ', 'en' => 'Request Management', 'my' => 'တောင်းဆိုချက်စီမံခန့်ခွဲမှု'],
                             'Settings' => ['th' => 'ตั้งค่า', 'en' => 'Settings', 'my' => 'ဆက်တင်များ'],
                         ];
-
                         $current_page = $page_title ?? 'Dashboard';
                         echo $page_titles[$current_page][$language] ?? $current_page;
                         ?>
@@ -200,10 +188,8 @@ $h = $header_lang[$_SESSION['language']] ?? $header_lang['th'];
                     </p>
                 </div>
             </div>
-
             <!-- Right Side: Actions -->
             <div class="flex items-center space-x-2 md:space-x-3">
-
                 <!-- Language Switcher -->
                 <div class="relative group">
                     <button class="flex items-center space-x-2 px-3 py-2 border <?php echo $border_class; ?> rounded-lg text-sm hover:<?php echo $is_dark ? 'bg-gray-700' : 'bg-gray-50'; ?> transition"
@@ -217,7 +203,6 @@ $h = $header_lang[$_SESSION['language']] ?? $header_lang['th'];
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                         </svg>
                     </button>
-
                     <!-- Language Dropdown -->
                     <div id="languageMenu" class="hidden absolute right-0 mt-2 w-48 <?php echo $card_bg; ?> border <?php echo $border_class; ?> rounded-lg shadow-xl z-50">
                         <div class="py-1">
@@ -231,7 +216,6 @@ $h = $header_lang[$_SESSION['language']] ?? $header_lang['th'];
                                     </svg>
                                 <?php endif; ?>
                             </button>
-
                             <button onclick="changeLanguage('en')"
                                 class="language-option w-full flex items-center px-4 py-2.5 <?php echo $text_class; ?> text-sm <?php echo $language === 'en' ? 'bg-blue-50 dark:bg-blue-900 font-semibold' : ''; ?>">
                                 <span class="text-xl mr-3">🇬🇧</span>
@@ -242,7 +226,6 @@ $h = $header_lang[$_SESSION['language']] ?? $header_lang['th'];
                                     </svg>
                                 <?php endif; ?>
                             </button>
-
                             <button onclick="changeLanguage('my')"
                                 class="language-option w-full flex items-center px-4 py-2.5 <?php echo $text_class; ?> text-sm <?php echo $language === 'my' ? 'bg-blue-50 dark:bg-blue-900 font-semibold' : ''; ?>">
                                 <span class="text-xl mr-3">🇲🇲</span>
@@ -256,7 +239,6 @@ $h = $header_lang[$_SESSION['language']] ?? $header_lang['th'];
                         </div>
                     </div>
                 </div>
-
                 <!-- Theme Toggle -->
                 <button onclick="toggleTheme()"
                     class="p-2 rounded-lg <?php echo $is_dark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'; ?> transition group"
@@ -271,19 +253,34 @@ $h = $header_lang[$_SESSION['language']] ?? $header_lang['th'];
                         </svg>
                     <?php endif; ?>
                 </button>
-
                 <!-- User Menu -->
                 <div class="relative">
+                    <?php 
+                        // Get profile picture from session (updated approach)
+                        $profile_pic = isset($profile_pic) ? $profile_pic : (isset($_SESSION['profile_pic']) ? $_SESSION['profile_pic'] : '');
+                        $first_initial = strtoupper(substr($display_name, 0, 1));
+                    ?>
                     <button onclick="toggleUserMenu(event)"
                         class="flex items-center space-x-2 p-1.5 rounded-lg hover:<?php echo $is_dark ? 'bg-gray-700' : 'bg-gray-100'; ?> transition">
-                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm">
-                            <?php echo strtoupper(substr($display_name, 0, 1)); ?>
+                        <!-- Profile Picture or Avatar -->
+                        <?php if (!empty($profile_pic) && file_exists(__DIR__ . '/../' . $profile_pic)): ?>
+                            <!-- Show actual profile picture -->
+                            <img src="<?php echo BASE_PATH . '/' . htmlspecialchars($profile_pic); ?>" 
+                                 alt="<?php echo htmlspecialchars($display_name); ?>"
+                                 class="profile-img w-8 h-8 rounded-full object-cover border-2 <?php echo $is_dark ? 'border-gray-600' : 'border-gray-300'; ?>"
+                                 title="<?php echo htmlspecialchars($display_name); ?>"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <?php endif; ?>
+                        <!-- Fallback Avatar (show by default if no image or image fails to load) -->
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0 border-2 <?php echo $is_dark ? 'border-blue-600' : 'border-blue-400'; ?>"
+                             style="<?php echo (!empty($profile_pic) && file_exists(__DIR__ . '/../' . $profile_pic)) ? 'display:none;' : 'display:flex;'; ?>"
+                             title="<?php echo htmlspecialchars($display_name); ?>">
+                            <?php echo $first_initial; ?>
                         </div>
                         <svg class="w-4 h-4 <?php echo $text_class; ?> hidden md:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                         </svg>
                     </button>
-
                     <!-- User Dropdown -->
                     <div id="userMenu" class="hidden absolute right-0 mt-2 w-56 <?php echo $card_bg; ?> border <?php echo $border_class; ?> rounded-lg shadow-xl z-50">
                         <div class="px-4 py-3 border-b <?php echo $border_class; ?>">
@@ -312,10 +309,8 @@ $h = $header_lang[$_SESSION['language']] ?? $header_lang['th'];
             </div>
         </div>
     </header>
-
     <!-- Load Common JavaScript -->
     <script src="<?php echo BASE_PATH; ?>/includes/common.js"></script>
-
     <script>
         // Toggle Language Menu
         function toggleLanguageMenu(event) {
@@ -325,7 +320,6 @@ $h = $header_lang[$_SESSION['language']] ?? $header_lang['th'];
             userMenu.classList.add('hidden');
             menu.classList.toggle('hidden');
         }
-
         // Toggle User Menu
         function toggleUserMenu(event) {
             event.stopPropagation();
@@ -334,7 +328,6 @@ $h = $header_lang[$_SESSION['language']] ?? $header_lang['th'];
             langMenu.classList.add('hidden');
             menu.classList.toggle('hidden');
         }
-
         // Close menus when clicking outside
         document.addEventListener('click', function() {
             document.getElementById('languageMenu').classList.add('hidden');
