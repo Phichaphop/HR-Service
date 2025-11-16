@@ -37,6 +37,7 @@ $menu_items = [
         'document_delivery_list' => 'รายการส่งเอกสาร',
         'employees' => 'จัดการพนักงาน',
         'request_management' => 'จัดการคำขอ',
+        'admin_create_request' => 'สร้างคำขอ',
         'locker_management' => 'จัดการตู้ล็อกเกอร์',
         'documents' => 'เอกสารออนไลน์',
         'master_data' => 'ข้อมูลหลัก',
@@ -58,6 +59,7 @@ $menu_items = [
         'document_delivery_list' => 'Delivery List',
         'employees' => 'Manage Employees',
         'request_management' => 'Request Management',
+        'admin_create_request' => 'Create request',
         'locker_management' => 'Locker Management',
         'documents' => 'Online Documents',
         'master_data' => 'Master Data',
@@ -79,6 +81,7 @@ $menu_items = [
         'document_delivery_list' => 'တင်သွင်းမှုစာရင်း',
         'employees' => 'ဝန်ထမ်းများစီမံခန့်ခွဲရန်',
         'request_management' => 'တောင်းဆိုချက်စီမံခန့်ခွဲရန်',
+        'admin_create_request' => 'တောင်းဆိုချက်များစီမံခန့်ခ',
         'locker_management' => 'သော့ခတ်စက်များစီမံခန့်ခွဲရန်',
         'documents' => 'အွန်လိုင်းစာရွက်စာတမ်းများ',
         'master_data' => 'အဓိကဒေတာ',
@@ -205,6 +208,15 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
                 </svg>
                 <span class="font-medium"><?php echo $menu['request_management']; ?></span>
+            </a>
+
+                        <!-- Request Management -->
+            <a href="<?php echo BASE_PATH; ?>/views/admin/admin_create_request.php"
+                class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'admin_create_request.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                </svg>
+                <span class="font-medium"><?php echo $menu['admin_create_request']; ?></span>
             </a>
 
             <!-- Online Documents -->
