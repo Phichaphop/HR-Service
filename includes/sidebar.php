@@ -2,20 +2,18 @@
 
 /**
  * Sidebar Navigation Component - UPDATED
+ * ✨ Added: Anonymous Complaint System Menu
  * Supports 3 languages: Thai, English, Myanmar
  * Added: Document Delivery List
  */
-
 // Ensure session is started
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
 // Get current language
 $current_lang = $_SESSION['language'] ?? 'th';
 $user_role = $_SESSION['role'] ?? 'employee';
 $theme_mode = $_SESSION['theme_mode'] ?? 'light';
-
 // Define theme classes
 $is_dark = ($theme_mode === 'dark');
 $sidebar_bg = $is_dark ? 'bg-gray-800' : 'bg-white';
@@ -24,8 +22,7 @@ $hover_bg = $is_dark ? 'hover:bg-gray-700' : 'hover:bg-gray-100';
 $active_bg = $is_dark ? 'bg-gray-700' : 'bg-blue-50';
 $active_text = $is_dark ? 'text-blue-400' : 'text-blue-600';
 $border_class = $is_dark ? 'border-gray-700' : 'border-gray-200';
-
-// Navigation menu translations - UPDATED
+// Navigation menu translations - UPDATED with Complaint System
 $menu_items = [
     'th' => [
         'dashboard' => 'แดชบอร์ด',
@@ -33,11 +30,15 @@ $menu_items = [
         'request_leave' => 'ขอลาพักงาน',
         'request_certificate' => 'ขอหนังสือรับรอง',
         'request_idcard' => 'ขอบัตรพนักงาน',
+        'submit_complaint' => 'ร้องเรียน',
+        'my_complaints' => 'การร้องเรียนของฉัน',
         'document_delivery' => 'ระบบส่งเอกสาร',
         'document_delivery_list' => 'รายการส่งเอกสาร',
         'employees' => 'จัดการพนักงาน',
         'request_management' => 'จัดการคำขอ',
         'admin_create_request' => 'สร้างคำขอ',
+        'manage_complaints' => 'จัดการการร้องเรียน',
+        'complaint_categories' => 'ประเภทร้องเรียน',
         'locker_management' => 'จัดการตู้ล็อกเกอร์',
         'documents' => 'เอกสารออนไลน์',
         'master_data' => 'ข้อมูลหลัก',
@@ -55,11 +56,15 @@ $menu_items = [
         'request_leave' => 'Request Leave',
         'request_certificate' => 'Request Certificate',
         'request_idcard' => 'Request ID Card',
+        'submit_complaint' => 'Submit Complaint',
+        'my_complaints' => 'My Complaints',
         'document_delivery' => 'Document Delivery',
         'document_delivery_list' => 'Delivery List',
         'employees' => 'Manage Employees',
         'request_management' => 'Request Management',
         'admin_create_request' => 'Create request',
+        'manage_complaints' => 'Manage Complaints',
+        'complaint_categories' => 'Complaint Categories',
         'locker_management' => 'Locker Management',
         'documents' => 'Online Documents',
         'master_data' => 'Master Data',
@@ -77,11 +82,15 @@ $menu_items = [
         'request_leave' => 'ခွင့်တောင်းခံရန်',
         'request_certificate' => 'လက်မှတ်တောင်းခံရန်',
         'request_idcard' => 'မှတ်ပုံတင်ကတ်တောင်းခံရန်',
+        'submit_complaint' => 'အမည်မဖော်စာချပ်ခွင့်တောင်းခံရန်',
+        'my_complaints' => 'ကျွန်ုပ်၏စာချပ်များ',
         'document_delivery' => 'စာ類တင်သွင်းမှုစနစ်',
         'document_delivery_list' => 'တင်သွင်းမှုစာရင်း',
         'employees' => 'ဝန်ထမ်းများစီမံခန့်ခွဲရန်',
         'request_management' => 'တောင်းဆိုချက်စီမံခန့်ခွဲရန်',
-        'admin_create_request' => 'တောင်းဆိုချက်များစီမံခန့်ခ',
+        'admin_create_request' => 'တောင်းဆိုချက်များစီမံခန့်ခွဲရန်',
+        'manage_complaints' => 'စာချပ်များကိုစီမံခန့်ခွဲ',
+        'complaint_categories' => 'စာချပ်အမျိုးအစားများ',
         'locker_management' => 'သော့ခတ်စက်များစီမံခန့်ခွဲရန်',
         'documents' => 'အွန်လိုင်းစာရွက်စာတမ်းများ',
         'master_data' => 'အဓိကဒေတာ',
@@ -92,21 +101,17 @@ $menu_items = [
         'admin_tools' => 'စီမံခန့်ခွဲသူကိရိယာများ',
         'system' => 'စနစ်',
         'setup_certificate' => 'လက်မှတ်သမ္ပုလ်များစီမံခန့်ခွဲမည်'
-        
+
     ]
 ];
-
 // Get menu texts based on current language
 $menu = $menu_items[$current_lang];
-
 // Get current page
 $current_page = basename($_SERVER['PHP_SELF']);
 ?>
-
 <!-- Sidebar -->
 <aside id="sidebar"
     class="fixed left-0 top-0 z-40 h-screen w-64 <?php echo $sidebar_bg; ?> border-r <?php echo $border_class; ?> transform transition-transform duration-300 ease-in-out -translate-x-full lg:translate-x-0 theme-transition">
-
     <!-- Sidebar Header -->
     <div class="flex items-center justify-between p-4 border-b <?php echo $border_class; ?>">
         <div class="flex items-center space-x-3">
@@ -126,10 +131,8 @@ $current_page = basename($_SERVER['PHP_SELF']);
             </svg>
         </button>
     </div>
-
     <!-- Navigation Menu -->
     <nav class="flex-1 overflow-y-auto p-4">
-
         <!-- Dashboard -->
         <a href="<?php echo BASE_PATH; ?>/index.php"
             class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'index.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
@@ -138,14 +141,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
             </svg>
             <span class="font-medium"><?php echo $menu['dashboard']; ?></span>
         </a>
-
         <!-- Employee Services Section -->
         <div class="mt-6 mb-2">
             <h3 class="px-4 text-xs font-semibold <?php echo $is_dark ? 'text-gray-500' : 'text-gray-400'; ?> uppercase tracking-wider">
                 <?php echo $menu['employee_services']; ?>
             </h3>
         </div>
-
         <!-- My Requests -->
         <a href="<?php echo BASE_PATH; ?>/views/employee/my_requests.php"
             class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'my_requests.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
@@ -154,7 +155,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
             </svg>
             <span class="font-medium"><?php echo $menu['my_requests']; ?></span>
         </a>
-
         <!-- Request Leave -->
         <a href="<?php echo BASE_PATH; ?>/views/employee/request_leave.php"
             class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'request_leave.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
@@ -163,7 +163,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
             </svg>
             <span class="font-medium"><?php echo $menu['request_leave']; ?></span>
         </a>
-
         <!-- Request Certificate -->
         <a href="<?php echo BASE_PATH; ?>/views/employee/request_certificate.php"
             class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'request_certificate.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
@@ -172,7 +171,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
             </svg>
             <span class="font-medium"><?php echo $menu['request_certificate']; ?></span>
         </a>
-
         <!-- Request ID Card -->
         <a href="<?php echo BASE_PATH; ?>/views/employee/request_idcard.php"
             class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'request_idcard.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
@@ -182,6 +180,14 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <span class="font-medium"><?php echo $menu['request_idcard']; ?></span>
         </a>
 
+        <a href="<?php echo BASE_PATH; ?>/views/employee/request_complaint.php"
+            class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'request_complaint.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+            </svg>
+            <span class="font-medium"><?php echo $menu['submit_complaint']; ?></span>
+        </a>
+
         <?php if ($user_role === 'admin' || $user_role === 'officer'): ?>
             <!-- Admin Tools Section -->
             <div class="mt-6 mb-2">
@@ -189,7 +195,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <?php echo $menu['admin_tools']; ?>
                 </h3>
             </div>
-
             <!-- Manage Employees -->
             <?php if ($user_role === 'admin'): ?>
                 <a href="<?php echo BASE_PATH; ?>/views/admin/employees.php"
@@ -200,7 +205,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <span class="font-medium"><?php echo $menu['employees']; ?></span>
                 </a>
             <?php endif; ?>
-
             <!-- Request Management -->
             <a href="<?php echo BASE_PATH; ?>/views/admin/request_management.php"
                 class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'request_management.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
@@ -209,8 +213,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 </svg>
                 <span class="font-medium"><?php echo $menu['request_management']; ?></span>
             </a>
-
-                        <!-- Request Management -->
+            <!-- Admin Create Request -->
             <a href="<?php echo BASE_PATH; ?>/views/admin/admin_create_request.php"
                 class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'admin_create_request.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -227,14 +230,21 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 </svg>
                 <span class="font-medium"><?php echo $menu['documents']; ?></span>
             </a>
-
-            <!-- Setup Certificate Templates - ADDED -->
+            <!-- Setup Certificate Templates -->
             <a href="<?php echo BASE_PATH; ?>/views/admin/certificate_management.php"
-                class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'setup_certificate.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
+                class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'certificate_management.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
                 </svg>
                 <span class="font-medium"><?php echo $menu['setup_certificate']; ?></span>
+            </a>
+
+            <a href="<?php echo BASE_PATH; ?>/views/admin/complaint_management.php"
+                class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'complaint_management.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                </svg>
+                <span class="font-medium"><?php echo $menu['submit_complaint']; ?></span>
             </a>
 
             <?php if ($user_role === 'admin'): ?>
@@ -246,7 +256,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     </svg>
                     <span class="font-medium"><?php echo $menu['master_data']; ?></span>
                 </a>
-
                 <!-- Company Settings -->
                 <a href="<?php echo BASE_PATH; ?>/views/admin/company_settings.php"
                     class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'company_settings.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
@@ -256,28 +265,22 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <span class="font-medium"><?php echo $menu['company_settings']; ?></span>
                 </a>
             <?php endif; ?>
-
         <?php endif; ?>
     </nav>
-
 </aside>
-
 <!-- Mobile Menu Overlay -->
 <div id="mobileMenuOverlay"
     class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden lg:hidden"
     onclick="toggleMobileMenu()">
 </div>
-
 <script>
     // Toggle Mobile Menu
     function toggleMobileMenu() {
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('mobileMenuOverlay');
-
         sidebar.classList.toggle('-translate-x-full');
         overlay.classList.toggle('hidden');
     }
-
     // Close mobile menu when clicking a link
     document.querySelectorAll('#sidebar a').forEach(link => {
         link.addEventListener('click', function() {
@@ -286,7 +289,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
             }
         });
     });
-
     // Close mobile menu on window resize
     window.addEventListener('resize', function() {
         if (window.innerWidth >= 1024) {

@@ -583,3 +583,183 @@ CREATE INDEX idx_doc_type ON online_documents(doc_type_id);
 CREATE INDEX idx_doc_submit_status ON document_submissions(status);
 CREATE INDEX idx_doc_delivery_date ON document_delivery(delivery_date);
 CREATE INDEX idx_doc_delivery_emp ON document_delivery(employee_id);
+
+-- ===================================
+-- COMPLAINT SYSTEM (Anonymous Complaints)
+-- ระบบร้องเรียนแบบไม่เปิดเผยตัวตน
+-- UPDATED: Removed icon_class field
+-- ===================================
+
+-- Drop existing tables if they exist
+DROP TABLE IF EXISTS complaint_activity_log;
+DROP TABLE IF EXISTS complaint_complainer_audit;
+DROP TABLE IF EXISTS complaints;
+DROP TABLE IF EXISTS complaint_category_master;
+
+-- ===================================
+-- 1. COMPLAINT CATEGORY MASTER (ประเภทการร้องเรียน)
+-- ===================================
+CREATE TABLE IF NOT EXISTS complaint_category_master (
+    category_id INT PRIMARY KEY AUTO_INCREMENT,
+    category_name_th VARCHAR(200) NOT NULL,
+    category_name_en VARCHAR(200) NOT NULL,
+    category_name_my VARCHAR(200) NOT NULL,
+    description_th TEXT,
+    description_en TEXT,
+    description_my TEXT,
+    is_active TINYINT(1) DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX idx_active (is_active),
+    INDEX idx_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ===================================
+-- 2. COMPLAINTS TABLE (คำร้องเรียน - ANONYMOUS)
+-- ===================================
+CREATE TABLE IF NOT EXISTS complaints (
+    complaint_id INT PRIMARY KEY AUTO_INCREMENT,
+    
+    -- ✅ ANONYMIZATION: Hashed employee ID
+    -- Officer/Admin cannot know who filed the complaint
+    complainer_id_hash VARCHAR(255) NOT NULL COMMENT 'SHA256 hash of employee_id',
+    
+    -- ✅ COMPLAINT DATA
+    category_id INT NOT NULL,
+    subject VARCHAR(300) NOT NULL,
+    description LONGTEXT NOT NULL,
+    
+    -- ✅ STATUS WORKFLOW
+    status ENUM('New', 'In Progress', 'Under Review', 'Resolved', 'Closed', 'Dismissed') DEFAULT 'New',
+    
+    -- ✅ HANDLER INFORMATION
+    assigned_to_officer_id VARCHAR(8) DEFAULT NULL,
+    assigned_date TIMESTAMP NULL DEFAULT NULL,
+    
+    -- ✅ RESPONSE & REMARKS
+    officer_response LONGTEXT,
+    officer_remarks TEXT,
+    response_date TIMESTAMP NULL DEFAULT NULL,
+    
+    -- ✅ ATTACHMENTS
+    attachment_path VARCHAR(500),
+    
+    -- ✅ RATING (Optional - when resolved)
+    rating INT DEFAULT NULL CHECK (rating BETWEEN 1 AND 5),
+    rating_comment TEXT,
+    rated_at TIMESTAMP NULL DEFAULT NULL,
+    
+    -- ✅ TIMESTAMPS
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    resolved_at TIMESTAMP NULL DEFAULT NULL,
+    
+    -- Foreign Keys
+    FOREIGN KEY (category_id) REFERENCES complaint_category_master(category_id),
+    FOREIGN KEY (assigned_to_officer_id) REFERENCES employees(employee_id) ON DELETE SET NULL,
+    
+    -- INDICES
+    INDEX idx_status (status),
+    INDEX idx_created_at (created_at),
+    INDEX idx_category (category_id),
+    INDEX idx_assigned (assigned_to_officer_id),
+    INDEX idx_hash (complainer_id_hash)
+    
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ===================================
+-- 3. COMPLAINT COMPLAINER AUDIT (เก็บข้อมูลจริง - ADMIN ONLY)
+-- ===================================
+CREATE TABLE IF NOT EXISTS complaint_complainer_audit (
+    audit_id INT PRIMARY KEY AUTO_INCREMENT,
+    complaint_id INT NOT NULL,
+    complainer_id_plain VARCHAR(8) NOT NULL COMMENT 'Plain employee_id - ADMIN ONLY',
+    complainer_id_hash VARCHAR(255) NOT NULL,
+    ip_address VARCHAR(45),
+    browser_agent TEXT,
+    accessed_by_admin_id VARCHAR(8),
+    accessed_at TIMESTAMP NULL DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (complaint_id) REFERENCES complaints(complaint_id) ON DELETE CASCADE,
+    FOREIGN KEY (complainer_id_plain) REFERENCES employees(employee_id) ON DELETE CASCADE,
+    FOREIGN KEY (accessed_by_admin_id) REFERENCES employees(employee_id) ON DELETE SET NULL,
+    
+    INDEX idx_complaint (complaint_id),
+    INDEX idx_accessed_by (accessed_by_admin_id)
+    
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ===================================
+-- 4. COMPLAINT ACTIVITY LOG (บันทึกกิจกรรม)
+-- ===================================
+CREATE TABLE IF NOT EXISTS complaint_activity_log (
+    log_id INT PRIMARY KEY AUTO_INCREMENT,
+    complaint_id INT NOT NULL,
+    action VARCHAR(100),
+    action_by_officer_id VARCHAR(8),
+    old_status VARCHAR(50),
+    new_status VARCHAR(50),
+    remarks TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (complaint_id) REFERENCES complaints(complaint_id) ON DELETE CASCADE,
+    FOREIGN KEY (action_by_officer_id) REFERENCES employees(employee_id) ON DELETE SET NULL,
+    
+    INDEX idx_complaint (complaint_id),
+    INDEX idx_officer (action_by_officer_id),
+    INDEX idx_created (created_at)
+    
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ===================================
+-- SEED DATA: Default Complaint Categories
+-- ===================================
+INSERT INTO complaint_category_master 
+    (category_name_th, category_name_en, category_name_my, description_th, description_en, description_my, is_active) 
+VALUES
+    ('การล่วงละเมิดทางเพศ', 'Sexual Harassment', 'လိင်ပိုင်းဆိုင်ရာ နှောင့်ယှက်ခြင်း', 
+     'การกระทำที่ไม่เหมาะสมทางเพศในที่ทำงาน', 'Inappropriate sexual behavior in workplace', 
+     'အလုပ်ခွင်တွင် မသင့်လျော်သော လိင်ပိုင်းဆိုင်ရာ အပြုအမူ', 1),
+    
+    ('การใช้อำนาจในทางที่ผิด', 'Abuse of Power', 'အာဏာ အလွဲသုံးစား', 
+     'การใช้ตำแหน่งหน้าที่ในทางที่ไม่เหมาะสม', 'Misuse of authority or position', 
+     'ရာထူး သို့မဟုတ် အာဏာကို မသင့်လျော်စွာ အသုံးပြုခြင်း', 1),
+    
+    ('การเลือกปฏิบัติ', 'Discrimination', 'ခွဲခြားဆက်ဆံမှု', 
+     'การปฏิบัติที่ไม่เป็นธรรมต่อบุคคลหรือกลุ่มบุคคล', 'Unfair treatment based on personal characteristics', 
+     'ကိုယ်ရေးကိုယ်တာ လက္ခဏာများကို အခြေခံ၍ မတရားသော ဆက်ဆံမှု', 1),
+    
+    ('สภาพแวดล้อมการทำงาน', 'Work Environment', 'အလုပ်ပတ်ဝန်းကျင်', 
+     'ปัญหาเกี่ยวกับความปลอดภัย สุขอนามัย หรือสภาพแวดล้อมในการทำงาน', 
+     'Safety, health, or environmental concerns', 
+     'ဘေးကင်းရေး၊ ကျန်းမာရေး သို့မဟုတ် ပတ်ဝန်းကျင် စိုးရိမ်ပူပန်မှုများ', 1),
+    
+    ('ความขัดแย้งระหว่างเพื่อนร่วมงาน', 'Workplace Conflict', 'လုပ်ဖော်ကိုင်ဖက်များကြား ပဋိပက္ခ', 
+     'ความขัดแย้งหรือปัญหาระหว่างพนักงานด้วยกัน', 'Conflicts or disputes between employees', 
+     'ဝန်ထမ်းများကြား ပဋိပက္ခများ သို့မဟုတ် အငြင်းပွားမှုများ', 1),
+    
+    ('ค่าตอบแทนและสวัสดิการ', 'Compensation & Benefits', 'လစာနှင့် အကျိုးခံစားခွင့်များ', 
+     'ปัญหาเกี่ยวกับเงินเดือน โบนัส หรือสวัสดิการ', 'Issues regarding salary, bonus, or benefits', 
+     'လစာ၊ ဆုကြေး သို့မဟုတ် အကျိုးခံစားခွင့်များနှင့် ပတ်သက်သော ပြဿနာများ', 1),
+    
+    ('การทุจริตและความไม่ซื่อสัตย์', 'Fraud & Dishonesty', 'လိမ်လည်မှုနှင့် ရိုးသားမှုမရှိခြင်း', 
+     'การกระทำทุจริต การโกงหรือการให้ข้อมูลเท็จ', 'Fraudulent activities or dishonest behavior', 
+     'လိမ်လည်လှည့်ဖြားမှု လုပ်ရပ်များ သို့မဟုတ် ရိုးသားမှုမရှိသော အပြုအမူ', 1),
+    
+    ('การละเมิดนโยบายบริษัท', 'Policy Violation', 'ကုမ္ပဏီမူဝါဒ ချိုးဖောက်မှု', 
+     'การฝ่าฝืนกฎระเบียบหรือนโยบายของบริษัท', 'Violation of company policies or regulations', 
+     'ကုမ္ပဏီမူဝါဒများ သို့မဟုတ် စည်းမျဉ်းများကို ချိုးဖောက်ခြင်း', 1),
+    
+    ('อื่นๆ', 'Other', 'အခြား', 
+     'เรื่องร้องเรียนอื่นๆ ที่ไม่อยู่ในหมวดหมู่ข้างต้น', 'Other complaints not listed above', 
+     'အထက်ဖော်ပြပါ စာရင်းတွင် မပါဝင်သော အခြားတိုင်ကြားချက်များ', 1);
+
+-- ===================================
+-- INDICES FOR PERFORMANCE
+-- ===================================
+CREATE INDEX idx_complaint_status ON complaints(status);
+CREATE INDEX idx_complaint_category ON complaints(category_id);
+CREATE INDEX idx_complaint_created ON complaints(created_at);
+CREATE INDEX idx_complaint_assigned ON complaints(assigned_to_officer_id);
