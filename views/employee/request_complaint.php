@@ -1,8 +1,9 @@
 <?php
 /**
- * Request Complaint Page - Anonymous Complaint System
+ * Request Complaint Page - Anonymous Complaint System with View List
  * ✅ Standardized Layout Structure (Matches all request forms)
  * ✅ Anonymous submission (SHA256 hash employee_id)
+ * ✅ Tab view: Submit New Complaint / View My Complaints
  * ✅ Improved Spacing and Typography
  * Supports: Thai (ไทย), English (EN), Myanmar (မြန်မာ)
  */
@@ -10,7 +11,6 @@ require_once __DIR__ . '/../../config/db_config.php';
 require_once __DIR__ . '/../../controllers/AuthController.php';
 require_once __DIR__ . '/../../models/Employee.php';
 require_once __DIR__ . '/../../db/Localization.php';
-
 AuthController::requireAuth();
 
 // Get current settings from session
@@ -30,6 +30,8 @@ $translations = [
     'th' => [
         'page_title' => 'ส่งคำร้องเรียน',
         'page_subtitle' => 'ส่งคำร้องเรียนของคุณแบบไม่เปิดเผยตัวตน',
+        'tab_submit_complaint' => 'ส่งคำร้องเรียนใหม่',
+        'tab_my_complaints' => 'รายการคำร้องเรียนของฉัน',
         'employee_information' => 'ข้อมูลพนักงาน',
         'employee_id' => 'รหัสพนักงาน',
         'name' => 'ชื่อ',
@@ -56,14 +58,27 @@ $translations = [
         'description_too_short' => 'รายละเอียดต้องมีอย่างน้อย 20 ตัวอักษร',
         'confirm_submit' => 'คุณแน่ใจว่าต้องการส่งคำร้องเรียนนี้หรือไม่?\n\nคำร้องเรียนจะถูกส่งแบบไม่เปิดเผยตัวตนและไม่สามารถแก้ไขได้',
         'error_occurred' => 'เกิดข้อผิดพลาด:',
-        'view_my_complaints' => 'ดูคำร้องเรียนของฉัน →',
         'failed_to_submit' => 'ล้มเหลวในการส่งคำร้องเรียน',
         'success_submitted' => 'ส่งคำร้องเรียนเรียบร้อยแล้ว',
         'anonymous_badge' => 'ไม่เปิดเผยตัวตน',
+        // For complaints list
+        'no_complaints' => 'ไม่มีคำร้องเรียนใด ๆ',
+        'complaint_no' => 'ลำดับที่',
+        'category' => 'หมวดหมู่',
+        'submitted_date' => 'วันที่ส่ง',
+        'status' => 'สถานะ',
+        'status_new' => 'ใหม่',
+        'status_in_progress' => 'กำลังดำเนิน',
+        'status_completed' => 'เสร็จสิ้น',
+        'status_cancelled' => 'ยกเลิก',
+        'view_details' => 'ดูรายละเอียด',
+        'no_complaints_message' => 'คุณยังไม่ได้ส่งคำร้องเรียนใด ๆ สามารถส่งคำร้องเรียนใหม่ได้จากแท็บด้านบน',
     ],
     'en' => [
         'page_title' => 'Submit Complaint',
         'page_subtitle' => 'Submit your complaint anonymously',
+        'tab_submit_complaint' => 'Submit New Complaint',
+        'tab_my_complaints' => 'My Complaints',
         'employee_information' => 'Employee Information',
         'employee_id' => 'Employee ID',
         'name' => 'Name',
@@ -90,14 +105,27 @@ $translations = [
         'description_too_short' => 'Description must be at least 20 characters',
         'confirm_submit' => 'Are you sure you want to submit this complaint?\n\nThe complaint will be submitted anonymously and cannot be edited.',
         'error_occurred' => 'An error occurred:',
-        'view_my_complaints' => 'View my complaints →',
         'failed_to_submit' => 'Failed to submit complaint',
         'success_submitted' => 'Complaint submitted successfully',
         'anonymous_badge' => 'Anonymous',
+        // For complaints list
+        'no_complaints' => 'No Complaints',
+        'complaint_no' => 'No.',
+        'category' => 'Category',
+        'submitted_date' => 'Submitted Date',
+        'status' => 'Status',
+        'status_new' => 'New',
+        'status_in_progress' => 'In Progress',
+        'status_completed' => 'Completed',
+        'status_cancelled' => 'Cancelled',
+        'view_details' => 'View Details',
+        'no_complaints_message' => 'You have not submitted any complaints yet. You can submit a new complaint from the tab above.',
     ],
     'my' => [
         'page_title' => 'တိုင်ကြားချက်တင်သွင်းမည်',
         'page_subtitle' => 'သင်၏တိုင်ကြားချက်ကို အမည်မဖော်ဘဲ တင်သွင်းမည်',
+        'tab_submit_complaint' => 'တိုင်ကြားချက်သစ်တင်သွင်းမည်',
+        'tab_my_complaints' => 'ကျွန်ုပ်၏တိုင်ကြားချက်များ',
         'employee_information' => 'အလုပ်သမားအချက်အလက်',
         'employee_id' => 'အလုပ်သမားအိုင်ဒီ',
         'name' => 'အမည်',
@@ -124,10 +152,21 @@ $translations = [
         'description_too_short' => 'ဖော်ပြချက်သည် အနည်းဆုံး 20 လက္ခဏာရှိရမည်',
         'confirm_submit' => 'ဤတိုင်ကြားချက်တင်သွင်းရန် သေချာပါသလား?\n\nတိုင်ကြားချက်ကို အမည်မဖော်ဘဲ တင်သွင်းမည်ဖြစ်ပြီး ပြင်ဆင်၍မရနိုင်ပါ',
         'error_occurred' => 'အမှားအယွင်းတစ်ခုဖြစ်ပေါ်ခဲ့သည်:',
-        'view_my_complaints' => 'ကျွန်ုပ်၏တိုင်ကြားချက်များကြည့်မည် →',
         'failed_to_submit' => 'တိုင်ကြားချက်တင်သွင်းခြင်း မအောင်မြင်ပါ',
         'success_submitted' => 'တိုင်ကြားချက်တင်သွင်းပြီးပါပြီ',
         'anonymous_badge' => 'အမည်မဖော်',
+        // For complaints list
+        'no_complaints' => 'တိုင်ကြားချက်မရှိ',
+        'complaint_no' => 'အမှတ်စဉ်',
+        'category' => 'အမျိုးအစား',
+        'submitted_date' => 'တင်သွင်းသည့်နေ့',
+        'status' => 'အခြေအနေ',
+        'status_new' => 'သစ်',
+        'status_in_progress' => 'ဆောင်ရွက်နေသည်',
+        'status_completed' => 'ပြီးမြောက်သည်',
+        'status_cancelled' => 'ပယ်ဖျက်သည်',
+        'view_details' => 'အသေးစိတ်ကြည့်မည်',
+        'no_complaints_message' => 'သင်သည် တိုင်ကြားချက်မထည့်သွင်းရသေးပါ။ အထက်ရှိ တဲဘ်မှ တိုင်ကြားချက်သစ်တင်သွင်းနိုင်ပါသည်။',
     ]
 ];
 
@@ -159,7 +198,6 @@ $stmt = $conn->prepare($sql);
 if (!$stmt) {
     die("Database error: " . $conn->error);
 }
-
 $stmt->bind_param("s", $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -173,9 +211,6 @@ if (!$employee) {
 
 // Fetch active complaint categories
 $categories = [];
-$cat_name_field = "category_name_{$current_lang}";
-$desc_field = "description_{$current_lang}";
-
 $sql = "SELECT category_id, 
         category_name_th, category_name_en, category_name_my,
         description_th, description_en, description_my
@@ -187,8 +222,36 @@ while ($row = $result->fetch_assoc()) {
     $categories[] = $row;
 }
 
+// ========== FETCH USER'S COMPLAINTS ==========
+$user_complaints = [];
+$complainer_id_hash = hash('sha256', $user_id);
+$sql = "SELECT 
+    c.complaint_id,
+    c.complainer_id_hash,
+    c.category_id,
+    ccm.category_name_th, ccm.category_name_en, ccm.category_name_my,
+    c.subject,
+    c.status,
+    c.created_at
+FROM complaints c
+LEFT JOIN complaint_category_master ccm ON c.category_id = ccm.category_id
+WHERE c.complainer_id_hash = ?
+ORDER BY c.created_at DESC";
+
+$stmt = $conn->prepare($sql);
+if ($stmt) {
+    $stmt->bind_param("s", $complainer_id_hash);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    while ($row = $result->fetch_assoc()) {
+        $user_complaints[] = $row;
+    }
+    $stmt->close();
+}
+
 $message = '';
 $message_type = '';
+$active_tab = $_GET['tab'] ?? 'submit';
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -265,8 +328,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Commit transaction
             $conn->commit();
             
-            // Redirect to my complaints page
-            header("Location: " . BASE_PATH . "/views/employee/my_complaints.php?success=1");
+            // Redirect to show the list
+            header("Location: " . BASE_PATH . "/views/employee/request_complaint.php?tab=list&success=1");
             exit();
             
         } catch (Exception $e) {
@@ -284,22 +347,53 @@ $display_name = $employee['full_name'] ?? 'Unknown';
 
 include __DIR__ . '/../../includes/header.php';
 include __DIR__ . '/../../includes/sidebar.php';
+
+// Helper function to get status color and label
+function getStatusBadge($status, $t, $is_dark) {
+    $statuses = [
+        'New' => ['color' => 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200', 'label' => $t['status_new']],
+        'In Progress' => ['color' => 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200', 'label' => $t['status_in_progress']],
+        'Complete' => ['color' => 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200', 'label' => $t['status_completed']],
+        'Cancelled' => ['color' => 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200', 'label' => $t['status_cancelled']],
+    ];
+    
+    $info = $statuses[$status] ?? $statuses['New'];
+    return $info;
+}
+
+// Helper function to get category name in current language
+function getCategoryName($category_row, $current_lang) {
+    if ($current_lang === 'en') {
+        return $category_row['category_name_en'] ?? $category_row['category_name_th'];
+    } elseif ($current_lang === 'my') {
+        return $category_row['category_name_my'] ?? $category_row['category_name_th'];
+    }
+    return $category_row['category_name_th'];
+}
 ?>
 
 <div class="lg:ml-64">
     <div class="container mx-auto px-4 py-6 max-w-4xl">
         
-        <!-- Error Alert Container -->
-        <div id="alertContainer">
-            <?php if ($message): ?>
-                <div class="mb-6 p-4 bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 text-red-800 dark:text-red-200 rounded-lg flex items-start gap-3">
-                    <svg class="w-6 h-6 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    <div class="flex-1"><?php echo htmlspecialchars($message); ?></div>
-                </div>
-            <?php endif; ?>
-        </div>
+        <!-- Success Alert -->
+        <?php if (isset($_GET['success'])): ?>
+            <div class="mb-6 p-4 bg-green-50 dark:bg-green-900 border border-green-200 dark:border-green-700 text-green-800 dark:text-green-200 rounded-lg flex items-start gap-3">
+                <svg class="w-6 h-6 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <div class="flex-1"><?php echo $t['success_submitted']; ?></div>
+            </div>
+        <?php endif; ?>
+
+        <!-- Error Alert -->
+        <?php if ($message): ?>
+            <div class="mb-6 p-4 bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 text-red-800 dark:text-red-200 rounded-lg flex items-start gap-3">
+                <svg class="w-6 h-6 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <div class="flex-1"><?php echo htmlspecialchars($message); ?></div>
+            </div>
+        <?php endif; ?>
 
         <!-- Page Header -->
         <div class="mb-8 bg-gradient-to-r from-red-600 to-pink-600 rounded-lg shadow-md p-6">
@@ -319,7 +413,35 @@ include __DIR__ . '/../../includes/sidebar.php';
             </div>
         </div>
 
-        <!-- Main Form Card -->
+        <!-- Tab Navigation -->
+        <div class="mb-8 flex gap-2 border-b <?php echo $border_class; ?> overflow-x-auto">
+            <a href="?tab=submit" class="px-6 py-3 font-medium border-b-2 transition whitespace-nowrap 
+                <?php echo ($active_tab === 'submit') 
+                    ? 'border-red-600 text-red-600' 
+                    : ($is_dark ? 'border-transparent text-gray-400 hover:text-gray-300' : 'border-transparent text-gray-600 hover:text-gray-900'); ?>">
+                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                </svg>
+                <?php echo $t['tab_submit_complaint']; ?>
+            </a>
+            <a href="?tab=list" class="px-6 py-3 font-medium border-b-2 transition whitespace-nowrap 
+                <?php echo ($active_tab === 'list') 
+                    ? 'border-red-600 text-red-600' 
+                    : ($is_dark ? 'border-transparent text-gray-400 hover:text-gray-300' : 'border-transparent text-gray-600 hover:text-gray-900'); ?>">
+                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                </svg>
+                <?php echo $t['tab_my_complaints']; ?>
+                <?php if (count($user_complaints) > 0): ?>
+                    <span class="ml-2 px-2 py-1 bg-red-600 text-white text-xs font-bold rounded-full">
+                        <?php echo count($user_complaints); ?>
+                    </span>
+                <?php endif; ?>
+            </a>
+        </div>
+
+        <!-- Tab: Submit Complaint Form -->
+        <?php if ($active_tab === 'submit'): ?>
         <div class="<?php echo $card_bg; ?> rounded-lg shadow-md border <?php echo $border_class; ?> p-6">
             <form method="POST" action="" id="complaintForm" enctype="multipart/form-data">
                 
@@ -368,10 +490,9 @@ include __DIR__ . '/../../includes/sidebar.php';
                         class="w-full px-4 py-3 border rounded-lg <?php echo $input_class; ?> focus:outline-none focus:ring-2 focus:ring-red-500">
                         <option value=""><?php echo $t['select_category']; ?></option>
                         <?php foreach ($categories as $cat): 
-                            $cat_name = $cat["category_name_{$current_lang}"] ?? $cat['category_name_th'];
-                            $cat_desc = $cat["description_{$current_lang}"] ?? '';
+                            $cat_name = getCategoryName($cat, $current_lang);
                         ?>
-                            <option value="<?php echo $cat['category_id']; ?>" title="<?php echo htmlspecialchars($cat_desc); ?>">
+                            <option value="<?php echo $cat['category_id']; ?>">
                                 <?php echo htmlspecialchars($cat_name); ?>
                             </option>
                         <?php endforeach; ?>
@@ -405,7 +526,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                         placeholder="<?php echo $t['description_placeholder']; ?>"
                         class="w-full px-4 py-3 border rounded-lg <?php echo $input_class; ?> focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"></textarea>
                     <p class="text-xs <?php echo $is_dark ? 'text-gray-400' : 'text-gray-500'; ?> mt-2">
-                        <span id="charCount">0</span> / 20 characters minimum
+                        <span id="charCount">0</span> / 20 <?php echo $t['required']; ?>
                     </p>
                 </div>
 
@@ -457,6 +578,78 @@ include __DIR__ . '/../../includes/sidebar.php';
                 </div>
             </form>
         </div>
+
+        <!-- Tab: My Complaints List -->
+        <?php else: ?>
+        <div class="<?php echo $card_bg; ?> rounded-lg shadow-md border <?php echo $border_class; ?> p-6">
+            <?php if (empty($user_complaints)): ?>
+                <!-- No Complaints Message -->
+                <div class="py-12 text-center">
+                    <svg class="w-16 h-16 mx-auto <?php echo $is_dark ? 'text-gray-600' : 'text-gray-300'; ?> mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <h3 class="text-xl font-bold <?php echo $text_class; ?> mb-2"><?php echo $t['no_complaints']; ?></h3>
+                    <p class="<?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?> mb-6"><?php echo $t['no_complaints_message']; ?></p>
+                    <a href="?tab=submit" class="inline-block px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-medium">
+                        <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                        </svg>
+                        <?php echo $t['tab_submit_complaint']; ?>
+                    </a>
+                </div>
+            <?php else: ?>
+                <!-- Complaints Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b-2 <?php echo $border_class; ?>">
+                                <th class="text-left py-4 px-4 font-bold <?php echo $text_class; ?>"><?php echo $t['complaint_no']; ?></th>
+                                <th class="text-left py-4 px-4 font-bold <?php echo $text_class; ?>"><?php echo $t['category']; ?></th>
+                                <th class="text-left py-4 px-4 font-bold <?php echo $text_class; ?>"><?php echo $t['subject']; ?></th>
+                                <th class="text-left py-4 px-4 font-bold <?php echo $text_class; ?>"><?php echo $t['submitted_date']; ?></th>
+                                <th class="text-left py-4 px-4 font-bold <?php echo $text_class; ?>"><?php echo $t['status']; ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($user_complaints as $index => $complaint): 
+                                $category_name = getCategoryName($complaint, $current_lang);
+                                $status_info = getStatusBadge($complaint['status'], $t, $is_dark);
+                                $submitted_date = date('d/m/Y H:i', strtotime($complaint['created_at']));
+                            ?>
+                            <tr class="border-b <?php echo $border_class; ?> hover:<?php echo $is_dark ? 'bg-gray-700' : 'bg-gray-50'; ?> transition">
+                                <td class="py-4 px-4 <?php echo $text_class; ?>"><?php echo ($index + 1); ?></td>
+                                <td class="py-4 px-4 <?php echo $text_class; ?>"><?php echo htmlspecialchars($category_name); ?></td>
+                                <td class="py-4 px-4 <?php echo $text_class; ?> max-w-xs truncate" title="<?php echo htmlspecialchars($complaint['subject']); ?>">
+                                    <?php echo htmlspecialchars($complaint['subject']); ?>
+                                </td>
+                                <td class="py-4 px-4 <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?>"><?php echo $submitted_date; ?></td>
+                                <td class="py-4 px-4">
+                                    <span class="px-3 py-1 rounded-full text-sm font-semibold <?php echo $status_info['color']; ?>">
+                                        <?php echo $status_info['label']; ?>
+                                    </span>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Actions -->
+                <div class="mt-6 flex flex-col md:flex-row gap-4">
+                    <a href="?tab=submit" class="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-medium text-center">
+                        <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                        </svg>
+                        <?php echo $t['tab_submit_complaint']; ?>
+                    </a>
+                    <a href="<?php echo BASE_PATH; ?>/index.php" class="flex-1 px-6 py-3 border rounded-lg <?php echo $border_class; ?> <?php echo $text_class; ?> hover:<?php echo $is_dark ? 'bg-gray-700' : 'bg-gray-50'; ?> transition font-medium text-center">
+                        <?php echo $t['cancel']; ?>
+                    </a>
+                </div>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+
     </div>
 </div>
 
@@ -464,6 +657,7 @@ include __DIR__ . '/../../includes/sidebar.php';
 
 <script>
     const t = <?php echo json_encode($t); ?>;
+    const currentLang = '<?php echo $current_lang; ?>';
     
     // Character counter
     const descriptionField = document.getElementById('description');

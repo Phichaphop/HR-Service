@@ -1,0 +1,50 @@
+[17-Nov-2025 22:07:26 Asia/Bangkok] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'complainer_id_plain' in 'where clause' in D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php:104
+Stack trace:
+#0 D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php(104): mysqli->prepare('SELECT * FROM c...')
+#1 {main}
+  thrown in D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php on line 104
+[17-Nov-2025 22:07:27 Asia/Bangkok] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'complainer_id_plain' in 'where clause' in D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php:104
+Stack trace:
+#0 D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php(104): mysqli->prepare('SELECT * FROM c...')
+#1 {main}
+  thrown in D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php on line 104
+[17-Nov-2025 22:07:27 Asia/Bangkok] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'complainer_id_plain' in 'where clause' in D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php:104
+Stack trace:
+#0 D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php(104): mysqli->prepare('SELECT * FROM c...')
+#1 {main}
+  thrown in D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php on line 104
+[17-Nov-2025 22:07:28 Asia/Bangkok] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'complainer_id_plain' in 'where clause' in D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php:104
+Stack trace:
+#0 D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php(104): mysqli->prepare('SELECT * FROM c...')
+#1 {main}
+  thrown in D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php on line 104
+[17-Nov-2025 22:07:28 Asia/Bangkok] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'complainer_id_plain' in 'where clause' in D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php:104
+Stack trace:
+#0 D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php(104): mysqli->prepare('SELECT * FROM c...')
+#1 {main}
+  thrown in D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php on line 104
+[17-Nov-2025 22:07:28 Asia/Bangkok] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'complainer_id_plain' in 'where clause' in D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php:104
+Stack trace:
+#0 D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php(104): mysqli->prepare('SELECT * FROM c...')
+#1 {main}
+  thrown in D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php on line 104
+[17-Nov-2025 22:07:28 Asia/Bangkok] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'complainer_id_plain' in 'where clause' in D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php:104
+Stack trace:
+#0 D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php(104): mysqli->prepare('SELECT * FROM c...')
+#1 {main}
+  thrown in D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php on line 104
+[17-Nov-2025 22:07:28 Asia/Bangkok] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'complainer_id_plain' in 'where clause' in D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php:104
+Stack trace:
+#0 D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php(104): mysqli->prepare('SELECT * FROM c...')
+#1 {main}
+  thrown in D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php on line 104
+[17-Nov-2025 22:07:28 Asia/Bangkok] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'complainer_id_plain' in 'where clause' in D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php:104
+Stack trace:
+#0 D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php(104): mysqli->prepare('SELECT * FROM c...')
+#1 {main}
+  thrown in D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php on line 104
+[17-Nov-2025 22:39:47 Asia/Bangkok] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'complainer_id_plain' in 'where clause' in D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php:104
+Stack trace:
+#0 D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php(104): mysqli->prepare('SELECT * FROM c...')
+#1 {main}
+  thrown in D:\Xampp\htdocs\HR-Service\views\employee\request_complaint.php on line 104

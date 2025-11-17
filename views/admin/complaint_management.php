@@ -1,14 +1,9 @@
 <?php
 /**
- * Unified Complaint Management - ALL-IN-ONE ✅
+ * Unified Complaint Management - ALL-IN-ONE ✅ FIXED
  * File: /views/admin/complaint_management.php
- * UPDATED: Removed icon_class field completely
- * Features:
- * ✅ API endpoints รวมอยู่ในไฟล์เดียว
- * ✅ Handles: view all complaints, update status, respond, manage categories
- * ✅ Full Dark Mode Support
- * ✅ Responsive Design - Mobile First
- * ✅ Officer/Admin Access Only
+ * UPDATED: Removed duplicate viewComplaintDetail function
+ * FIXED: View detail button now works properly
  */
 require_once __DIR__ . '/../../config/db_config.php';
 require_once __DIR__ . '/../../controllers/AuthController.php';
@@ -96,7 +91,7 @@ if ($is_api_request) {
     }
     
     // ============================================================
-    // API: Get Complaint Detail
+    // API: Get Complaint Detail - FIXED
     // ============================================================
     if ($api_action === 'get_complaint_detail') {
         $complaint_id = intval($_GET['complaint_id'] ?? 0);
@@ -118,9 +113,18 @@ if ($is_api_request) {
             LEFT JOIN employees e ON c.assigned_to_officer_id = e.employee_id
             WHERE c.complaint_id = ?
         ");
+        
+        if (!$stmt) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Prepare failed: ' . $conn->error]);
+            exit();
+        }
+        
         $stmt->bind_param("i", $complaint_id);
         $stmt->execute();
-        $complaint = $stmt->get_result()->fetch_assoc();
+        $result = $stmt->get_result();
+        $complaint = $result->fetch_assoc();
+        $stmt->close();
         
         if (!$complaint) {
             http_response_code(404);
@@ -138,13 +142,19 @@ if ($is_api_request) {
             WHERE r.complaint_id = ?
             ORDER BY r.created_at ASC
         ");
-        $stmt->bind_param("i", $complaint_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
         
-        $replies = [];
-        while ($row = $result->fetch_assoc()) {
-            $replies[] = $row;
+        if ($stmt) {
+            $stmt->bind_param("i", $complaint_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            $replies = [];
+            while ($row = $result->fetch_assoc()) {
+                $replies[] = $row;
+            }
+            $stmt->close();
+        } else {
+            $replies = [];
         }
         
         // Get activity log
@@ -157,13 +167,19 @@ if ($is_api_request) {
             WHERE l.complaint_id = ?
             ORDER BY l.created_at DESC
         ");
-        $stmt->bind_param("i", $complaint_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
         
-        $logs = [];
-        while ($row = $result->fetch_assoc()) {
-            $logs[] = $row;
+        if ($stmt) {
+            $stmt->bind_param("i", $complaint_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            $logs = [];
+            while ($row = $result->fetch_assoc()) {
+                $logs[] = $row;
+            }
+            $stmt->close();
+        } else {
+            $logs = [];
         }
         
         http_response_code(200);
@@ -173,7 +189,6 @@ if ($is_api_request) {
             'replies' => $replies,
             'logs' => $logs
         ]);
-        $stmt->close();
         $conn->close();
         exit();
     }
@@ -333,7 +348,7 @@ if ($is_api_request) {
     }
     
     // ============================================================
-    // API: Save Category (Admin Only) - UPDATED: Removed icon_class
+    // API: Save Category (Admin Only)
     // ============================================================
     if ($api_action === 'save_category') {
         if ($user_role !== 'admin') {
@@ -506,6 +521,9 @@ $texts = [
         'replies' => 'การตอบกลับ',
         'write_reply' => 'เขียนคำตอบกลับ',
         'send' => 'ส่ง',
+        'description_th' => 'รายละเอียด (ไทย)',
+        'description_en' => 'รายละเอียด (English)',
+        'description_my' => 'รายละเอียด (Myanmar)',
     ],
     'en' => [
         'page_title' => 'Complaint Management',
@@ -557,12 +575,16 @@ $texts = [
         'replies' => 'Replies',
         'write_reply' => 'Write reply',
         'send' => 'Send',
+        'description_th' => 'Description (Thai)',
+        'description_en' => 'Description (English)',
+        'description_my' => 'Description (Myanmar)',
     ]
 ];
 
 $t = $texts[$current_lang] ?? $texts['th'];
 
 $conn = getDbConnection();
+
 // Get categories for filter
 $categories = [];
 $result = $conn->query("SELECT * FROM complaint_category_master ORDER BY category_id");
@@ -636,7 +658,7 @@ include __DIR__ . '/../../includes/sidebar.php';
             </div>
         </div>
 
-        <!-- ============ TAB 2: CATEGORIES (Admin Only) - UPDATED: Removed icon column ============ -->
+        <!-- ============ TAB 2: CATEGORIES (Admin Only) ============ -->
         <?php if ($user_role === 'admin'): ?>
         <div id="categories-section" class="tab-content hidden <?php echo $card_bg; ?> rounded-b-lg shadow-lg p-6 border <?php echo $border_class; ?>">
             <div class="flex justify-between items-center mb-6 pb-6 border-b <?php echo $border_class; ?>">
@@ -649,7 +671,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                     <?php echo $t['add_category']; ?>
                 </button>
             </div>
-
             <div class="overflow-x-auto">
                 <table class="w-full">
                     <thead class="<?php echo $is_dark ? 'bg-gray-700' : 'bg-gray-50'; ?> border-b <?php echo $border_class; ?>">
@@ -713,16 +734,16 @@ include __DIR__ . '/../../includes/sidebar.php';
     </div>
 </div>
 
-<!-- Modal: View Complaint Detail -->
-<div id="detailModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-    <div class="<?php echo $card_bg; ?> rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border <?php echo $border_class; ?>">
+<!-- Modal: View Complaint Detail - FIXED -->
+<div id="detailModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="<?php echo $card_bg; ?> rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border <?php echo $border_class; ?> my-8">
         <div id="detailContent">
             <!-- Will be populated by JavaScript -->
         </div>
     </div>
 </div>
 
-<!-- Modal: Add/Edit Category - UPDATED: Removed icon input -->
+<!-- Modal: Add/Edit Category -->
 <div id="categoryModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
     <div class="<?php echo $card_bg; ?> rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border <?php echo $border_class; ?>">
         <div class="p-6">
@@ -833,6 +854,9 @@ async function loadComplaints() {
             allComplaints = data.complaints;
             updateStats();
             filterComplaints(currentFilter);
+        } else {
+            console.error('API Error:', data.message);
+            showToast('Failed to load complaints: ' + data.message, 'error');
         }
     } catch (error) {
         console.error('Error loading complaints:', error);
@@ -884,7 +908,7 @@ function filterComplaints(filter) {
     renderComplaints(filtered);
 }
 
-// Render complaints - UPDATED: Removed icon display
+// Render complaints
 function renderComplaints(complaints) {
     const container = document.getElementById('complaintsContainer');
     
@@ -928,13 +952,13 @@ function renderComplaints(complaints) {
             <div class="${IS_DARK ? 'bg-gray-700' : 'bg-gray-50'} border ${IS_DARK ? 'border-gray-600' : 'border-gray-200'} rounded-lg p-6 hover:shadow-lg transition">
                 <div class="flex justify-between items-start mb-4">
                     <div class="flex-1">
-                        <div class="flex items-center gap-3 mb-2">
-                            <span class="text-sm ${IS_DARK ? 'text-gray-400' : 'text-gray-600'}">${complaint[catNameKey]}</span>
+                        <div class="flex items-center gap-3 mb-2 flex-wrap">
+                            <span class="text-sm ${IS_DARK ? 'text-gray-400' : 'text-gray-600'}">${complaint[catNameKey] || 'Unknown'}</span>
                             <span class="px-3 py-1 rounded-full text-xs font-semibold ${statusColor}">${statusLabel}</span>
                             <span class="px-2 py-1 bg-gray-200 dark:bg-gray-600 rounded text-xs">${TEXTS.anonymous}</span>
                         </div>
-                        <h3 class="${IS_DARK ? 'text-white' : 'text-gray-900'} text-lg font-bold">${complaint.subject}</h3>
-                        <p class="${IS_DARK ? 'text-gray-400' : 'text-gray-600'} mt-2 line-clamp-2">${complaint.description}</p>
+                        <h3 class="${IS_DARK ? 'text-white' : 'text-gray-900'} text-lg font-bold">${complaint.subject || 'No Subject'}</h3>
+                        <p class="${IS_DARK ? 'text-gray-400' : 'text-gray-600'} mt-2 line-clamp-2">${complaint.description || 'No Description'}</p>
                     </div>
                 </div>
                 
@@ -958,34 +982,33 @@ function renderComplaints(complaints) {
     container.innerHTML = html;
 }
 
-// View complaint detail - UPDATED: Removed icon from display
-function viewComplaintDetail(complaintId) {
-    // Implementation same as before but without icon display
-    // Use existing code from previous version
-}
-
+// ✅ FIXED: Removed duplicate function - viewComplaintDetail is now ONLY defined once
 async function viewComplaintDetail(complaintId) {
     try {
+        console.log('Loading detail for complaint:', complaintId);
         const response = await fetch(API_BASE + `?api_action=get_complaint_detail&complaint_id=${complaintId}`);
         const data = await response.json();
+        
+        console.log('Response:', data);
         
         if (data.success) {
             renderComplaintDetail(data);
             document.getElementById('detailModal').classList.remove('hidden');
         } else {
-            showToast(data.message, 'error');
+            console.error('API Error:', data.message);
+            showToast(data.message || 'Failed to load complaint', 'error');
         }
     } catch (error) {
         console.error('Error loading detail:', error);
-        showToast('Failed to load detail', 'error');
+        showToast('Failed to load complaint details', 'error');
     }
 }
 
-// Render complaint detail - UPDATED: Removed icon from display
+// Render complaint detail
 function renderComplaintDetail(data) {
     const complaint = data.complaint;
-    const replies = data.replies;
-    const logs = data.logs;
+    const replies = data.replies || [];
+    const logs = data.logs || [];
     const catNameKey = `category_name_${LANG}`;
     
     const statusLabels = {
@@ -1001,9 +1024,9 @@ function renderComplaintDetail(data) {
         <div class="p-6">
             <div class="flex justify-between items-start mb-6">
                 <div>
-                    <h3 class="text-2xl font-bold ${IS_DARK ? 'text-white' : 'text-gray-900'}">${complaint.subject}</h3>
+                    <h3 class="text-2xl font-bold ${IS_DARK ? 'text-white' : 'text-gray-900'}">${complaint.subject || 'No Subject'}</h3>
                     <p class="${IS_DARK ? 'text-gray-400' : 'text-gray-600'} mt-2">
-                        ${complaint[catNameKey]} · ${formatDate(complaint.created_at)}
+                        ${complaint[catNameKey] || 'Unknown Category'} · ${formatDate(complaint.created_at)}
                     </p>
                 </div>
                 <button onclick="closeDetailModal()" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
@@ -1016,7 +1039,7 @@ function renderComplaintDetail(data) {
             <div class="space-y-6">
                 <!-- Description -->
                 <div class="${IS_DARK ? 'bg-gray-700' : 'bg-gray-50'} p-4 rounded-lg">
-                    <p class="${IS_DARK ? 'text-gray-300' : 'text-gray-700'}">${complaint.description}</p>
+                    <p class="${IS_DARK ? 'text-gray-300' : 'text-gray-700'}">${complaint.description || 'No Description'}</p>
                 </div>
                 
                 <!-- Status Update Form -->
@@ -1051,7 +1074,7 @@ function renderComplaintDetail(data) {
                 <div class="${IS_DARK ? 'bg-gray-700' : 'bg-green-50'} border-l-4 border-green-500 p-4 rounded">
                     <h4 class="font-semibold ${IS_DARK ? 'text-white' : 'text-green-900'} mb-2">${TEXTS.response}</h4>
                     <p class="${IS_DARK ? 'text-gray-300' : 'text-green-800'}">${complaint.officer_response}</p>
-                    ${complaint.officer_remarks ? `<p class="text-sm ${IS_DARK ? 'text-gray-400' : 'text-green-600'} mt-2">${TEXTS.remarks}: ${complaint.officer_remarks}</p>` : ''}
+                    ${complaint.officer_remarks ? `<p class="text-sm ${IS_DARK ? 'text-gray-400' : 'text-green-600'} mt-2"><strong>${TEXTS.remarks}:</strong> ${complaint.officer_remarks}</p>` : ''}
                 </div>
                 `}
                 
@@ -1181,7 +1204,7 @@ async function addReply(event, complaintId) {
     }
 }
 
-// Category management functions - UPDATED: Removed icon handling
+// Category management functions
 function openCategoryModal() {
     document.getElementById('categoryModalTitle').textContent = TEXTS.add_category;
     document.getElementById('categoryForm').reset();
@@ -1281,8 +1304,8 @@ function formatDate(dateString) {
     });
 }
 
-function showToast(message, type) {
-    alert(message); // Implement your toast system
+function showToast(message, type = 'info') {
+    alert(message); // Replace with your toast system
 }
 </script>
 
