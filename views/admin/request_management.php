@@ -1,36 +1,34 @@
 <?php
 /**
- * Request Management Page - UPDATED VERSION WITH ID CARD GENERATION
+ * Request Management Page - UPDATED WITH RATING DISPLAY
+ * ✅ Added satisfaction_score display in table
+ * ✅ Added average rating statistics card
+ * ✅ Added rating display in detail modal
+ * ✅ Shows star ratings and feedback
  * Supports: Thai (ไทย), English (EN), Myanmar (မြန်မာ)
  * Features: Multi-language UI, Dark Mode, Mobile Responsive
  * Admin/Officer only - Manage all service requests
- * 
- * NEW FEATURES:
- * 1. Added ID Card generation button for id_card_requests
- * 2. Display employee photo in modal
- * 3. One-click ID card generation
- * 
- * FIXED:
- * 1. Photo display in modal (JavaScript template literals)
- * 2. Photo upload form rendering
- * 3. SVG escaping issues (use DEFAULT_AVATAR_SVG constant)
  */
 require_once __DIR__ . '/../../config/db_config.php';
 require_once __DIR__ . '/../../controllers/AuthController.php';
 require_once __DIR__ . '/../../db/Localization.php';
+
 // Require admin or officer role
 AuthController::requireRole(['admin', 'officer']);
+
 // Get current settings from session
 $current_lang = $_SESSION['language'] ?? 'th';
 $theme_mode = $_SESSION['theme_mode'] ?? 'light';
 $is_dark = ($theme_mode === 'dark');
 $user_id = $_SESSION['user_id'] ?? '';
+
 // Theme colors based on dark mode
 $card_bg = $is_dark ? 'bg-gray-800' : 'bg-white';
 $text_class = $is_dark ? 'text-white' : 'text-gray-900';
 $bg_class = $is_dark ? 'bg-gray-900' : 'bg-gray-50';
 $border_class = $is_dark ? 'border-gray-700' : 'border-gray-200';
 $input_class = $is_dark ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500';
+
 // Multi-language translations
 $translations = [
     'th' => [
@@ -41,6 +39,7 @@ $translations = [
         'in_progress' => 'กำลังดำเนิน',
         'complete' => 'เสร็จสิ้น',
         'cancelled' => 'ยกเลิก',
+        'avg_rating' => 'คะแนนเฉลี่ย',
         'search' => 'ค้นหา',
         'search_placeholder' => 'รหัสพนักงานหรือชื่อ',
         'status' => 'สถานะ',
@@ -55,6 +54,7 @@ $translations = [
         'employee_name' => 'ชื่อพนักงาน',
         'created' => 'สร้างเมื่อ',
         'handler' => 'ผู้ดำเนิน',
+        'rating' => 'คะแนน',
         'actions' => 'การกระทำ',
         'view_details' => 'ดูรายละเอียด',
         'no_requests' => 'ไม่พบคำขอ',
@@ -86,6 +86,13 @@ $translations = [
         'upload_failed' => 'อัพโหลดล้มเหลว',
         'select_photo' => 'เลือกรูปถ่าย',
         'max_5mb' => 'ไฟล์สูงสุด 5MB',
+        'customer_satisfaction' => 'ความพึงพอใจของลูกค้า',
+        'satisfaction_score' => 'คะแนนความพึงพอใจ',
+        'customer_feedback' => 'ความคิดเห็นจากลูกค้า',
+        'no_rating' => 'ยังไม่มีการให้คะแนน',
+        'no_feedback' => 'ไม่มีความคิดเห็นเพิ่มเติม',
+        'rated_requests' => 'คำขอที่มีคะแนน',
+        'of' => 'จาก',
     ],
     'en' => [
         'page_title' => 'Request Management',
@@ -95,6 +102,7 @@ $translations = [
         'in_progress' => 'In Progress',
         'complete' => 'Complete',
         'cancelled' => 'Cancelled',
+        'avg_rating' => 'Avg Rating',
         'search' => 'Search',
         'search_placeholder' => 'Employee ID or Name',
         'status' => 'Status',
@@ -109,6 +117,7 @@ $translations = [
         'employee_name' => 'Employee Name',
         'created' => 'Created',
         'handler' => 'Handler',
+        'rating' => 'Rating',
         'actions' => 'Actions',
         'view_details' => 'View Details',
         'no_requests' => 'No requests found',
@@ -140,6 +149,13 @@ $translations = [
         'upload_failed' => 'Upload failed',
         'select_photo' => 'Select Photo',
         'max_5mb' => 'Max file size 5MB',
+        'customer_satisfaction' => 'Customer Satisfaction',
+        'satisfaction_score' => 'Satisfaction Score',
+        'customer_feedback' => 'Customer Feedback',
+        'no_rating' => 'Not rated yet',
+        'no_feedback' => 'No additional feedback',
+        'rated_requests' => 'Rated Requests',
+        'of' => 'of',
     ],
     'my' => [
         'page_title' => 'တောင်းခံမှုစီမံခန့်ခွဲမှု',
@@ -149,6 +165,7 @@ $translations = [
         'in_progress' => 'လုပ်ဆောင်နေ',
         'complete' => 'ပြည့်စုံမည်',
         'cancelled' => 'ပယ်ဖျက်ခြင်း',
+        'avg_rating' => 'ပျမ်းမျှအဆင့်',
         'search' => 'ရှာဖွေမည်',
         'search_placeholder' => 'အလုပ်သမားအိုင်ဒီ သို့မဟုတ် အမည်',
         'status' => 'အနေအထား',
@@ -163,6 +180,7 @@ $translations = [
         'employee_name' => 'အလုပ်သမားအမည်',
         'created' => 'ဖန်တီးသည်',
         'handler' => 'အကျင့်တည်ဝတ်ပြုသူ',
+        'rating' => 'အဆင့်',
         'actions' => 'အရေးယူမှုများ',
         'view_details' => 'အသေးစိတ်ကြည့်ရှုမည်',
         'no_requests' => 'တောင်းခံမှုများမတွေ့ရှိ',
@@ -194,12 +212,22 @@ $translations = [
         'upload_failed' => 'တင်မအောင်မြင်ပါ',
         'select_photo' => 'ဓာတ်ပုံရွေးချယ်ပါ',
         'max_5mb' => 'ဖိုင်အများဆုံး 5MB',
+        'customer_satisfaction' => 'ဖောက်သည်စိတ်ကျေနပ်မှု',
+        'satisfaction_score' => 'စိတ်ကျေနပ်မှုအမှတ်',
+        'customer_feedback' => 'ဖောက်သည်အကြံပြုချက်',
+        'no_rating' => 'အဆင့်သတ်မှတ်ထားခြင်းမရှိပါ',
+        'no_feedback' => 'အခြားအကြံပြုချက်မရှိပါ',
+        'rated_requests' => 'အဆင့်သတ်မှတ်ထားသည့်တောင်းခံမှု',
+        'of' => 'မှ',
     ]
 ];
+
 // Get current language strings
 $t = $translations[$current_lang] ?? $translations['th'];
 $page_title = $t['page_title'];
+
 ensure_session_started();
+
 // Get filter parameters
 $status_filter = $_GET['status'] ?? 'all';
 $type_filter = $_GET['type'] ?? 'all';
@@ -207,19 +235,23 @@ $search = $_GET['search'] ?? '';
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $per_page = 20;
 $offset = ($page - 1) * $per_page;
+
 $conn = getDbConnection();
 if (!$conn) {
     die("Database connection failed");
 }
+
 // Build WHERE clause
 $where_conditions = ["1=1"];
 $params = [];
 $types = '';
+
 if ($status_filter !== 'all') {
     $where_conditions[] = "r.status = ?";
     $params[] = $status_filter;
     $types .= 's';
 }
+
 if (!empty($search)) {
     $where_conditions[] = "(r.employee_id LIKE ? OR e.full_name_th LIKE ? OR e.full_name_en LIKE ?)";
     $search_term = '%' . $search . '%';
@@ -228,7 +260,9 @@ if (!empty($search)) {
     $params[] = $search_term;
     $types .= 'sss';
 }
+
 $where_sql = implode(' AND ', $where_conditions);
+
 // Function to get requests from a table
 function getRequests($conn, $table, $type_name, $type_key, $where_sql, $params, $types, $offset, $per_page, $current_lang) {
     $id_column = ($table === 'document_submissions') ? 'submission_id' : 'request_id';
@@ -246,7 +280,8 @@ function getRequests($conn, $table, $type_name, $type_key, $where_sql, $params, 
         r.created_at,
         r.handler_id,
         r.handler_remarks,
-        r.satisfaction_score
+        r.satisfaction_score,
+        r.satisfaction_feedback
     FROM $table r
     LEFT JOIN employees e ON r.employee_id = e.employee_id
     WHERE $where_sql 
@@ -283,6 +318,7 @@ function getRequests($conn, $table, $type_name, $type_key, $where_sql, $params, 
     $stmt->close();
     return $requests;
 }
+
 // Request types configuration
 $request_types = [
     'leave_requests' => ['label_en' => 'Leave Request', 'label_th' => 'คำขอใบลา', 'label_my' => 'အငြိုးပြုစုတောင်းခံမှု'],
@@ -294,6 +330,7 @@ $request_types = [
     'skill_test_requests' => ['label_en' => 'Skill Test Request', 'label_th' => 'คำขอสอบทักษะ', 'label_my' => 'အရည်အချင်းစမ်းသပ်မှုတောင်းခံမှု'],
     'document_submissions' => ['label_en' => 'Document Submission', 'label_th' => 'ลงชื่อส่งเอกสาร', 'label_my' => 'စာ類တင်သွင်းမှု']
 ];
+
 // Get all requests based on type filter
 $all_requests = [];
 if ($type_filter === 'all') {
@@ -309,21 +346,29 @@ if ($type_filter === 'all') {
         $all_requests = getRequests($conn, $type_filter, $type_name, $type_filter, $where_sql, $params, $types, $offset, $per_page, $current_lang);
     }
 }
+
 // Sort by created_at DESC
 usort($all_requests, function($a, $b) {
     return strtotime($b['created_at']) - strtotime($a['created_at']);
 });
+
 // Limit to page size
 $all_requests = array_slice($all_requests, 0, $per_page);
-// Get statistics
+
+// Get statistics including ratings
 $stats = [
     'total' => 0,
     'new' => 0,
     'in_progress' => 0,
     'complete' => 0,
-    'cancelled' => 0
+    'cancelled' => 0,
+    'total_ratings' => 0,
+    'sum_ratings' => 0,
+    'avg_rating' => 0
 ];
+
 foreach ($request_types as $table => $labels) {
+    // Count by status
     $result = $conn->query("SELECT status, COUNT(*) as count FROM $table GROUP BY status");
     if ($result) {
         while ($row = $result->fetch_assoc()) {
@@ -334,8 +379,24 @@ foreach ($request_types as $table => $labels) {
             }
         }
     }
+    
+    // Calculate average rating
+    $rating_result = $conn->query("SELECT COUNT(*) as rated_count, SUM(satisfaction_score) as total_score 
+                                   FROM $table 
+                                   WHERE satisfaction_score IS NOT NULL AND satisfaction_score > 0");
+    if ($rating_result && $rating_row = $rating_result->fetch_assoc()) {
+        $stats['total_ratings'] += $rating_row['rated_count'];
+        $stats['sum_ratings'] += $rating_row['total_score'];
+    }
 }
+
+// Calculate average
+if ($stats['total_ratings'] > 0) {
+    $stats['avg_rating'] = round($stats['sum_ratings'] / $stats['total_ratings'], 2);
+}
+
 $conn->close();
+
 include __DIR__ . '/../../includes/header.php';
 include __DIR__ . '/../../includes/sidebar.php';
 ?>
@@ -401,8 +462,9 @@ include __DIR__ . '/../../includes/sidebar.php';
                     </div>
                 </div>
             </div>
-            <!-- Statistics Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+
+            <!-- Statistics Cards - WITH RATING CARD -->
+            <div class="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
                 <div class="<?php echo $card_bg; ?> p-4 rounded-lg border <?php echo $border_class; ?> shadow-sm">
                     <div class="flex items-center justify-between">
                         <div>
@@ -416,6 +478,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                         </div>
                     </div>
                 </div>
+
                 <div class="<?php echo $card_bg; ?> p-4 rounded-lg border <?php echo $border_class; ?> shadow-sm">
                     <div class="flex items-center justify-between">
                         <div>
@@ -429,6 +492,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                         </div>
                     </div>
                 </div>
+
                 <div class="<?php echo $card_bg; ?> p-4 rounded-lg border <?php echo $border_class; ?> shadow-sm">
                     <div class="flex items-center justify-between">
                         <div>
@@ -442,6 +506,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                         </div>
                     </div>
                 </div>
+
                 <div class="<?php echo $card_bg; ?> p-4 rounded-lg border <?php echo $border_class; ?> shadow-sm">
                     <div class="flex items-center justify-between">
                         <div>
@@ -455,6 +520,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                         </div>
                     </div>
                 </div>
+
                 <div class="<?php echo $card_bg; ?> p-4 rounded-lg border <?php echo $border_class; ?> shadow-sm">
                     <div class="flex items-center justify-between">
                         <div>
@@ -468,7 +534,42 @@ include __DIR__ . '/../../includes/sidebar.php';
                         </div>
                     </div>
                 </div>
+
+                <!-- NEW: Average Rating Card -->
+                <div class="<?php echo $card_bg; ?> p-4 rounded-lg border <?php echo $border_class; ?> shadow-sm bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900 dark:to-orange-900">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="<?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> text-sm font-semibold"><?php echo $t['avg_rating']; ?></p>
+                            <?php if ($stats['avg_rating'] > 0): ?>
+                                <div class="flex items-center gap-2">
+                                    <p class="text-2xl font-bold text-yellow-600 dark:text-yellow-400"><?php echo number_format($stats['avg_rating'], 1); ?></p>
+                                    <span class="text-lg text-yellow-500">
+                                        <?php 
+                                        $full_stars = floor($stats['avg_rating']);
+                                        $empty_stars = 5 - ceil($stats['avg_rating']);
+                                        echo str_repeat('★', $full_stars);
+                                        if ($stats['avg_rating'] - $full_stars >= 0.5) echo '★';
+                                        echo str_repeat('☆', $empty_stars);
+                                        ?>
+                                    </span>
+                                </div>
+                                <p class="text-xs <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?> mt-1">
+                                    <?php echo $stats['total_ratings']; ?> <?php echo $t['rated_requests']; ?>
+                                </p>
+                            <?php else: ?>
+                                <p class="text-xl font-bold <?php echo $is_dark ? 'text-gray-400' : 'text-gray-500'; ?>">—</p>
+                                <p class="text-xs <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?>"><?php echo $t['no_rating']; ?></p>
+                            <?php endif; ?>
+                        </div>
+                        <div class="bg-yellow-100 dark:bg-yellow-800 p-3 rounded-full">
+                            <svg class="w-6 h-6 text-yellow-600 dark:text-yellow-300" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
             </div>
+
             <!-- Filters -->
             <div class="<?php echo $card_bg; ?> rounded-lg shadow-sm p-6 mb-6 border <?php echo $border_class; ?>">
                 <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -479,6 +580,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                             placeholder="<?php echo $t['search_placeholder']; ?>"
                             class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> focus:ring-2 focus:ring-blue-500">
                     </div>
+
                     <!-- Status Filter -->
                     <div>
                         <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2"><?php echo $t['status']; ?></label>
@@ -490,6 +592,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                             <option value="Cancelled" <?php echo $status_filter === 'Cancelled' ? 'selected' : ''; ?>><?php echo $t['cancelled']; ?></option>
                         </select>
                     </div>
+
                     <!-- Type Filter -->
                     <div>
                         <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2"><?php echo $t['request_type']; ?></label>
@@ -511,6 +614,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                             <?php endforeach; ?>
                         </select>
                     </div>
+
                     <!-- Buttons -->
                     <div class="flex items-end space-x-2">
                         <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition">
@@ -522,7 +626,8 @@ include __DIR__ . '/../../includes/sidebar.php';
                     </div>
                 </form>
             </div>
-            <!-- Requests Table -->
+
+            <!-- Requests Table - WITH RATING COLUMN -->
             <div class="<?php echo $card_bg; ?> rounded-lg shadow-sm border <?php echo $border_class; ?> overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full">
@@ -534,6 +639,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                                 <th class="px-6 py-4 text-left text-xs font-semibold <?php echo $text_class; ?> uppercase tracking-wider"><?php echo $t['employee_name']; ?></th>
                                 <th class="px-6 py-4 text-left text-xs font-semibold <?php echo $text_class; ?> uppercase tracking-wider"><?php echo $t['created']; ?></th>
                                 <th class="px-6 py-4 text-left text-xs font-semibold <?php echo $text_class; ?> uppercase tracking-wider"><?php echo $t['status']; ?></th>
+                                <th class="px-6 py-4 text-center text-xs font-semibold <?php echo $text_class; ?> uppercase tracking-wider"><?php echo $t['rating']; ?></th>
                                 <th class="px-6 py-4 text-left text-xs font-semibold <?php echo $text_class; ?> uppercase tracking-wider"><?php echo $t['handler']; ?></th>
                                 <th class="px-6 py-4 text-center text-xs font-semibold <?php echo $text_class; ?> uppercase tracking-wider"><?php echo $t['actions']; ?></th>
                             </tr>
@@ -541,7 +647,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                         <tbody class="divide-y <?php echo $is_dark ? 'divide-gray-700' : 'divide-gray-200'; ?>">
                             <?php if (empty($all_requests)): ?>
                                 <tr>
-                                    <td colspan="8" class="px-6 py-12 text-center <?php echo $is_dark ? 'text-gray-400' : 'text-gray-500'; ?>">
+                                    <td colspan="9" class="px-6 py-12 text-center <?php echo $is_dark ? 'text-gray-400' : 'text-gray-500'; ?>">
                                         <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
                                         </svg>
@@ -608,6 +714,24 @@ include __DIR__ . '/../../includes/sidebar.php';
                                                 ?>
                                             </span>
                                         </td>
+                                        <!-- NEW: Rating Column -->
+                                        <td class="px-6 py-4 text-center whitespace-nowrap">
+                                            <?php if (!empty($request['satisfaction_score']) && $request['satisfaction_score'] > 0): ?>
+                                                <div class="flex flex-col items-center">
+                                                    <span class="text-lg text-yellow-500 tracking-tight">
+                                                        <?php 
+                                                        echo str_repeat('★', $request['satisfaction_score']);
+                                                        echo str_repeat('☆', 5 - $request['satisfaction_score']);
+                                                        ?>
+                                                    </span>
+                                                    <span class="text-xs <?php echo $is_dark ? 'text-gray-400' : 'text-gray-500'; ?> mt-1">
+                                                        <?php echo $request['satisfaction_score']; ?>/5
+                                                    </span>
+                                                </div>
+                                            <?php else: ?>
+                                                <span class="<?php echo $is_dark ? 'text-gray-600' : 'text-gray-400'; ?> text-sm">—</span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <?php if ($request['handler_id']): ?>
                                                 <span class="<?php echo $text_class; ?> text-sm">
@@ -634,6 +758,7 @@ include __DIR__ . '/../../includes/sidebar.php';
             </div>
         </div>
     </div>
+
     <!-- Request Detail Modal -->
     <div id="requestModal" class="modal-backdrop">
         <div class="<?php echo $card_bg; ?> rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border <?php echo $border_class; ?> m-4">
@@ -652,14 +777,12 @@ include __DIR__ . '/../../includes/sidebar.php';
             </div>
         </div>
     </div>
+
     <script>
         const t = <?php echo json_encode($t); ?>;
         const currentLang = '<?php echo $current_lang; ?>';
         const isDark = <?php echo $is_dark ? 'true' : 'false'; ?>;
         
-        // ========================================
-        // DEFAULT AVATAR SVG - FIXED
-        // ========================================
         const DEFAULT_AVATAR_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E";
         
         const statusMap = {
@@ -707,9 +830,6 @@ include __DIR__ . '/../../includes/sidebar.php';
             document.getElementById('requestModal').classList.remove('active');
         }
         
-        // ========================================
-        // FIXED: generateRequestHTML Function
-        // ========================================
         function generateRequestHTML(request, table) {
             const borderClass = '<?php echo $border_class; ?>';
             const textClass = '<?php echo $text_class; ?>';
@@ -811,9 +931,39 @@ include __DIR__ . '/../../includes/sidebar.php';
                     </div>
             `;
             
-            // ========================================
-            // CERTIFICATE REQUEST SECTION
-            // ========================================
+            // NEW: Customer Satisfaction Section
+            if (request.satisfaction_score && request.satisfaction_score > 0) {
+                const stars = '★'.repeat(request.satisfaction_score) + '☆'.repeat(5 - request.satisfaction_score);
+                html += `
+                    <div class="p-4 bg-yellow-50 dark:bg-yellow-900 rounded-lg border border-yellow-200 dark:border-yellow-700">
+                        <h4 class="font-semibold ${textClass} mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-yellow-600" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                            ${t['customer_satisfaction']}
+                        </h4>
+                        <div class="grid grid-cols-1 gap-3">
+                            <div>
+                                <label class="text-sm font-medium ${grayTextClass} mb-2 block">${t['satisfaction_score']}</label>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-3xl text-yellow-500 tracking-wider">${stars}</span>
+                                    <span class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">${request.satisfaction_score}/5</span>
+                                </div>
+                            </div>
+                            ${request.satisfaction_feedback ? `
+                                <div>
+                                    <label class="text-sm font-medium ${grayTextClass} mb-2 block">${t['customer_feedback']}</label>
+                                    <p class="${textClass} p-3 bg-white dark:bg-gray-800 rounded border ${borderClass} whitespace-pre-wrap">${request.satisfaction_feedback}</p>
+                                </div>
+                            ` : `
+                                <p class="text-sm ${grayTextClass} italic">${t['no_feedback']}</p>
+                            `}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Certificate Request Section (existing code)
             if (isCertificateRequest) {
                 const salaryLabel = currentLang === 'th' ? '💰 ข้อมูลเงินเดือน' : 
                                    currentLang === 'my' ? '💰 လစာအချက်အလက်' : 
@@ -835,7 +985,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                 const formId = `salaryForm_${request.request_id}`;
                 
                 html += `
-                    <!-- Salary Information Form -->
                     <div class="p-4 bg-yellow-50 dark:bg-yellow-900 rounded-lg border border-yellow-200 dark:border-yellow-700">
                         <h4 class="font-semibold ${textClass} mb-4 flex items-center">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -889,7 +1038,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                         `}
                     </div>
                     
-                    <!-- Certificate Generation Section -->
                     <div class="p-4 bg-blue-50 dark:bg-blue-900 rounded-lg border border-blue-200 dark:border-blue-700">
                         <h4 class="font-semibold ${textClass} mb-3 flex items-center">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -902,7 +1050,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                             <div class="flex gap-2">
                                 <button onclick="generateCertificate(${request.request_id}, 'th')" 
                                     class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition font-medium">
-                                    🇹🇭 ${currentLang === 'th' ? 'ภาษาไทย' : currentLang === 'my' ? 'ထိုင်းဘာသာ' : 'Thai'}
+                                    ${currentLang === 'th' ? 'สร้างหนังสือรับรอง' : currentLang === 'my' ? 'တည်ထောင်စာအုပ်' : 'Generate Certificate'}
                                 </button>
                             </div>
                             ${request.certificate_no ? `
@@ -927,9 +1075,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                 `;
             }
             
-            // ========================================
-            // ID CARD REQUEST SECTION - FIXED
-            // ========================================
+            // ID Card Request Section (existing code)
             if (isIDCardRequest) {
                 const idCardButtonText = currentLang === 'th' ? '🆔 สร้างบัตรพนักงาน' : 
                                         currentLang === 'my' ? '🆔 အိုင်ဒီကဒ်ဖန်တီးမည်' : 
@@ -947,16 +1093,14 @@ include __DIR__ . '/../../includes/sidebar.php';
                 const hasPhoto = !!request.profile_pic_url;
                 
                 html += `
-                    <!-- ID Card Generation Section -->
                     <div class="p-4 bg-purple-50 dark:bg-purple-900 rounded-lg border border-purple-200 dark:border-purple-700">
                         <h4 class="font-semibold ${textClass} mb-3 flex items-center">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"></path>
                             </svg>
                             ${t['id_card_info']}
                         </h4>
                         
-                        <!-- Photo Display and Upload -->
                         <div class="mb-4 flex flex-col items-center">
                             <div class="relative mb-3">
                                 <img src="../../${photoUrl}" 
@@ -973,7 +1117,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                                 ` : ''}
                             </div>
                             
-                            <!-- Upload Form -->
                             <form id="photoUploadForm_${request.request_id}" class="w-full" onsubmit="uploadEmployeePhoto(event, '${request.employee_id}', ${request.request_id})">
                                 <input type="file" 
                                        id="photoInput_${request.request_id}" 
@@ -1018,11 +1161,8 @@ include __DIR__ . '/../../includes/sidebar.php';
                 `;
             }
             
-            // ========================================
-            // STATUS UPDATE SECTION
-            // ========================================
+            // Status Update Section
             html += `
-                    <!-- Status Update Section -->
                     <div class="pt-4 border-t ${borderClass}">
                         <h4 class="font-semibold ${textClass} mb-4 flex items-center">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1052,14 +1192,10 @@ include __DIR__ . '/../../includes/sidebar.php';
             return html;
         }
         
-        // ========================================
-        // FIXED: previewPhoto Function
-        // ========================================
         function previewPhoto(event, requestId) {
             const file = event.target.files[0];
             if (!file) return;
             
-            // Validate file size (5MB)
             if (file.size > 5 * 1024 * 1024) {
                 const message = {
                     'th': 'ไฟล์ใหญ่เกิน 5MB',
@@ -1071,7 +1207,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                 return;
             }
             
-            // Validate file type
             if (!file.type.match('image/(jpeg|jpg|png|gif|webp)')) {
                 const message = {
                     'th': 'กรุณาเลือกไฟล์รูปภาพ (JPG, PNG, GIF)',
@@ -1083,7 +1218,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                 return;
             }
             
-            // Preview image - FIXED
             const reader = new FileReader();
             reader.onload = function(e) {
                 const imgId = `photoPreview_${requestId}`;
@@ -1094,7 +1228,6 @@ include __DIR__ . '/../../includes/sidebar.php';
             };
             reader.readAsDataURL(file);
             
-            // Show upload button - FIXED
             const uploadBtnId = `uploadBtn_${requestId}`;
             const uploadBtn = document.getElementById(uploadBtnId);
             if (uploadBtn) {
@@ -1102,9 +1235,6 @@ include __DIR__ . '/../../includes/sidebar.php';
             }
         }
         
-        // ========================================
-        // FIXED: uploadEmployeePhoto Function
-        // ========================================
         function uploadEmployeePhoto(event, employeeId, requestId) {
             event.preventDefault();
             
@@ -1145,17 +1275,14 @@ include __DIR__ . '/../../includes/sidebar.php';
                 if (result.success) {
                     showToast(t['photo_uploaded'], 'success');
                     
-                    // Update image - FIXED
                     const imgId = `photoPreview_${requestId}`;
                     const img = document.getElementById(imgId);
                     if (img && result.data && result.data.photo_url) {
                         img.src = result.data.photo_url;
                     }
                     
-                    // Hide upload button
                     uploadBtn.classList.add('hidden');
                     
-                    // Reload modal after 1 second
                     setTimeout(() => {
                         closeRequestModal();
                         openRequestModal('id_card_requests', requestId);
@@ -1317,6 +1444,7 @@ include __DIR__ . '/../../includes/sidebar.php';
             if (e.target === this) closeRequestModal();
         });
     </script>
+
     <?php include __DIR__ . '/../../includes/footer.php'; ?>
 </body>
 </html>

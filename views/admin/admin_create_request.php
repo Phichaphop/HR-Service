@@ -346,6 +346,7 @@ $leave_types = [
     'Unpaid Leave' => $t['unpaid_leave'],
     'Other' => $t['other_leave'],
 ];
+
 // ID Card reason options
 $id_card_reasons = [
     'Information Update' => $t['information_update_desc'],

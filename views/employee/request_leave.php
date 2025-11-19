@@ -33,6 +33,7 @@ $translations = [
         'employee_id' => 'รหัสพนักงาน',
         'name' => 'ชื่อ',
         'position' => 'ตำแหน่ง',
+        'department' => 'แผนก',
         'leave_type' => 'ประเภทใบลา',
         'select_leave_type' => 'เลือกประเภทใบลา',
         'sick_leave' => 'ลาป่วย',
@@ -71,6 +72,7 @@ $translations = [
         'employee_id' => 'Employee ID',
         'name' => 'Name',
         'position' => 'Position',
+        'department' => 'Department',
         'leave_type' => 'Leave Type',
         'select_leave_type' => 'Select leave type',
         'sick_leave' => 'Sick Leave',
@@ -109,6 +111,7 @@ $translations = [
         'employee_id' => 'အလုပ်သမားအိုင်ဒီ',
         'name' => 'အမည်',
         'position' => 'အနေအထား',
+        'department' => 'ဌာန',
         'leave_type' => 'အငြိုးပြုစုအမျိုးအစား',
         'select_leave_type' => 'အငြိုးပြုစုအမျိုးအစားရွေးချယ်မည်',
         'sick_leave' => 'ကျန်းမာရေးအငြိုးပြုစု',
@@ -148,13 +151,21 @@ $t = $translations[$current_lang] ?? $translations['th'];
 // Leave type mapping
 $leave_types = [
     'Sick Leave' => ['th' => 'ลาป่วย', 'en' => 'Sick Leave', 'my' => 'ကျန်းမာရေးအငြိုးပြုစု'],
+    'Sick Leave Unpaid' => ['th' => 'ลาป่วยไม่รับค่าจ้าง', 'en' => 'Unpaid Sick Leave', 'my' => 'ကျန်းမာရေးအငြိုးပြုစု (ခမဲ့)'],
+
     'Annual Leave' => ['th' => 'ลาพักร้อน', 'en' => 'Annual Leave', 'my' => 'နှစ်စဉ်အငြိုးပြုစု'],
+    'Annual Leave Unpaid' => ['th' => 'ลาพักร้อนไม่รับค่าจ้าง', 'en' => 'Unpaid Annual Leave', 'my' => 'နှစ်စဉ်အငြိုးပြုစု (ခမဲ့)'],
+
     'Personal Leave' => ['th' => 'ลากิจ', 'en' => 'Personal Leave', 'my' => 'ကိုယ်ရေးအငြိုးပြုစု'],
+    'Personal Leave Unpaid' => ['th' => 'ลากิจไม่รับค่าจ้าง', 'en' => 'Unpaid Personal Leave', 'my' => 'ကိုယ်ရေးအငြိုးပြုစု (ခမဲ့)'],
+
     'Maternity Leave' => ['th' => 'ลาคลอด', 'en' => 'Maternity Leave', 'my' => 'သူမင်းဖွားကင်းအငြိုးပြုစု'],
+    'Maternity Leave Unpaid' => ['th' => 'ลาคลอดไม่รับค่าจ้าง', 'en' => 'Unpaid Maternity Leave', 'my' => 'သူမင်းဖွားကင်းအငြိုးပြုစု (ခမဲ့)'],
+
     'Paternity Leave' => ['th' => 'ลาบวช', 'en' => 'Paternity Leave', 'my' => 'သူကြီးဖွားကင်းအငြိုးပြုစု'],
-    'Unpaid Leave' => ['th' => 'ลาไม่รับค่าจ้าง', 'en' => 'Unpaid Leave', 'my' => 'ခမဲ့အငြိုးပြုစု'],
-    'Other' => ['th' => 'อื่นๆ', 'en' => 'Other', 'my' => 'အခြား']
+    'Paternity Leave Unpaid' => ['th' => 'ลาบวชไม่รับค่าจ้าง', 'en' => 'Unpaid Paternity Leave', 'my' => 'သူကြီးဖွားကင်းအငြိုးပြုစု (ခမဲ့)']
 ];
+
 
 ensure_session_started();
 $user_id = $_SESSION['user_id'];
@@ -295,6 +306,13 @@ include __DIR__ . '/../../includes/sidebar.php';
                         <div>
                             <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-2"><?php echo $t['position']; ?></label>
                             <input type="text" value="<?php echo htmlspecialchars($employee['position_name'] ?? ''); ?>" readonly
+                                class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75 cursor-not-allowed">
+                        </div>
+
+                        <!-- Department -->
+                        <div>
+                            <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-2"><?php echo $t['department']; ?></label>
+                            <input type="text" value="<?php echo htmlspecialchars($employee['department_name'] ?? ''); ?>" readonly
                                 class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75 cursor-not-allowed">
                         </div>
                     </div>

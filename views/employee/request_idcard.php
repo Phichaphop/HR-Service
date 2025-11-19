@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Request ID Card Form - UPDATED UI VERSION
  * ✅ Standardized Layout Structure (Matches all request forms)
@@ -176,10 +177,10 @@ $message_type = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $conn = getDbConnection();
     $reason = $_POST['reason'] ?? '';
-    
+
     $stmt = $conn->prepare("INSERT INTO id_card_requests (employee_id, reason, status, created_at, updated_at) VALUES (?, ?, 'New', NOW(), NOW())");
     $stmt->bind_param("ss", $user_id, $reason);
-    
+
     if ($stmt->execute()) {
         $stmt->close();
         $conn->close();
@@ -189,7 +190,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = $t['error_message'];
         $message_type = 'error';
     }
-    
+
     $stmt->close();
     $conn->close();
 }
@@ -246,7 +247,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                                 <?php echo $t['employee_id']; ?>
                             </label>
                             <input type="text" readonly value="<?php echo htmlspecialchars($employee['employee_id'] ?? 'N/A'); ?>"
-                                   class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75 cursor-not-allowed">
+                                class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75 cursor-not-allowed">
                         </div>
 
                         <!-- Employee Name -->
@@ -255,7 +256,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                                 <?php echo $t['employee_name']; ?>
                             </label>
                             <input type="text" readonly value="<?php echo htmlspecialchars($employee['full_name'] ?? 'N/A'); ?>"
-                                   class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75 cursor-not-allowed">
+                                class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75 cursor-not-allowed">
                         </div>
 
                         <!-- Position -->
@@ -264,7 +265,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                                 <?php echo $t['position']; ?>
                             </label>
                             <input type="text" readonly value="<?php echo htmlspecialchars($employee['position_name'] ?? 'N/A'); ?>"
-                                   class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75 cursor-not-allowed">
+                                class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75 cursor-not-allowed">
                         </div>
 
                         <!-- Department -->
@@ -273,7 +274,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                                 <?php echo $t['department']; ?>
                             </label>
                             <input type="text" readonly value="<?php echo htmlspecialchars($employee['department_name'] ?? 'N/A'); ?>"
-                                   class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75 cursor-not-allowed">
+                                class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75 cursor-not-allowed">
                         </div>
                     </div>
                 </div>
@@ -288,6 +289,19 @@ include __DIR__ . '/../../includes/sidebar.php';
                     </label>
 
                     <div class="space-y-3">
+                        <!-- First Time Issue -->
+                        <label class="flex items-start p-4 border-2 <?php echo $is_dark ? 'border-gray-600 hover:border-purple-500 hover:bg-gray-700' : 'border-gray-200 hover:border-purple-500 hover:bg-purple-50'; ?> rounded-lg cursor-pointer transition">
+                            <input type="radio" name="reason" value="First Time Issue" required class="mt-1 w-4 h-4 text-purple-600">
+                            <div class="ml-4 flex-1">
+                                <span class="font-medium <?php echo $text_class; ?>">
+                                    <?php echo $t['first_time_issue']; ?>
+                                </span>
+                                <p class="text-sm <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?> mt-1">
+                                    <?php echo $t['first_time_issue_desc']; ?>
+                                </p>
+                            </div>
+                        </label>
+
                         <!-- Information Update -->
                         <label class="flex items-start p-4 border-2 <?php echo $is_dark ? 'border-gray-600 hover:border-purple-500 hover:bg-gray-700' : 'border-gray-200 hover:border-purple-500 hover:bg-purple-50'; ?> rounded-lg cursor-pointer transition">
                             <input type="radio" name="reason" value="Information Update" required class="mt-1 w-4 h-4 text-purple-600">
@@ -323,19 +337,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                                 </span>
                                 <p class="text-sm <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?> mt-1">
                                     <?php echo $t['damaged_id_card_desc']; ?>
-                                </p>
-                            </div>
-                        </label>
-
-                        <!-- First Time Issue -->
-                        <label class="flex items-start p-4 border-2 <?php echo $is_dark ? 'border-gray-600 hover:border-purple-500 hover:bg-gray-700' : 'border-gray-200 hover:border-purple-500 hover:bg-purple-50'; ?> rounded-lg cursor-pointer transition">
-                            <input type="radio" name="reason" value="First Time Issue" required class="mt-1 w-4 h-4 text-purple-600">
-                            <div class="ml-4 flex-1">
-                                <span class="font-medium <?php echo $text_class; ?>">
-                                    <?php echo $t['first_time_issue']; ?>
-                                </span>
-                                <p class="text-sm <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?> mt-1">
-                                    <?php echo $t['first_time_issue_desc']; ?>
                                 </p>
                             </div>
                         </label>
@@ -382,13 +383,13 @@ include __DIR__ . '/../../includes/sidebar.php';
 <script>
     document.getElementById('idcardForm').addEventListener('submit', function(e) {
         const reason = document.querySelector('input[name="reason"]:checked');
-        
+
         if (!reason) {
             e.preventDefault();
             alert('<?php echo addslashes($t['select_reason_alert']); ?>');
             return;
         }
-        
+
         if (!confirm('<?php echo addslashes($t['confirmation']); ?>')) {
             e.preventDefault();
         }

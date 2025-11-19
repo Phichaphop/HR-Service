@@ -289,11 +289,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                             <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1"><?php echo $t['hiring_type']; ?></label>
                             <input type="text" readonly value="<?php echo htmlspecialchars($employee['hiring_type_name'] ?? ''); ?>" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75">
                         </div>
-                        <!-- Base Salary -->
-                        <div>
-                            <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1"><?php echo $t['base_salary']; ?></label>
-                            <input type="text" readonly value="<?php echo number_format($employee['base_salary'] ?? 0, 2); ?>" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75">
-                        </div>
                     </div>
                 </div>
 

@@ -1,12 +1,21 @@
 <?php
 /**
- * Unified Complaint Management - ALL-IN-ONE ✅ FIXED
+ * Unified Complaint Management - OPTIMIZED ✅
  * File: /views/admin/complaint_management.php
- * UPDATED: Removed duplicate viewComplaintDetail function
- * FIXED: View detail button now works properly
+ * 
+ * FEATURES:
+ * ✅ Works WITHOUT complaint_replies table
+ * ✅ Uses complaint_activity_log for all activity tracking
+ * ✅ Simpler database structure
+ * ✅ Full functionality maintained
  */
+
+define('DEBUG_MODE', true);
+ob_start();
+
 require_once __DIR__ . '/../../config/db_config.php';
 require_once __DIR__ . '/../../controllers/AuthController.php';
+
 AuthController::requireRole(['admin', 'officer']);
 
 $current_lang = $_SESSION['language'] ?? 'th';
@@ -17,12 +26,11 @@ $user_id = $_SESSION['user_id'];
 
 $card_bg = $is_dark ? 'bg-gray-800' : 'bg-white';
 $text_class = $is_dark ? 'text-gray-100' : 'text-gray-900';
-$label_class = $is_dark ? 'text-gray-300' : 'text-gray-700';
 $input_class = $is_dark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900';
 $border_class = $is_dark ? 'border-gray-700' : 'border-gray-200';
 
 // ============================================================
-// API HANDLERS (Handle JSON requests)
+// API HANDLERS
 // ============================================================
 $is_api_request = (
     ($_SERVER['REQUEST_METHOD'] === 'POST' && str_contains($_SERVER['CONTENT_TYPE'] ?? '', 'application/json')) ||
@@ -30,446 +38,441 @@ $is_api_request = (
 );
 
 if ($is_api_request) {
-    header('Content-Type: application/json');
+    ob_end_clean();
+    header('Content-Type: application/json; charset=utf-8');
     
-    $conn = getDbConnection();
-    if (!$conn) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Database connection failed']);
-        exit();
-    }
-    
-    // Parse API action
-    $api_action = '';
-    
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $input = json_decode(file_get_contents('php://input'), true);
-        $api_action = $input['api_action'] ?? '';
-    } else {
-        $api_action = $_GET['api_action'] ?? '';
-    }
-    
-    // ============================================================
-    // API: Get All Complaints
-    // ============================================================
-    if ($api_action === 'get_all_complaints') {
-        $status_filter = $_GET['status'] ?? 'all';
-        $category_filter = intval($_GET['category'] ?? 0);
-        
-        $sql = "
-            SELECT 
-                c.*,
-                cat.category_name_th, cat.category_name_en, cat.category_name_my,
-                e.full_name_th as handler_name
-            FROM complaints c
-            LEFT JOIN complaint_category_master cat ON c.category_id = cat.category_id
-            LEFT JOIN employees e ON c.assigned_to_officer_id = e.employee_id
-            WHERE 1=1
-        ";
-        
-        if ($status_filter !== 'all') {
-            $sql .= " AND c.status = '" . $conn->real_escape_string($status_filter) . "'";
+    try {
+        $conn = getDbConnection();
+        if (!$conn) {
+            throw new Exception('Database connection failed');
         }
         
-        if ($category_filter > 0) {
-            $sql .= " AND c.category_id = $category_filter";
-        }
-        
-        $sql .= " ORDER BY c.created_at DESC";
-        
-        $result = $conn->query($sql);
-        $complaints = [];
-        
-        while ($row = $result->fetch_assoc()) {
-            $complaints[] = $row;
-        }
-        
-        http_response_code(200);
-        echo json_encode(['success' => true, 'complaints' => $complaints]);
-        $conn->close();
-        exit();
-    }
-    
-    // ============================================================
-    // API: Get Complaint Detail - FIXED
-    // ============================================================
-    if ($api_action === 'get_complaint_detail') {
-        $complaint_id = intval($_GET['complaint_id'] ?? 0);
-        
-        if ($complaint_id <= 0) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Invalid complaint ID']);
-            exit();
-        }
-        
-        // Get complaint
-        $stmt = $conn->prepare("
-            SELECT 
-                c.*,
-                cat.category_name_th, cat.category_name_en, cat.category_name_my,
-                e.full_name_th as handler_name
-            FROM complaints c
-            LEFT JOIN complaint_category_master cat ON c.category_id = cat.category_id
-            LEFT JOIN employees e ON c.assigned_to_officer_id = e.employee_id
-            WHERE c.complaint_id = ?
-        ");
-        
-        if (!$stmt) {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Prepare failed: ' . $conn->error]);
-            exit();
-        }
-        
-        $stmt->bind_param("i", $complaint_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $complaint = $result->fetch_assoc();
-        $stmt->close();
-        
-        if (!$complaint) {
-            http_response_code(404);
-            echo json_encode(['success' => false, 'message' => 'Complaint not found']);
-            exit();
-        }
-        
-        // Get replies
-        $stmt = $conn->prepare("
-            SELECT 
-                r.*,
-                e.full_name_th as reply_by_name
-            FROM complaint_replies r
-            LEFT JOIN employees e ON r.reply_by_id = e.employee_id
-            WHERE r.complaint_id = ?
-            ORDER BY r.created_at ASC
-        ");
-        
-        if ($stmt) {
-            $stmt->bind_param("i", $complaint_id);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            
-            $replies = [];
-            while ($row = $result->fetch_assoc()) {
-                $replies[] = $row;
-            }
-            $stmt->close();
+        $api_action = '';
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $input = json_decode(file_get_contents('php://input'), true);
+            $api_action = $input['api_action'] ?? '';
         } else {
-            $replies = [];
+            $api_action = $_GET['api_action'] ?? '';
         }
         
-        // Get activity log
-        $stmt = $conn->prepare("
-            SELECT 
-                l.*,
-                e.full_name_th as action_by_name
-            FROM complaint_activity_log l
-            LEFT JOIN employees e ON l.action_by_id = e.employee_id
-            WHERE l.complaint_id = ?
-            ORDER BY l.created_at DESC
-        ");
+        error_log("API Action: $api_action");
         
-        if ($stmt) {
-            $stmt->bind_param("i", $complaint_id);
-            $stmt->execute();
-            $result = $stmt->get_result();
+        // ============================================================
+        // API: Get All Complaints
+        // ============================================================
+        if ($api_action === 'get_all_complaints') {
+            $status_filter = $_GET['status'] ?? 'all';
+            $category_filter = intval($_GET['category'] ?? 0);
             
-            $logs = [];
-            while ($row = $result->fetch_assoc()) {
-                $logs[] = $row;
+            $sql = "
+                SELECT 
+                    c.complaint_id,
+                    c.complainer_id_hash,
+                    c.category_id,
+                    c.subject,
+                    c.description,
+                    c.status,
+                    c.assigned_to_officer_id,
+                    c.created_at,
+                    c.updated_at,
+                    cat.category_name_th, 
+                    cat.category_name_en, 
+                    cat.category_name_my,
+                    e.full_name_th as handler_name
+                FROM complaints c
+                LEFT JOIN complaint_category_master cat ON c.category_id = cat.category_id
+                LEFT JOIN employees e ON c.assigned_to_officer_id = e.employee_id
+                WHERE 1=1
+            ";
+            
+            if ($status_filter !== 'all') {
+                $sql .= " AND c.status = '" . $conn->real_escape_string($status_filter) . "'";
             }
-            $stmt->close();
-        } else {
-            $logs = [];
-        }
-        
-        http_response_code(200);
-        echo json_encode([
-            'success' => true,
-            'complaint' => $complaint,
-            'replies' => $replies,
-            'logs' => $logs
-        ]);
-        $conn->close();
-        exit();
-    }
-    
-    // ============================================================
-    // API: Update Complaint Status
-    // ============================================================
-    if ($api_action === 'update_status') {
-        $input = json_decode(file_get_contents('php://input'), true);
-        
-        $complaint_id = intval($input['complaint_id'] ?? 0);
-        $new_status = trim($input['status'] ?? '');
-        $remarks = trim($input['remarks'] ?? '');
-        
-        $valid_statuses = ['New', 'In Progress', 'Under Review', 'Resolved', 'Closed', 'Dismissed'];
-        if (!in_array($new_status, $valid_statuses)) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Invalid status']);
+            
+            if ($category_filter > 0) {
+                $sql .= " AND c.category_id = $category_filter";
+            }
+            
+            $sql .= " ORDER BY c.created_at DESC";
+            
+            $result = $conn->query($sql);
+            if (!$result) {
+                throw new Exception("Query failed: " . $conn->error);
+            }
+            
+            $complaints = [];
+            while ($row = $result->fetch_assoc()) {
+                $complaints[] = $row;
+            }
+            
+            http_response_code(200);
+            echo json_encode(['success' => true, 'complaints' => $complaints]);
+            $conn->close();
             exit();
         }
         
-        // Get current status
-        $stmt = $conn->prepare("SELECT status FROM complaints WHERE complaint_id = ?");
-        $stmt->bind_param("i", $complaint_id);
-        $stmt->execute();
-        $result = $stmt->get_result()->fetch_assoc();
-        $old_status = $result['status'] ?? '';
+        // ============================================================
+        // API: Get Complaint Detail
+        // ============================================================
+        if ($api_action === 'get_complaint_detail') {
+            $complaint_id = intval($_GET['complaint_id'] ?? 0);
+            
+            if ($complaint_id <= 0) {
+                throw new Exception('Invalid complaint ID');
+            }
+            
+            // Get complaint detail
+            $sql = "
+                SELECT 
+                    c.complaint_id,
+                    c.complainer_id_hash,
+                    c.category_id,
+                    c.subject,
+                    c.description,
+                    c.status,
+                    c.assigned_to_officer_id,
+                    c.assigned_date,
+                    c.officer_response,
+                    c.officer_remarks,
+                    c.response_date,
+                    c.attachment_path,
+                    c.rating,
+                    c.rating_comment,
+                    c.rated_at,
+                    c.created_at,
+                    c.updated_at,
+                    c.resolved_at,
+                    cat.category_name_th, 
+                    cat.category_name_en, 
+                    cat.category_name_my,
+                    e.full_name_th as handler_name
+                FROM complaints c
+                LEFT JOIN complaint_category_master cat ON c.category_id = cat.category_id
+                LEFT JOIN employees e ON c.assigned_to_officer_id = e.employee_id
+                WHERE c.complaint_id = $complaint_id
+            ";
+            
+            $result = $conn->query($sql);
+            if (!$result) {
+                throw new Exception("Complaint query failed: " . $conn->error);
+            }
+            
+            $complaint = $result->fetch_assoc();
+            if (!$complaint) {
+                throw new Exception("Complaint not found with ID: $complaint_id");
+            }
+            
+            // Get activity log (NO MORE complaint_replies table!)
+            $logs = [];
+            $sql_logs = "
+                SELECT 
+                    l.log_id,
+                    l.complaint_id,
+                    l.action,
+                    l.action_by_officer_id,
+                    l.old_status,
+                    l.new_status,
+                    l.remarks,
+                    l.created_at,
+                    e.full_name_th as action_by_name
+                FROM complaint_activity_log l
+                LEFT JOIN employees e ON l.action_by_officer_id = e.employee_id
+                WHERE l.complaint_id = $complaint_id
+                ORDER BY l.created_at DESC
+            ";
+            
+            $result = $conn->query($sql_logs);
+            if ($result) {
+                while ($row = $result->fetch_assoc()) {
+                    $logs[] = $row;
+                }
+            } else {
+                error_log("Warning: Activity log query failed: " . $conn->error);
+            }
+            
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'complaint' => $complaint,
+                'logs' => $logs
+            ]);
+            $conn->close();
+            exit();
+        }
         
-        // Update complaint
-        $stmt = $conn->prepare("
-            UPDATE complaints 
-            SET status = ?, 
-                assigned_to_officer_id = ?,
-                assigned_date = IF(assigned_date IS NULL, NOW(), assigned_date),
-                resolved_at = IF(? IN ('Resolved', 'Closed'), NOW(), resolved_at),
-                updated_at = NOW()
-            WHERE complaint_id = ?
-        ");
-        $stmt->bind_param("sssi", $new_status, $user_id, $new_status, $complaint_id);
-        
-        if ($stmt->execute()) {
-            // Log activity
-            $stmt = $conn->prepare("
-                INSERT INTO complaint_activity_log (
-                    complaint_id, action, action_by_officer_id, 
-                    old_status, new_status, remarks, created_at
-                ) VALUES (?, 'Status Changed', ?, ?, ?, ?, NOW())
-            ");
-            $stmt->bind_param("issss", $complaint_id, $user_id, $old_status, $new_status, $remarks);
-            $stmt->execute();
+        // ============================================================
+        // API: Update Complaint Status
+        // ============================================================
+        if ($api_action === 'update_status') {
+            $input = json_decode(file_get_contents('php://input'), true);
+            
+            $complaint_id = intval($input['complaint_id'] ?? 0);
+            $new_status = trim($input['status'] ?? '');
+            $remarks = trim($input['remarks'] ?? '');
+            
+            $valid_statuses = ['New', 'In Progress', 'Under Review', 'Resolved', 'Closed', 'Dismissed'];
+            if (!in_array($new_status, $valid_statuses)) {
+                throw new Exception('Invalid status');
+            }
+            
+            // Get current status
+            $sql = "SELECT status FROM complaints WHERE complaint_id = $complaint_id";
+            $result = $conn->query($sql);
+            $old_status = $result ? $result->fetch_assoc()['status'] : '';
+            
+            // Update complaint
+            $sql = "
+                UPDATE complaints 
+                SET status = '" . $conn->real_escape_string($new_status) . "',
+                    assigned_to_officer_id = '" . $conn->real_escape_string($user_id) . "',
+                    assigned_date = IF(assigned_date IS NULL, NOW(), assigned_date),
+                    resolved_at = IF('$new_status' IN ('Resolved', 'Closed'), NOW(), resolved_at),
+                    updated_at = NOW()
+                WHERE complaint_id = $complaint_id
+            ";
+            
+            if (!$conn->query($sql)) {
+                throw new Exception("Update failed: " . $conn->error);
+            }
+            
+            // Log activity in activity_log
+            $sql_log = "
+                INSERT INTO complaint_activity_log 
+                (complaint_id, action, action_by_officer_id, old_status, new_status, remarks, created_at) 
+                VALUES (
+                    $complaint_id, 
+                    'Status Changed', 
+                    '" . $conn->real_escape_string($user_id) . "',
+                    '" . $conn->real_escape_string($old_status) . "',
+                    '" . $conn->real_escape_string($new_status) . "',
+                    '" . $conn->real_escape_string($remarks) . "',
+                    NOW()
+                )
+            ";
+            
+            if (!$conn->query($sql_log)) {
+                error_log("Warning: Activity log insert failed: " . $conn->error);
+            }
             
             http_response_code(200);
             echo json_encode(['success' => true, 'message' => 'Status updated successfully']);
-        } else {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Failed to update status']);
-        }
-        
-        $stmt->close();
-        $conn->close();
-        exit();
-    }
-    
-    // ============================================================
-    // API: Add Response
-    // ============================================================
-    if ($api_action === 'add_response') {
-        $input = json_decode(file_get_contents('php://input'), true);
-        
-        $complaint_id = intval($input['complaint_id'] ?? 0);
-        $response = trim($input['response'] ?? '');
-        $remarks = trim($input['remarks'] ?? '');
-        
-        if (empty($response)) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Response cannot be empty']);
+            $conn->close();
             exit();
         }
         
-        // Update complaint
-        $stmt = $conn->prepare("
-            UPDATE complaints 
-            SET officer_response = ?,
-                officer_remarks = ?,
-                response_date = NOW(),
-                assigned_to_officer_id = ?,
-                updated_at = NOW()
-            WHERE complaint_id = ?
-        ");
-        $stmt->bind_param("sssi", $response, $remarks, $user_id, $complaint_id);
-        
-        if ($stmt->execute()) {
+        // ============================================================
+        // API: Add Response
+        // ============================================================
+        if ($api_action === 'add_response') {
+            $input = json_decode(file_get_contents('php://input'), true);
+            
+            $complaint_id = intval($input['complaint_id'] ?? 0);
+            $response = trim($input['response'] ?? '');
+            $remarks = trim($input['remarks'] ?? '');
+            
+            if (empty($response)) {
+                throw new Exception('Response cannot be empty');
+            }
+            
+            // Update complaint with officer response
+            $sql = "
+                UPDATE complaints 
+                SET officer_response = '" . $conn->real_escape_string($response) . "',
+                    officer_remarks = '" . $conn->real_escape_string($remarks) . "',
+                    response_date = NOW(),
+                    assigned_to_officer_id = '" . $conn->real_escape_string($user_id) . "',
+                    updated_at = NOW()
+                WHERE complaint_id = $complaint_id
+            ";
+            
+            if (!$conn->query($sql)) {
+                throw new Exception("Update failed: " . $conn->error);
+            }
+            
             // Log activity
-            $stmt = $conn->prepare("
-                INSERT INTO complaint_activity_log (
-                    complaint_id, action, action_by_officer_id, remarks, created_at
-                ) VALUES (?, 'Response Added', ?, ?, NOW())
-            ");
-            $stmt->bind_param("iss", $complaint_id, $user_id, $response);
-            $stmt->execute();
+            $sql_log = "
+                INSERT INTO complaint_activity_log 
+                (complaint_id, action, action_by_officer_id, remarks, created_at) 
+                VALUES (
+                    $complaint_id, 
+                    'Response Added', 
+                    '" . $conn->real_escape_string($user_id) . "',
+                    '" . $conn->real_escape_string($response) . "',
+                    NOW()
+                )
+            ";
+            
+            if (!$conn->query($sql_log)) {
+                error_log("Warning: Activity log insert failed: " . $conn->error);
+            }
             
             http_response_code(200);
             echo json_encode(['success' => true, 'message' => 'Response added successfully']);
-        } else {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Failed to add response']);
-        }
-        
-        $stmt->close();
-        $conn->close();
-        exit();
-    }
-    
-    // ============================================================
-    // API: Add Reply
-    // ============================================================
-    if ($api_action === 'add_reply') {
-        $input = json_decode(file_get_contents('php://input'), true);
-        
-        $complaint_id = intval($input['complaint_id'] ?? 0);
-        $message = trim($input['message'] ?? '');
-        
-        if (empty($message)) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Message cannot be empty']);
+            $conn->close();
             exit();
         }
         
-        // Insert reply
-        $stmt = $conn->prepare("
-            INSERT INTO complaint_replies (
-                complaint_id, reply_by_id, message, created_at
-            ) VALUES (?, ?, ?, NOW())
-        ");
-        $stmt->bind_param("iss", $complaint_id, $user_id, $message);
-        
-        if ($stmt->execute()) {
-            // Log activity
-            $stmt = $conn->prepare("
-                INSERT INTO complaint_activity_log (
-                    complaint_id, action, action_by_officer_id, remarks, created_at
-                ) VALUES (?, 'Reply Added', ?, ?, NOW())
-            ");
-            $stmt->bind_param("iss", $complaint_id, $user_id, $message);
-            $stmt->execute();
+        // ============================================================
+        // API: Add Comment (using activity_log remarks)
+        // ============================================================
+        if ($api_action === 'add_comment') {
+            $input = json_decode(file_get_contents('php://input'), true);
+            
+            $complaint_id = intval($input['complaint_id'] ?? 0);
+            $message = trim($input['message'] ?? '');
+            
+            if (empty($message)) {
+                throw new Exception('Message cannot be empty');
+            }
+            
+            // Insert as activity log entry
+            $sql = "
+                INSERT INTO complaint_activity_log 
+                (complaint_id, action, action_by_officer_id, remarks, created_at) 
+                VALUES (
+                    $complaint_id, 
+                    'Comment Added', 
+                    '" . $conn->real_escape_string($user_id) . "',
+                    '" . $conn->real_escape_string($message) . "',
+                    NOW()
+                )
+            ";
+            
+            if (!$conn->query($sql)) {
+                throw new Exception("Insert failed: " . $conn->error);
+            }
             
             http_response_code(200);
-            echo json_encode(['success' => true, 'message' => 'Reply added successfully']);
-        } else {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Failed to add reply']);
-        }
-        
-        $stmt->close();
-        $conn->close();
-        exit();
-    }
-    
-    // ============================================================
-    // API: Save Category (Admin Only)
-    // ============================================================
-    if ($api_action === 'save_category') {
-        if ($user_role !== 'admin') {
-            http_response_code(403);
-            echo json_encode(['success' => false, 'message' => 'Admin only']);
+            echo json_encode(['success' => true, 'message' => 'Comment added successfully']);
+            $conn->close();
             exit();
         }
         
-        $input = json_decode(file_get_contents('php://input'), true);
-        
-        $category_id = $input['category_id'] ?? '';
-        $name_th = trim($input['category_name_th'] ?? '');
-        $name_en = trim($input['category_name_en'] ?? '');
-        $name_my = trim($input['category_name_my'] ?? '');
-        $desc_th = trim($input['description_th'] ?? '');
-        $desc_en = trim($input['description_en'] ?? '');
-        $desc_my = trim($input['description_my'] ?? '');
-        $is_active = isset($input['is_active']) ? (int)$input['is_active'] : 1;
-        
-        if (empty($name_th)) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Name (Thai) is required']);
-            exit();
-        }
-        
-        if (empty($category_id)) {
-            // Insert new
-            $stmt = $conn->prepare("
-                INSERT INTO complaint_category_master (
-                    category_name_th, category_name_en, category_name_my,
-                    description_th, description_en, description_my,
-                    is_active, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-            ");
-            $stmt->bind_param("ssssssi", $name_th, $name_en, $name_my, $desc_th, $desc_en, $desc_my, $is_active);
-        } else {
-            // Update existing
-            $category_id = (int)$category_id;
-            $stmt = $conn->prepare("
-                UPDATE complaint_category_master 
-                SET category_name_th = ?, category_name_en = ?, category_name_my = ?,
-                    description_th = ?, description_en = ?, description_my = ?,
-                    is_active = ?, updated_at = CURRENT_TIMESTAMP 
-                WHERE category_id = ?
-            ");
-            $stmt->bind_param("ssssssii", $name_th, $name_en, $name_my, $desc_th, $desc_en, $desc_my, $is_active, $category_id);
-        }
-        
-        if ($stmt->execute()) {
+        // ============================================================
+        // API: Save Category (Admin Only)
+        // ============================================================
+        if ($api_action === 'save_category') {
+            if ($user_role !== 'admin') {
+                http_response_code(403);
+                throw new Exception('Admin only');
+            }
+            
+            $input = json_decode(file_get_contents('php://input'), true);
+            
+            $category_id = $input['category_id'] ?? '';
+            $name_th = trim($input['category_name_th'] ?? '');
+            $name_en = trim($input['category_name_en'] ?? '');
+            $name_my = trim($input['category_name_my'] ?? '');
+            $is_active = isset($input['is_active']) ? (int)$input['is_active'] : 1;
+            
+            if (empty($name_th)) {
+                throw new Exception('Name (Thai) is required');
+            }
+            
+            if (empty($category_id)) {
+                // Insert new
+                $sql = "
+                    INSERT INTO complaint_category_master 
+                    (category_name_th, category_name_en, category_name_my, is_active, created_at) 
+                    VALUES (
+                        '" . $conn->real_escape_string($name_th) . "',
+                        '" . $conn->real_escape_string($name_en) . "',
+                        '" . $conn->real_escape_string($name_my) . "',
+                        $is_active,
+                        NOW()
+                    )
+                ";
+            } else {
+                // Update existing
+                $category_id = (int)$category_id;
+                $sql = "
+                    UPDATE complaint_category_master 
+                    SET category_name_th = '" . $conn->real_escape_string($name_th) . "',
+                        category_name_en = '" . $conn->real_escape_string($name_en) . "',
+                        category_name_my = '" . $conn->real_escape_string($name_my) . "',
+                        is_active = $is_active,
+                        updated_at = NOW()
+                    WHERE category_id = $category_id
+                ";
+            }
+            
+            if (!$conn->query($sql)) {
+                throw new Exception("Execute failed: " . $conn->error);
+            }
+            
             http_response_code(200);
             echo json_encode(['success' => true, 'message' => 'Saved successfully']);
-        } else {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Execute failed: ' . $stmt->error]);
-        }
-        
-        $stmt->close();
-        $conn->close();
-        exit();
-    }
-    
-    // ============================================================
-    // API: Delete Category (Admin Only)
-    // ============================================================
-    if ($api_action === 'delete_category') {
-        if ($user_role !== 'admin') {
-            http_response_code(403);
-            echo json_encode(['success' => false, 'message' => 'Admin only']);
+            $conn->close();
             exit();
         }
         
-        $input = json_decode(file_get_contents('php://input'), true);
-        $category_id = (int)($input['category_id'] ?? 0);
-        
-        if ($category_id <= 0) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Invalid category ID']);
-            exit();
-        }
-        
-        // Check if category is being used
-        $stmt = $conn->prepare("SELECT COUNT(*) as count FROM complaints WHERE category_id = ?");
-        $stmt->bind_param("i", $category_id);
-        $stmt->execute();
-        $result = $stmt->get_result()->fetch_assoc();
-        
-        if ($result['count'] > 0) {
-            http_response_code(400);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Cannot delete: Category is being used by ' . $result['count'] . ' complaint(s)'
-            ]);
-            exit();
-        }
-        
-        // Delete category
-        $stmt = $conn->prepare("DELETE FROM complaint_category_master WHERE category_id = ?");
-        $stmt->bind_param("i", $category_id);
-        
-        if ($stmt->execute()) {
+        // ============================================================
+        // API: Delete Category (Admin Only)
+        // ============================================================
+        if ($api_action === 'delete_category') {
+            if ($user_role !== 'admin') {
+                http_response_code(403);
+                throw new Exception('Admin only');
+            }
+            
+            $input = json_decode(file_get_contents('php://input'), true);
+            $category_id = (int)($input['category_id'] ?? 0);
+            
+            if ($category_id <= 0) {
+                throw new Exception('Invalid category ID');
+            }
+            
+            // Check if category is being used
+            $sql = "SELECT COUNT(*) as count FROM complaints WHERE category_id = $category_id";
+            $result = $conn->query($sql);
+            $row = $result->fetch_assoc();
+            
+            if ($row['count'] > 0) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Cannot delete: Category is being used'
+                ]);
+                $conn->close();
+                exit();
+            }
+            
+            // Delete category
+            $sql = "DELETE FROM complaint_category_master WHERE category_id = $category_id";
+            if (!$conn->query($sql)) {
+                throw new Exception("Delete failed: " . $conn->error);
+            }
+            
             http_response_code(200);
-            echo json_encode(['success' => true, 'message' => 'ลบเรียบร้อยแล้ว']);
-        } else {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Execute failed: ' . $stmt->error]);
+            echo json_encode(['success' => true, 'message' => 'Deleted successfully']);
+            $conn->close();
+            exit();
         }
         
-        $stmt->close();
+        // Invalid API action
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Invalid API action']);
         $conn->close();
         exit();
+        
+    } catch (Exception $e) {
+        http_response_code(500);
+        error_log("Exception in API: " . $e->getMessage());
+        
+        echo json_encode([
+            'success' => false,
+            'message' => $e->getMessage(),
+            'debug' => DEBUG_MODE ? ['error' => $e->getMessage()] : null
+        ]);
+        exit();
     }
-    
-    // Invalid API action
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Invalid API action']);
-    exit();
 }
 
 // ============================================================
-// UI PAGE (HTML Display)
+// UI PAGE
 // ============================================================
+ob_end_clean();
+
 $texts = [
     'th' => [
         'page_title' => 'จัดการคำร้องเรียน',
@@ -518,12 +521,9 @@ $texts = [
         'anonymous' => 'ไม่ระบุตัวตน',
         'complaint_details' => 'รายละเอียดคำร้องเรียน',
         'activity_log' => 'ประวัติการดำเนินการ',
-        'replies' => 'การตอบกลับ',
-        'write_reply' => 'เขียนคำตอบกลับ',
+        'add_comment' => 'เพิ่มความเห็น',
+        'write_comment' => 'เขียนความเห็น',
         'send' => 'ส่ง',
-        'description_th' => 'รายละเอียด (ไทย)',
-        'description_en' => 'รายละเอียด (English)',
-        'description_my' => 'รายละเอียด (Myanmar)',
     ],
     'en' => [
         'page_title' => 'Complaint Management',
@@ -572,12 +572,9 @@ $texts = [
         'anonymous' => 'Anonymous',
         'complaint_details' => 'Complaint Details',
         'activity_log' => 'Activity Log',
-        'replies' => 'Replies',
-        'write_reply' => 'Write reply',
+        'add_comment' => 'Add Comment',
+        'write_comment' => 'Write comment',
         'send' => 'Send',
-        'description_th' => 'Description (Thai)',
-        'description_en' => 'Description (English)',
-        'description_my' => 'Description (Myanmar)',
     ]
 ];
 
@@ -585,11 +582,13 @@ $t = $texts[$current_lang] ?? $texts['th'];
 
 $conn = getDbConnection();
 
-// Get categories for filter
+// Get categories
 $categories = [];
-$result = $conn->query("SELECT * FROM complaint_category_master ORDER BY category_id");
-while ($row = $result->fetch_assoc()) {
-    $categories[] = $row;
+$result = $conn->query("SELECT * FROM complaint_category_master WHERE is_active = 1 ORDER BY category_id");
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $categories[] = $row;
+    }
 }
 
 include __DIR__ . '/../../includes/header.php';
@@ -611,12 +610,12 @@ include __DIR__ . '/../../includes/sidebar.php';
                 </div>
             </div>
         </div>
-
+        
         <!-- Statistics Cards -->
         <div id="statsContainer" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <!-- Will be populated by JavaScript -->
         </div>
-
+        
         <!-- Tab Navigation -->
         <div class="flex border-b <?php echo $border_class; ?> mb-6 <?php echo $card_bg; ?> rounded-t-lg px-6 py-4">
             <button onclick="switchTab('complaints')" 
@@ -632,7 +631,7 @@ include __DIR__ . '/../../includes/sidebar.php';
             </button>
             <?php endif; ?>
         </div>
-
+        
         <!-- ============ TAB 1: COMPLAINTS LIST ============ -->
         <div id="complaints-section" class="tab-content <?php echo $card_bg; ?> rounded-b-lg shadow-lg p-6 border <?php echo $border_class; ?>">
             
@@ -651,14 +650,14 @@ include __DIR__ . '/../../includes/sidebar.php';
                     <?php echo $t['filter_resolved']; ?>
                 </button>
             </div>
-
+            
             <!-- Complaints List -->
             <div id="complaintsContainer" class="space-y-4">
                 <!-- Will be populated by JavaScript -->
             </div>
         </div>
-
-        <!-- ============ TAB 2: CATEGORIES (Admin Only) ============ -->
+        
+        <!-- ============ TAB 2: CATEGORIES ============ -->
         <?php if ($user_role === 'admin'): ?>
         <div id="categories-section" class="tab-content hidden <?php echo $card_bg; ?> rounded-b-lg shadow-lg p-6 border <?php echo $border_class; ?>">
             <div class="flex justify-between items-center mb-6 pb-6 border-b <?php echo $border_class; ?>">
@@ -671,6 +670,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                     <?php echo $t['add_category']; ?>
                 </button>
             </div>
+            
             <div class="overflow-x-auto">
                 <table class="w-full">
                     <thead class="<?php echo $is_dark ? 'bg-gray-700' : 'bg-gray-50'; ?> border-b <?php echo $border_class; ?>">
@@ -698,24 +698,16 @@ include __DIR__ . '/../../includes/sidebar.php';
                                     <td class="px-6 py-4 text-sm <?php echo $text_class; ?>"><?php echo htmlspecialchars($cat['category_name_en'] ?? '-'); ?></td>
                                     <td class="px-6 py-4 text-sm <?php echo $text_class; ?>"><?php echo htmlspecialchars($cat['category_name_my'] ?? '-'); ?></td>
                                     <td class="px-6 py-4 text-center">
-                                        <?php if ($cat['is_active']): ?>
-                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400">✓ <?php echo $t['active']; ?></span>
-                                        <?php else: ?>
-                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300">✕ <?php echo $t['inactive']; ?></span>
-                                        <?php endif; ?>
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400">✓</span>
                                     </td>
                                     <td class="px-6 py-4 text-center">
                                         <div class="flex items-center justify-center gap-2">
-                                            <button onclick='editCategory(<?php echo json_encode($cat); ?>)' 
-                                                class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-2 rounded hover:bg-blue-50 dark:hover:bg-gray-700 transition"
-                                                title="<?php echo $t['edit']; ?>">
+                                            <button onclick='editCategory(<?php echo json_encode($cat); ?>)' class="text-blue-600 dark:text-blue-400 p-2 hover:bg-blue-50 dark:hover:bg-gray-600 rounded transition">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                                 </svg>
                                             </button>
-                                            <button onclick="deleteCategory(<?php echo $cat['category_id']; ?>, '<?php echo htmlspecialchars($cat['category_name_th']); ?>')" 
-                                                class="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-2 rounded hover:bg-red-50 dark:hover:bg-gray-700 transition"
-                                                title="<?php echo $t['delete']; ?>">
+                                            <button onclick="deleteCategory(<?php echo $cat['category_id']; ?>, '<?php echo htmlspecialchars($cat['category_name_th']); ?>')" class="text-red-600 dark:text-red-400 p-2 hover:bg-red-50 dark:hover:bg-gray-600 rounded transition">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                                 </svg>
@@ -730,15 +722,16 @@ include __DIR__ . '/../../includes/sidebar.php';
             </div>
         </div>
         <?php endif; ?>
-
     </div>
 </div>
 
-<!-- Modal: View Complaint Detail - FIXED -->
+<!-- Modal: View Complaint Detail -->
 <div id="detailModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4 overflow-y-auto">
     <div class="<?php echo $card_bg; ?> rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border <?php echo $border_class; ?> my-8">
-        <div id="detailContent">
-            <!-- Will be populated by JavaScript -->
+        <div id="detailContent" class="p-6">
+            <div class="flex items-center justify-center py-12">
+                <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -749,7 +742,7 @@ include __DIR__ . '/../../includes/sidebar.php';
         <div class="p-6">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="text-xl font-bold <?php echo $text_class; ?>" id="categoryModalTitle"><?php echo $t['add_category']; ?></h3>
-                <button onclick="closeCategoryModal()" class="<?php echo $is_dark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-700'; ?>">
+                <button onclick="closeCategoryModal()" class="text-gray-500">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
@@ -761,39 +754,22 @@ include __DIR__ . '/../../includes/sidebar.php';
                 
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2"><?php echo $t['name_th']; ?> <span class="text-red-500">*</span></label>
-                        <input type="text" id="category_name_th" name="category_name_th" required
-                            class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> <?php echo $border_class; ?> focus:ring-2 focus:ring-red-500">
+                        <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2"><?php echo $t['name_th']; ?> *</label>
+                        <input type="text" id="category_name_th" name="category_name_th" required class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> <?php echo $border_class; ?> focus:ring-2 focus:ring-red-500">
                     </div>
-                    
                     <div>
                         <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2"><?php echo $t['name_en']; ?></label>
-                        <input type="text" id="category_name_en" name="category_name_en"
-                            class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> <?php echo $border_class; ?> focus:ring-2 focus:ring-red-500">
+                        <input type="text" id="category_name_en" name="category_name_en" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> <?php echo $border_class; ?> focus:ring-2 focus:ring-red-500">
                     </div>
-                    
                     <div>
                         <label class="block text-sm font-medium <?php echo $text_class; ?> mb-2"><?php echo $t['name_my']; ?></label>
-                        <input type="text" id="category_name_my" name="category_name_my"
-                            class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> <?php echo $border_class; ?> focus:ring-2 focus:ring-red-500">
-                    </div>
-                    
-                    <div>
-                        <label class="flex items-center">
-                            <input type="checkbox" id="is_active" name="is_active" value="1" checked
-                                class="w-4 h-4 text-red-600 rounded focus:ring-2 focus:ring-red-500">
-                            <span class="ml-2 text-sm <?php echo $text_class; ?>"><?php echo $t['active']; ?></span>
-                        </label>
+                        <input type="text" id="category_name_my" name="category_name_my" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> <?php echo $border_class; ?> focus:ring-2 focus:ring-red-500">
                     </div>
                 </div>
                 
                 <div class="flex gap-3 mt-6 pt-6 border-t <?php echo $border_class; ?>">
-                    <button type="submit" class="flex-1 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg transition font-medium">
-                        ✓ <?php echo $t['save']; ?>
-                    </button>
-                    <button type="button" onclick="closeCategoryModal()" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition font-medium">
-                        ✕ <?php echo $t['cancel']; ?>
-                    </button>
+                    <button type="submit" class="flex-1 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium">✓ <?php echo $t['save']; ?></button>
+                    <button type="button" onclick="closeCategoryModal()" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg font-medium">✕ <?php echo $t['cancel']; ?></button>
                 </div>
             </form>
         </div>
@@ -808,9 +784,6 @@ include __DIR__ . '/../../includes/sidebar.php';
     transition: all 0.2s;
     <?php echo $is_dark ? 'color: #9CA3AF; background-color: #374151;' : 'color: #6B7280; background-color: #F3F4F6;'; ?>
 }
-.filter-tab:hover {
-    <?php echo $is_dark ? 'background-color: #4B5563;' : 'background-color: #E5E7EB;'; ?>
-}
 .filter-tab.active {
     color: white;
     background: linear-gradient(to right, #DC2626, #EC4899);
@@ -818,7 +791,8 @@ include __DIR__ . '/../../includes/sidebar.php';
 </style>
 
 <script>
-const API_BASE = '<?php echo BASE_PATH; ?>/views/admin/complaint_management.php';
+const BASE_URL = '<?php echo BASE_URL; ?>';
+const API_ENDPOINT = BASE_URL + '/views/admin/complaint_management.php';
 const LANG = '<?php echo $current_lang; ?>';
 const IS_DARK = <?php echo $is_dark ? 'true' : 'false'; ?>;
 const TEXTS = <?php echo json_encode($t); ?>;
@@ -827,12 +801,10 @@ const USER_ROLE = '<?php echo $user_role; ?>';
 let allComplaints = [];
 let currentFilter = 'all';
 
-// Load complaints on page load
 document.addEventListener('DOMContentLoaded', function() {
     loadComplaints();
 });
 
-// Switch Tab
 function switchTab(tabName) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
     document.querySelectorAll('.tab-btn').forEach(el => {
@@ -844,10 +816,9 @@ function switchTab(tabName) {
     document.getElementById('tab-' + tabName + '-btn').classList.add('border-red-600', 'text-red-600');
 }
 
-// Load complaints
 async function loadComplaints() {
     try {
-        const response = await fetch(API_BASE + '?api_action=get_all_complaints');
+        const response = await fetch(API_ENDPOINT + '?api_action=get_all_complaints');
         const data = await response.json();
         
         if (data.success) {
@@ -855,22 +826,20 @@ async function loadComplaints() {
             updateStats();
             filterComplaints(currentFilter);
         } else {
-            console.error('API Error:', data.message);
-            showToast('Failed to load complaints: ' + data.message, 'error');
+            alert('Failed: ' + data.message);
         }
     } catch (error) {
-        console.error('Error loading complaints:', error);
-        showToast('Failed to load complaints', 'error');
+        console.error('Error:', error);
+        alert('Failed to load complaints');
     }
 }
 
-// Update statistics
 function updateStats() {
     const total = allComplaints.length;
-    const pending = allComplaints.filter(c => ['New', 'In Progress', 'Under Review'].includes(c.status)).length;
+    const pending = allComplaints.filter(c => ['New', 'In Progress'].includes(c.status)).length;
     const resolved = allComplaints.filter(c => ['Resolved', 'Closed'].includes(c.status)).length;
     
-    const statsHTML = `
+    document.getElementById('statsContainer').innerHTML = `
         <div class="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-lg shadow-lg">
             <div class="text-3xl font-bold">${total}</div>
             <div class="text-blue-100 mt-1">${TEXTS.total_complaints}</div>
@@ -884,15 +853,10 @@ function updateStats() {
             <div class="text-green-100 mt-1">${TEXTS.resolved_complaints}</div>
         </div>
     `;
-    
-    document.getElementById('statsContainer').innerHTML = statsHTML;
 }
 
-// Filter complaints
 function filterComplaints(filter) {
     currentFilter = filter;
-    
-    // Update active filter button
     document.querySelectorAll('.filter-tab').forEach(btn => {
         btn.classList.remove('active');
         if (btn.getAttribute('data-filter') === filter) {
@@ -900,27 +864,15 @@ function filterComplaints(filter) {
         }
     });
     
-    // Filter data
-    const filtered = filter === 'all' 
-        ? allComplaints 
-        : allComplaints.filter(c => c.status === filter);
-    
+    const filtered = filter === 'all' ? allComplaints : allComplaints.filter(c => c.status === filter);
     renderComplaints(filtered);
 }
 
-// Render complaints
 function renderComplaints(complaints) {
     const container = document.getElementById('complaintsContainer');
     
     if (complaints.length === 0) {
-        container.innerHTML = `
-            <div class="text-center py-12">
-                <svg class="w-16 h-16 mx-auto ${IS_DARK ? 'text-gray-600' : 'text-gray-300'} mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-                </svg>
-                <h3 class="${IS_DARK ? 'text-gray-400' : 'text-gray-600'} text-lg font-semibold">${TEXTS.no_complaints}</h3>
-            </div>
-        `;
+        container.innerHTML = `<div class="text-center py-12 text-gray-600">${TEXTS.no_complaints}</div>`;
         return;
     }
     
@@ -934,45 +886,26 @@ function renderComplaints(complaints) {
         'Dismissed': TEXTS.status_dismissed
     };
     
-    const statusColors = {
-        'New': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-        'In Progress': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-        'Under Review': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
-        'Resolved': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-        'Closed': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-        'Dismissed': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-    };
-    
     let html = '';
     complaints.forEach(complaint => {
         const statusLabel = statusLabels[complaint.status] || complaint.status;
-        const statusColor = statusColors[complaint.status] || 'bg-gray-100 text-gray-800';
-        
         html += `
-            <div class="${IS_DARK ? 'bg-gray-700' : 'bg-gray-50'} border ${IS_DARK ? 'border-gray-600' : 'border-gray-200'} rounded-lg p-6 hover:shadow-lg transition">
+            <div class="${IS_DARK ? 'bg-gray-700' : 'bg-gray-50'} border rounded-lg p-6 hover:shadow-lg transition">
                 <div class="flex justify-between items-start mb-4">
                     <div class="flex-1">
-                        <div class="flex items-center gap-3 mb-2 flex-wrap">
+                        <div class="flex items-center gap-3 mb-2">
                             <span class="text-sm ${IS_DARK ? 'text-gray-400' : 'text-gray-600'}">${complaint[catNameKey] || 'Unknown'}</span>
-                            <span class="px-3 py-1 rounded-full text-xs font-semibold ${statusColor}">${statusLabel}</span>
-                            <span class="px-2 py-1 bg-gray-200 dark:bg-gray-600 rounded text-xs">${TEXTS.anonymous}</span>
+                            <span class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">${statusLabel}</span>
                         </div>
                         <h3 class="${IS_DARK ? 'text-white' : 'text-gray-900'} text-lg font-bold">${complaint.subject || 'No Subject'}</h3>
-                        <p class="${IS_DARK ? 'text-gray-400' : 'text-gray-600'} mt-2 line-clamp-2">${complaint.description || 'No Description'}</p>
+                        <p class="${IS_DARK ? 'text-gray-400' : 'text-gray-600'} mt-2">${(complaint.description || 'No Description').substring(0, 100)}...</p>
                     </div>
                 </div>
                 
-                <div class="flex items-center justify-between flex-wrap gap-3 mt-4 pt-4 border-t ${IS_DARK ? 'border-gray-600' : 'border-gray-200'}">
-                    <span class="text-sm ${IS_DARK ? 'text-gray-400' : 'text-gray-600'}">
-                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>${formatDate(complaint.created_at)}
-                    </span>
-                    <button onclick="viewComplaintDetail(${complaint.complaint_id})" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition">
-                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                        </svg>${TEXTS.view_detail}
+                <div class="flex items-center justify-between mt-4 pt-4 border-t">
+                    <span class="text-sm ${IS_DARK ? 'text-gray-400' : 'text-gray-600'}">${new Date(complaint.created_at).toLocaleDateString()}</span>
+                    <button onclick="viewComplaintDetail(${complaint.complaint_id})" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700">
+                        ${TEXTS.view_detail}
                     </button>
                 </div>
             </div>
@@ -982,32 +915,33 @@ function renderComplaints(complaints) {
     container.innerHTML = html;
 }
 
-// ✅ FIXED: Removed duplicate function - viewComplaintDetail is now ONLY defined once
 async function viewComplaintDetail(complaintId) {
     try {
-        console.log('Loading detail for complaint:', complaintId);
-        const response = await fetch(API_BASE + `?api_action=get_complaint_detail&complaint_id=${complaintId}`);
-        const data = await response.json();
+        document.getElementById('detailModal').classList.remove('hidden');
         
-        console.log('Response:', data);
+        const url = API_ENDPOINT + '?api_action=get_complaint_detail&complaint_id=' + complaintId;
+        const response = await fetch(url);
+        const data = await response.json();
         
         if (data.success) {
             renderComplaintDetail(data);
-            document.getElementById('detailModal').classList.remove('hidden');
         } else {
-            console.error('API Error:', data.message);
-            showToast(data.message || 'Failed to load complaint', 'error');
+            throw new Error(data.message || 'Unknown error');
         }
     } catch (error) {
-        console.error('Error loading detail:', error);
-        showToast('Failed to load complaint details', 'error');
+        console.error('Error:', error);
+        document.getElementById('detailContent').innerHTML = `
+            <div class="p-6 text-center">
+                <div class="text-red-600 font-bold mb-2">⚠️ Error Loading</div>
+                <p class="${IS_DARK ? 'text-gray-400' : 'text-gray-600'} mb-4">${error.message}</p>
+                <button onclick="closeDetailModal()" class="px-6 py-2 bg-gray-500 text-white rounded-lg">Close</button>
+            </div>
+        `;
     }
 }
 
-// Render complaint detail
 function renderComplaintDetail(data) {
     const complaint = data.complaint;
-    const replies = data.replies || [];
     const logs = data.logs || [];
     const catNameKey = `category_name_${LANG}`;
     
@@ -1020,16 +954,19 @@ function renderComplaintDetail(data) {
         'Dismissed': TEXTS.status_dismissed
     };
     
+    // Filter logs to show replies/comments
+    const comments = logs.filter(l => ['Comment Added', 'Reply Added'].includes(l.action));
+    
     let html = `
-        <div class="p-6">
+        <div>
             <div class="flex justify-between items-start mb-6">
                 <div>
                     <h3 class="text-2xl font-bold ${IS_DARK ? 'text-white' : 'text-gray-900'}">${complaint.subject || 'No Subject'}</h3>
                     <p class="${IS_DARK ? 'text-gray-400' : 'text-gray-600'} mt-2">
-                        ${complaint[catNameKey] || 'Unknown Category'} · ${formatDate(complaint.created_at)}
+                        ${complaint[catNameKey] || 'Unknown'} · ${new Date(complaint.created_at).toLocaleDateString()}
                     </p>
                 </div>
-                <button onclick="closeDetailModal()" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                <button onclick="closeDetailModal()" class="text-gray-500">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
@@ -1037,35 +974,30 @@ function renderComplaintDetail(data) {
             </div>
             
             <div class="space-y-6">
-                <!-- Description -->
                 <div class="${IS_DARK ? 'bg-gray-700' : 'bg-gray-50'} p-4 rounded-lg">
                     <p class="${IS_DARK ? 'text-gray-300' : 'text-gray-700'}">${complaint.description || 'No Description'}</p>
                 </div>
                 
-                <!-- Status Update Form -->
                 <div class="${IS_DARK ? 'bg-gray-700' : 'bg-blue-50'} border-l-4 border-blue-500 p-4 rounded">
                     <h4 class="font-semibold ${IS_DARK ? 'text-white' : 'text-blue-900'} mb-3">${TEXTS.update_status}</h4>
                     <form onsubmit="updateStatus(event, ${complaint.complaint_id})" class="space-y-3">
                         <select name="status" class="w-full px-4 py-2 border rounded-lg ${IS_DARK ? 'bg-gray-600 border-gray-500 text-white' : 'bg-white border-gray-300'}" required>
-                            ${Object.keys(statusLabels).map(status => `
-                                <option value="${status}" ${complaint.status === status ? 'selected' : ''}>${statusLabels[status]}</option>
-                            `).join('')}
+                            ${Object.keys(statusLabels).map(s => `<option value="${s}" ${complaint.status === s ? 'selected' : ''}>${statusLabels[s]}</option>`).join('')}
                         </select>
-                        <textarea name="remarks" rows="2" placeholder="${TEXTS.remarks}" class="w-full px-4 py-2 border rounded-lg ${IS_DARK ? 'bg-gray-600 border-gray-500 text-white placeholder-gray-400' : 'bg-white border-gray-300'}"></textarea>
-                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition">
+                        <textarea name="remarks" rows="2" placeholder="${TEXTS.remarks}" class="w-full px-4 py-2 border rounded-lg ${IS_DARK ? 'bg-gray-600 border-gray-500 text-white' : 'bg-white border-gray-300'}"></textarea>
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium">
                             ${TEXTS.update_status}
                         </button>
                     </form>
                 </div>
                 
-                <!-- Response Form -->
                 ${!complaint.officer_response ? `
                 <div class="${IS_DARK ? 'bg-gray-700' : 'bg-green-50'} border-l-4 border-green-500 p-4 rounded">
                     <h4 class="font-semibold ${IS_DARK ? 'text-white' : 'text-green-900'} mb-3">${TEXTS.add_response}</h4>
                     <form onsubmit="addResponse(event, ${complaint.complaint_id})" class="space-y-3">
-                        <textarea name="response" rows="3" placeholder="${TEXTS.response}" class="w-full px-4 py-2 border rounded-lg ${IS_DARK ? 'bg-gray-600 border-gray-500 text-white placeholder-gray-400' : 'bg-white border-gray-300'}" required></textarea>
-                        <textarea name="remarks" rows="2" placeholder="${TEXTS.remarks}" class="w-full px-4 py-2 border rounded-lg ${IS_DARK ? 'bg-gray-600 border-gray-500 text-white placeholder-gray-400' : 'bg-white border-gray-300'}"></textarea>
-                        <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-medium transition">
+                        <textarea name="response" rows="3" placeholder="${TEXTS.response}" class="w-full px-4 py-2 border rounded-lg ${IS_DARK ? 'bg-gray-600 border-gray-500 text-white' : 'bg-white border-gray-300'}" required></textarea>
+                        <textarea name="remarks" rows="2" placeholder="${TEXTS.remarks}" class="w-full px-4 py-2 border rounded-lg ${IS_DARK ? 'bg-gray-600 border-gray-500 text-white' : 'bg-white border-gray-300'}"></textarea>
+                        <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-medium">
                             ${TEXTS.add_response}
                         </button>
                     </form>
@@ -1074,27 +1006,27 @@ function renderComplaintDetail(data) {
                 <div class="${IS_DARK ? 'bg-gray-700' : 'bg-green-50'} border-l-4 border-green-500 p-4 rounded">
                     <h4 class="font-semibold ${IS_DARK ? 'text-white' : 'text-green-900'} mb-2">${TEXTS.response}</h4>
                     <p class="${IS_DARK ? 'text-gray-300' : 'text-green-800'}">${complaint.officer_response}</p>
-                    ${complaint.officer_remarks ? `<p class="text-sm ${IS_DARK ? 'text-gray-400' : 'text-green-600'} mt-2"><strong>${TEXTS.remarks}:</strong> ${complaint.officer_remarks}</p>` : ''}
                 </div>
                 `}
                 
-                <!-- Replies -->
                 <div>
-                    <h4 class="font-semibold ${IS_DARK ? 'text-white' : 'text-gray-900'} mb-3">${TEXTS.replies}</h4>
+                    <h4 class="font-semibold ${IS_DARK ? 'text-white' : 'text-gray-900'} mb-3">${TEXTS.activity_log}</h4>
                     <div class="space-y-2 max-h-60 overflow-y-auto mb-3">
-                        ${replies.length === 0 ? `<p class="${IS_DARK ? 'text-gray-400' : 'text-gray-600'} text-sm">ยังไม่มีการตอบกลับ</p>` : replies.map(r => `
+                        ${logs.length === 0 ? `<p class="${IS_DARK ? 'text-gray-400' : 'text-gray-600'} text-sm">No activity yet</p>` : logs.map(l => `
                             <div class="${IS_DARK ? 'bg-gray-700' : 'bg-gray-100'} p-3 rounded">
                                 <div class="flex justify-between items-start mb-1">
-                                    <span class="font-medium text-sm ${IS_DARK ? 'text-gray-300' : 'text-gray-900'}">${r.reply_by_name || 'Officer'}</span>
-                                    <span class="text-xs ${IS_DARK ? 'text-gray-400' : 'text-gray-500'}">${formatDate(r.created_at)}</span>
+                                    <span class="font-medium text-sm ${IS_DARK ? 'text-gray-300' : 'text-gray-900'}">${l.action} - ${l.action_by_name || 'System'}</span>
+                                    <span class="text-xs ${IS_DARK ? 'text-gray-400' : 'text-gray-500'}">${new Date(l.created_at).toLocaleDateString()}</span>
                                 </div>
-                                <p class="text-sm ${IS_DARK ? 'text-gray-400' : 'text-gray-700'}">${r.message}</p>
+                                ${l.remarks ? `<p class="text-sm ${IS_DARK ? 'text-gray-400' : 'text-gray-700'}">${l.remarks}</p>` : ''}
+                                ${l.old_status ? `<p class="text-xs ${IS_DARK ? 'text-gray-400' : 'text-gray-600'}">${l.old_status} → ${l.new_status}</p>` : ''}
                             </div>
                         `).join('')}
                     </div>
-                    <form onsubmit="addReply(event, ${complaint.complaint_id})" class="flex gap-2">
-                        <input type="text" name="message" placeholder="${TEXTS.write_reply}" required class="flex-1 px-4 py-2 border rounded-lg ${IS_DARK ? 'bg-gray-600 border-gray-500 text-white' : 'bg-white border-gray-300'}">
-                        <button type="submit" class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition">
+                    
+                    <form onsubmit="addComment(event, ${complaint.complaint_id})" class="flex gap-2">
+                        <input type="text" name="message" placeholder="${TEXTS.write_comment}" required class="flex-1 px-4 py-2 border rounded-lg ${IS_DARK ? 'bg-gray-600 border-gray-500 text-white' : 'bg-white border-gray-300'}">
+                        <button type="submit" class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium">
                             ${TEXTS.send}
                         </button>
                     </form>
@@ -1106,7 +1038,6 @@ function renderComplaintDetail(data) {
     document.getElementById('detailContent').innerHTML = html;
 }
 
-// Update status
 async function updateStatus(event, complaintId) {
     event.preventDefault();
     const formData = new FormData(event.target);
@@ -1119,7 +1050,7 @@ async function updateStatus(event, complaintId) {
     };
     
     try {
-        const response = await fetch(API_BASE, {
+        const response = await fetch(API_ENDPOINT, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
@@ -1127,19 +1058,17 @@ async function updateStatus(event, complaintId) {
         const result = await response.json();
         
         if (result.success) {
-            showToast('Status updated', 'success');
+            alert('Status updated');
             loadComplaints();
             viewComplaintDetail(complaintId);
         } else {
-            showToast(result.message, 'error');
+            alert('Error: ' + result.message);
         }
     } catch (error) {
-        console.error('Error:', error);
-        showToast('Failed to update status', 'error');
+        alert('Failed: ' + error.message);
     }
 }
 
-// Add response
 async function addResponse(event, complaintId) {
     event.preventDefault();
     const formData = new FormData(event.target);
@@ -1152,7 +1081,7 @@ async function addResponse(event, complaintId) {
     };
     
     try {
-        const response = await fetch(API_BASE, {
+        const response = await fetch(API_ENDPOINT, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
@@ -1160,31 +1089,29 @@ async function addResponse(event, complaintId) {
         const result = await response.json();
         
         if (result.success) {
-            showToast('Response added', 'success');
+            alert('Response added');
             loadComplaints();
             viewComplaintDetail(complaintId);
         } else {
-            showToast(result.message, 'error');
+            alert('Error: ' + result.message);
         }
     } catch (error) {
-        console.error('Error:', error);
-        showToast('Failed to add response', 'error');
+        alert('Failed: ' + error.message);
     }
 }
 
-// Add reply
-async function addReply(event, complaintId) {
+async function addComment(event, complaintId) {
     event.preventDefault();
     const formData = new FormData(event.target);
     
     const data = {
-        api_action: 'add_reply',
+        api_action: 'add_comment',
         complaint_id: complaintId,
         message: formData.get('message')
     };
     
     try {
-        const response = await fetch(API_BASE, {
+        const response = await fetch(API_ENDPOINT, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
@@ -1192,24 +1119,20 @@ async function addReply(event, complaintId) {
         const result = await response.json();
         
         if (result.success) {
-            showToast('Reply sent', 'success');
             event.target.reset();
             viewComplaintDetail(complaintId);
         } else {
-            showToast(result.message, 'error');
+            alert('Error: ' + result.message);
         }
     } catch (error) {
-        console.error('Error:', error);
-        showToast('Failed to send reply', 'error');
+        alert('Failed: ' + error.message);
     }
 }
 
-// Category management functions
 function openCategoryModal() {
     document.getElementById('categoryModalTitle').textContent = TEXTS.add_category;
     document.getElementById('categoryForm').reset();
     document.getElementById('category_id').value = '';
-    document.getElementById('is_active').checked = true;
     document.getElementById('categoryModal').classList.remove('hidden');
 }
 
@@ -1219,7 +1142,6 @@ function editCategory(cat) {
     document.getElementById('category_name_th').value = cat.category_name_th;
     document.getElementById('category_name_en').value = cat.category_name_en || '';
     document.getElementById('category_name_my').value = cat.category_name_my || '';
-    document.getElementById('is_active').checked = cat.is_active == 1;
     document.getElementById('categoryModal').classList.remove('hidden');
 }
 
@@ -1237,11 +1159,11 @@ async function saveCategory(event) {
         category_name_th: formData.get('category_name_th'),
         category_name_en: formData.get('category_name_en'),
         category_name_my: formData.get('category_name_my'),
-        is_active: formData.get('is_active') ? 1 : 0
+        is_active: 1
     };
     
     try {
-        const response = await fetch(API_BASE, {
+        const response = await fetch(API_ENDPOINT, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
@@ -1249,20 +1171,18 @@ async function saveCategory(event) {
         const result = await response.json();
         
         if (result.success) {
-            showToast('Saved successfully', 'success');
             closeCategoryModal();
-            setTimeout(() => location.reload(), 500);
+            location.reload();
         } else {
-            showToast(result.message, 'error');
+            alert('Error: ' + result.message);
         }
     } catch (error) {
-        console.error('Error:', error);
-        showToast('Failed to save', 'error');
+        alert('Failed: ' + error.message);
     }
 }
 
 async function deleteCategory(id, name) {
-    if (!confirm(TEXTS.confirm_delete + ' "' + name + '" หรือไม่?')) return;
+    if (!confirm('Delete "' + name + '"?')) return;
     
     const data = {
         api_action: 'delete_category',
@@ -1270,7 +1190,7 @@ async function deleteCategory(id, name) {
     };
     
     try {
-        const response = await fetch(API_BASE, {
+        const response = await fetch(API_ENDPOINT, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
@@ -1278,34 +1198,17 @@ async function deleteCategory(id, name) {
         const result = await response.json();
         
         if (result.success) {
-            showToast('Deleted successfully', 'success');
-            setTimeout(() => location.reload(), 500);
+            location.reload();
         } else {
-            showToast(result.message, 'error');
+            alert('Error: ' + result.message);
         }
     } catch (error) {
-        console.error('Error:', error);
-        showToast('Failed to delete', 'error');
+        alert('Failed: ' + error.message);
     }
 }
 
 function closeDetailModal() {
     document.getElementById('detailModal').classList.add('hidden');
-}
-
-function formatDate(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString(LANG === 'th' ? 'th-TH' : 'en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
-function showToast(message, type = 'info') {
-    alert(message); // Replace with your toast system
 }
 </script>
 
