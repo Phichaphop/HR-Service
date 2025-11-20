@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Reusable Header Component (Multi-language Support)
  * รองรับ TH / EN / MY
@@ -59,6 +60,7 @@ $h = $header_lang[$_SESSION['language']] ?? $header_lang['th'];
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $language; ?>" class="<?php echo $is_dark ? 'dark' : ''; ?>">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -80,7 +82,7 @@ $h = $header_lang[$_SESSION['language']] ?? $header_lang['th'];
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Monoton&family=Noto+Sans+Thai:wght@100..900&family=Sankofa+Display&family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
-    
+
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -108,41 +110,51 @@ $h = $header_lang[$_SESSION['language']] ?? $header_lang['th'];
         .theme-transition {
             transition: all 0.3s ease;
         }
+
         html {
             scroll-behavior: smooth;
         }
+
         /* Custom scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
         }
+
         ::-webkit-scrollbar-track {
             background: <?php echo $is_dark ? '#1f2937' : '#f1f5f9'; ?>;
         }
+
         ::-webkit-scrollbar-thumb {
             background: <?php echo $is_dark ? '#4b5563' : '#cbd5e1'; ?>;
             border-radius: 4px;
         }
+
         ::-webkit-scrollbar-thumb:hover {
             background: <?php echo $is_dark ? '#6b7280' : '#94a3b8'; ?>;
         }
+
         /* Language dropdown hover effect */
         .language-option:hover {
             background-color: <?php echo $is_dark ? '#374151' : '#f3f4f6'; ?>;
         }
+
         * {
             font-family: "Noto Sans Thai", sans-serif;
         }
+
         /* Profile image styling */
         .profile-img {
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
+
         .profile-img:hover {
             transform: scale(1.05);
         }
     </style>
     <?php if (isset($extra_head)) echo $extra_head; ?>
 </head>
+
 <body class="<?php echo $bg_class; ?> theme-transition" data-base-path="<?php echo BASE_PATH; ?>">
     <!-- Mobile Menu Overlay -->
     <div id="mobileMenuOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden" onclick="toggleMobileMenu()"></div>
@@ -190,25 +202,74 @@ $h = $header_lang[$_SESSION['language']] ?? $header_lang['th'];
             </div>
             <!-- Right Side: Actions -->
             <div class="flex items-center space-x-2 md:space-x-3">
-                <!-- Language Switcher -->
+
+                <!-- LINE OV Link (NEW) -->
+                <a href="https://linevoom.line.me/user/_dfQm-XxIB7QtwjIg8zgxMFeHUdchvid0Qi54Q7o"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="flex items-center justify-center p-2 rounded-lg <?php echo $is_dark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'; ?> transition group"
+                    title="<?php echo $language === 'th' ? 'ไลน์ OV ของเรา' : ($language === 'my' ? 'ကျွန်ုပ်တို့၏ LINE OV' : 'Our LINE OV'); ?>">
+                    <!-- LINE Icon SVG -->
+                    <svg class="w-6 h-6 text-green-500 group-hover:scale-110 transition-transform duration-200"
+                        viewBox="0 0 24 24"
+                        fill="currentColor">
+                        <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.771.039 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314" />
+                    </svg>
+                </a>
+
+                <!-- Language Switcher with SVG Flags -->
                 <div class="relative group">
-                    <button class="flex items-center space-x-2 px-3 py-2 border <?php echo $border_class; ?> rounded-lg text-sm hover:<?php echo $is_dark ? 'bg-gray-700' : 'bg-gray-50'; ?> transition"
+                    <button class="flex items-center gap-1.5 px-2.5 py-2 border <?php echo $border_class; ?> rounded-lg hover:<?php echo $is_dark ? 'bg-gray-700' : 'bg-gray-50'; ?> transition"
                         onclick="toggleLanguageMenu(event)">
-                        <span class="hidden md:inline <?php echo $text_class; ?> font-medium">
-                            <?php
-                            echo $language === 'th' ? 'TH' : ($language === 'my' ? 'MY' : 'EN');
-                            ?>
-                        </span>
-                        <svg class="w-4 h-4 <?php echo $text_class; ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <!-- SVG Flag Icons -->
+                        <?php if ($language === 'th'): ?>
+                            <!-- Thailand Flag -->
+                            <svg class="w-6 h-6" viewBox="0 0 32 32">
+                                <rect width="32" height="32" fill="#fff" />
+                                <rect y="0" width="32" height="5.33" fill="#A51931" />
+                                <rect y="26.67" width="32" height="5.33" fill="#A51931" />
+                                <rect y="5.33" width="32" height="21.34" fill="#F4F5F8" />
+                                <rect y="10.67" width="32" height="10.67" fill="#2D2A4A" />
+                            </svg>
+                        <?php elseif ($language === 'my'): ?>
+                            <!-- Myanmar Flag -->
+                            <svg class="w-6 h-6" viewBox="0 0 32 32">
+                                <rect width="32" height="32" fill="#fff" />
+                                <rect y="0" width="32" height="10.67" fill="#FECB00" />
+                                <rect y="10.67" width="32" height="10.67" fill="#34B233" />
+                                <rect y="21.34" width="32" height="10.67" fill="#EA2839" />
+                                <path d="M16 8 L18.5 15 L26 15 L20 19.5 L22.5 26.5 L16 22 L9.5 26.5 L12 19.5 L6 15 L13.5 15 Z" fill="#fff" />
+                            </svg>
+                        <?php else: ?>
+                            <!-- UK Flag -->
+                            <svg class="w-6 h-6" viewBox="0 0 32 32">
+                                <rect width="32" height="32" fill="#012169" />
+                                <path d="M0 0 L32 21.33 M32 0 L0 21.33 M0 32 L32 10.67 M32 32 L0 10.67" stroke="#fff" stroke-width="3.2" />
+                                <path d="M0 0 L32 21.33 M32 0 L0 21.33 M0 32 L32 10.67 M32 32 L0 10.67" stroke="#C8102E" stroke-width="2.13" />
+                                <path d="M16 0 V32 M0 16 H32" stroke="#fff" stroke-width="5.33" />
+                                <path d="M16 0 V32 M0 16 H32" stroke="#C8102E" stroke-width="3.2" />
+                            </svg>
+                        <?php endif; ?>
+
+                        <svg class="w-3.5 h-3.5 <?php echo $text_class; ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                         </svg>
                     </button>
-                    <!-- Language Dropdown -->
+
+                    <!-- Language Dropdown Menu (ต้องมีส่วนนี้!) -->
                     <div id="languageMenu" class="hidden absolute right-0 mt-2 w-48 <?php echo $card_bg; ?> border <?php echo $border_class; ?> rounded-lg shadow-xl z-50">
                         <div class="py-1">
+                            <!-- Thai Option -->
                             <button onclick="changeLanguage('th')"
-                                class="language-option w-full flex items-center px-4 py-2.5 <?php echo $text_class; ?> text-sm <?php echo $language === 'th' ? 'bg-blue-50 dark:bg-blue-900 font-semibold' : ''; ?>">
-                                <span class="text-xl mr-3">🇹🇭</span>
+                                class="language-option w-full flex items-center px-4 py-2.5 <?php echo $text_class; ?> text-sm <?php echo $language === 'th' ? 'bg-blue-50 dark:bg-blue-900 font-semibold' : ''; ?> transition">
+                                <!-- Thailand Flag -->
+                                <svg class="w-6 h-6 mr-3" viewBox="0 0 32 32">
+                                    <rect width="32" height="32" fill="#fff" />
+                                    <rect y="0" width="32" height="5.33" fill="#A51931" />
+                                    <rect y="26.67" width="32" height="5.33" fill="#A51931" />
+                                    <rect y="5.33" width="32" height="21.34" fill="#F4F5F8" />
+                                    <rect y="10.67" width="32" height="10.67" fill="#2D2A4A" />
+                                </svg>
                                 <span><?php echo $h['thai']; ?></span>
                                 <?php if ($language === 'th'): ?>
                                     <svg class="w-4 h-4 ml-auto text-blue-600" fill="currentColor" viewBox="0 0 20 20">
@@ -216,9 +277,18 @@ $h = $header_lang[$_SESSION['language']] ?? $header_lang['th'];
                                     </svg>
                                 <?php endif; ?>
                             </button>
+
+                            <!-- English Option -->
                             <button onclick="changeLanguage('en')"
-                                class="language-option w-full flex items-center px-4 py-2.5 <?php echo $text_class; ?> text-sm <?php echo $language === 'en' ? 'bg-blue-50 dark:bg-blue-900 font-semibold' : ''; ?>">
-                                <span class="text-xl mr-3">🇬🇧</span>
+                                class="language-option w-full flex items-center px-4 py-2.5 <?php echo $text_class; ?> text-sm <?php echo $language === 'en' ? 'bg-blue-50 dark:bg-blue-900 font-semibold' : ''; ?> transition">
+                                <!-- UK Flag -->
+                                <svg class="w-6 h-6 mr-3" viewBox="0 0 32 32">
+                                    <rect width="32" height="32" fill="#012169" />
+                                    <path d="M0 0 L32 21.33 M32 0 L0 21.33 M0 32 L32 10.67 M32 32 L0 10.67" stroke="#fff" stroke-width="3.2" />
+                                    <path d="M0 0 L32 21.33 M32 0 L0 21.33 M0 32 L32 10.67 M32 32 L0 10.67" stroke="#C8102E" stroke-width="2.13" />
+                                    <path d="M16 0 V32 M0 16 H32" stroke="#fff" stroke-width="5.33" />
+                                    <path d="M16 0 V32 M0 16 H32" stroke="#C8102E" stroke-width="3.2" />
+                                </svg>
                                 <span><?php echo $h['english']; ?></span>
                                 <?php if ($language === 'en'): ?>
                                     <svg class="w-4 h-4 ml-auto text-blue-600" fill="currentColor" viewBox="0 0 20 20">
@@ -226,9 +296,18 @@ $h = $header_lang[$_SESSION['language']] ?? $header_lang['th'];
                                     </svg>
                                 <?php endif; ?>
                             </button>
+
+                            <!-- Myanmar Option -->
                             <button onclick="changeLanguage('my')"
-                                class="language-option w-full flex items-center px-4 py-2.5 <?php echo $text_class; ?> text-sm <?php echo $language === 'my' ? 'bg-blue-50 dark:bg-blue-900 font-semibold' : ''; ?>">
-                                <span class="text-xl mr-3">🇲🇲</span>
+                                class="language-option w-full flex items-center px-4 py-2.5 <?php echo $text_class; ?> text-sm <?php echo $language === 'my' ? 'bg-blue-50 dark:bg-blue-900 font-semibold' : ''; ?> transition">
+                                <!-- Myanmar Flag -->
+                                <svg class="w-6 h-6 mr-3" viewBox="0 0 32 32">
+                                    <rect width="32" height="32" fill="#fff" />
+                                    <rect y="0" width="32" height="10.67" fill="#FECB00" />
+                                    <rect y="10.67" width="32" height="10.67" fill="#34B233" />
+                                    <rect y="21.34" width="32" height="10.67" fill="#EA2839" />
+                                    <path d="M16 8 L18.5 15 L26 15 L20 19.5 L22.5 26.5 L16 22 L9.5 26.5 L12 19.5 L6 15 L13.5 15 Z" fill="#fff" />
+                                </svg>
                                 <span><?php echo $h['myanmar']; ?></span>
                                 <?php if ($language === 'my'): ?>
                                     <svg class="w-4 h-4 ml-auto text-blue-600" fill="currentColor" viewBox="0 0 20 20">
@@ -239,6 +318,7 @@ $h = $header_lang[$_SESSION['language']] ?? $header_lang['th'];
                         </div>
                     </div>
                 </div>
+
                 <!-- Theme Toggle -->
                 <button onclick="toggleTheme()"
                     class="p-2 rounded-lg <?php echo $is_dark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'; ?> transition group"
@@ -255,26 +335,26 @@ $h = $header_lang[$_SESSION['language']] ?? $header_lang['th'];
                 </button>
                 <!-- User Menu -->
                 <div class="relative">
-                    <?php 
-                        // Get profile picture from session (updated approach)
-                        $profile_pic = isset($profile_pic) ? $profile_pic : (isset($_SESSION['profile_pic']) ? $_SESSION['profile_pic'] : '');
-                        $first_initial = strtoupper(substr($display_name, 0, 1));
+                    <?php
+                    // Get profile picture from session (updated approach)
+                    $profile_pic = isset($profile_pic) ? $profile_pic : (isset($_SESSION['profile_pic']) ? $_SESSION['profile_pic'] : '');
+                    $first_initial = strtoupper(substr($display_name, 0, 1));
                     ?>
                     <button onclick="toggleUserMenu(event)"
                         class="flex items-center space-x-2 p-1.5 rounded-lg hover:<?php echo $is_dark ? 'bg-gray-700' : 'bg-gray-100'; ?> transition">
                         <!-- Profile Picture or Avatar -->
                         <?php if (!empty($profile_pic) && file_exists(__DIR__ . '/../' . $profile_pic)): ?>
                             <!-- Show actual profile picture -->
-                            <img src="<?php echo BASE_PATH . '/' . htmlspecialchars($profile_pic); ?>" 
-                                 alt="<?php echo htmlspecialchars($display_name); ?>"
-                                 class="profile-img w-8 h-8 rounded-full object-cover border-2 <?php echo $is_dark ? 'border-gray-600' : 'border-gray-300'; ?>"
-                                 title="<?php echo htmlspecialchars($display_name); ?>"
-                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <img src="<?php echo BASE_PATH . '/' . htmlspecialchars($profile_pic); ?>"
+                                alt="<?php echo htmlspecialchars($display_name); ?>"
+                                class="profile-img w-8 h-8 rounded-full object-cover border-2 <?php echo $is_dark ? 'border-gray-600' : 'border-gray-300'; ?>"
+                                title="<?php echo htmlspecialchars($display_name); ?>"
+                                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                         <?php endif; ?>
                         <!-- Fallback Avatar (show by default if no image or image fails to load) -->
                         <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0 border-2 <?php echo $is_dark ? 'border-blue-600' : 'border-blue-400'; ?>"
-                             style="<?php echo (!empty($profile_pic) && file_exists(__DIR__ . '/../' . $profile_pic)) ? 'display:none;' : 'display:flex;'; ?>"
-                             title="<?php echo htmlspecialchars($display_name); ?>">
+                            style="<?php echo (!empty($profile_pic) && file_exists(__DIR__ . '/../' . $profile_pic)) ? 'display:none;' : 'display:flex;'; ?>"
+                            title="<?php echo htmlspecialchars($display_name); ?>">
                             <?php echo $first_initial; ?>
                         </div>
                         <svg class="w-4 h-4 <?php echo $text_class; ?> hidden md:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
