@@ -196,6 +196,7 @@ class DatabaseManager
 
     /**
      * Seed initial data
+     * UPDATED: Now also calls DatabaseSeeder for additional data
      */
     private static function seedInitialData()
     {
@@ -613,7 +614,7 @@ class DatabaseManager
                 ('QA/QC (Non-Adidas)', 'QA/QC (Non-Adidas)', 'QA/QC (Non-Adidas)'),
                 ('QC Sewing (Non-Adidas)', 'QC Sewing (Non-Adidas)', 'QC Sewing (Non-Adidas)')");
 
-                // Seed operation_master
+            // Seed operation_master
             $conn->query("INSERT INTO operation_master (operation_name_th, operation_name_en, operation_name_my) VALUES 
                 ('Accounting', 'Accounting', 'Accounting'),
                 ('Purchasing', 'Purchasing', 'Purchasing'),
@@ -793,10 +794,8 @@ class DatabaseManager
                 ('ประกาศ', 'Announcements', 'ကြေညာချက်'),
                 ('เอกสารอื่นๆ', 'Other Documents', 'အခြားစာရွက်များ')");
 
-            // Seed sample employees
+            // Seed sample employees (same as before)
             $password_hash = password_hash('password123', PASSWORD_DEFAULT);
-
-            // Calculate age and years for seed data
             $employees_data = [
                 ['ADM001', 1, 'พิชาภพ บุญฑล', 'Phichaphop Boonthon', 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '1985-05-15', 6, '081-234-5678', 'อุดรธานี', '2020-01-01', 1, 'admin', 1],
                 ['OFC001', 2, 'สมหญิง รักงาน', 'Somying Rakngaan', 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '1990-08-20', 6, '082-345-6789', 'อุดรธานี', '2021-03-15', 1, 'officer', 2],
@@ -808,12 +807,10 @@ class DatabaseManager
             ];
 
             foreach ($employees_data as $emp) {
-                // Calculate age
                 $birthday = new DateTime($emp[17]);
                 $now = new DateTime();
                 $age = $now->diff($birthday)->y;
 
-                // Calculate years of service
                 $hire_date = new DateTime($emp[21]);
                 $years_service = $now->diff($hire_date)->y;
 
@@ -863,7 +860,7 @@ class DatabaseManager
             $conn->query("INSERT INTO company_info (company_name_th, company_name_en, phone, fax, address, representative_name) VALUES 
                 ('บริษัท แทร็กซ์ อินเตอร์เทรด จำกัด', 'Trax intertrade co., ltd.', '043-507-089-92', '043-507-091', '61 หมู่ 5 ถนนร้อยเอ็ด-กาฬสินธุ์ ต.จังหาร อ.จังหาร จ.ร้อยเอ็ด 45000', 'นายธีรภัทร์  เสมแก้ว')");
 
-            // Seed localization (sample keys)
+            // Seed localization
             $conn->query("INSERT INTO localization_master (key_id, th_text, en_text, my_text, category) VALUES 
                 ('app_title', 'ระบบบริการทรัพยากรบุคคล', 'HR Service System', 'လူ့စွမ်းအားဝန်ဆောင်မှုစနစ်', 'general'),
                 ('login', 'เข้าสู่ระบบ', 'Login', 'ဝင်ရောက်ရန်', 'auth'),
@@ -898,6 +895,10 @@ class DatabaseManager
             $conn->commit();
             $conn->close();
 
+            // IMPORTANT: Call DatabaseSeeder to seed additional data (certificate_types and complaint_categories)
+            DatabaseSeeder::seedCertificateTypes();
+            DatabaseSeeder::seedComplaintCategories();
+
             return ['success' => true, 'message' => 'All tables created and data seeded successfully'];
         } catch (Exception $e) {
             $conn->rollback();
@@ -907,3 +908,388 @@ class DatabaseManager
     }
 }
 
+/**
+ * Database Seeder Class (NEW)
+ * Handles seeding of additional master data
+ */
+class DatabaseSeeder
+{
+
+    /**
+     * Insert initial certificate types with Thai templates
+     * @return array Result with success status and message
+     */
+    public static function seedCertificateTypes()
+    {
+        $conn = getDbConnection();
+        if (!$conn) {
+            return ['success' => false, 'message' => 'Database connection failed'];
+        }
+
+        // Check if data already exists
+        $check = $conn->query("SELECT COUNT(*) as count FROM certificate_types");
+        $row = $check->fetch_assoc();
+        if ($row['count'] > 0) {
+            $conn->close();
+            return ['success' => false, 'message' => 'Certificate types already exist. Skipping seed.'];
+        }
+
+        // Define certificate types with templates
+        $certificates = [
+            [
+                'type_name_th' => 'หนังสือรับรองสถานะพนักงาน',
+                'type_name_en' => 'Employee Status Certificate',
+                'type_name_my' => 'ဝန်ထမ်းအဆင့်အတန်း လက်မှတ်',
+                'template_content' => '<div style="text-align: center; line-height: 1.8;">
+    <h2 style="margin-bottom: 0;">หนังสือรับรองสถานะพนักงาน</h2>
+    <p style="margin-top: 0;">เลขที่ {certificate_no}</p><br>
+    <p style="text-indent: 50px; text-align: justify;">
+        หนังสือรับรองฉบับนี้ ขอรับรองว่าบุคคลผู้มีนามข้างล่างนี้ ปัจจุบันเป็นพนักงานของ<br>
+        <b>{company_name}</b>
+    </p>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        ชื่อ-สกุล: {employee_name}<br>
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        รหัสพนักงาน: {employee_id}<br>
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        ตำแหน่ง: {position}<br>
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        สังกัด: {division}<br>
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        ประเภทพนักงาน: {hiring_type}
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        ได้เข้าทำงานกับบริษัทฯ ตั้งแต่วันที่ {date_of_hire} จนถึงปัจจุบัน
+    </div>
+    <br>
+    <p style="text-indent: 50px; text-align: justify;">
+        ขอรับรองว่า ข้อความข้างต้นเป็นความจริงทุกประการ
+    </p>
+</div>'
+            ],
+            [
+                'type_name_th' => 'หนังสือรับรองเงินเดือน',
+                'type_name_en' => 'Salary Certificate',
+                'type_name_my' => 'လစာ လက်မှတ်',
+                'template_content' => '<div style="text-align: center; line-height: 1.8;">
+    <h2 style="margin-bottom: 0;">หนังสือรับรองเงินเดือน</h2>
+    <p style="margin-top: 0;">เลขที่ {certificate_no}</p><br>
+    <p style="text-indent: 50px; text-align: justify;">
+        หนังสือรับรองฉบับนี้ ขอรับรองว่าบุคคลผู้มีนามข้างล่างนี้ ปัจจุบันเป็นพนักงานของ<br>
+        <b>{company_name}</b>
+    </p>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        ชื่อ-สกุล: {employee_name}<br>
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        รหัสพนักงาน: {employee_id}<br>
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        ตำแหน่ง: {position}<br>
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        สังกัด: {division}<br>
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        ประเภทพนักงาน: {hiring_type}
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        ได้เข้าทำงานกับบริษัทฯ ตั้งแต่วันที่ {date_of_hire} จนถึงปัจจุบัน
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        โดยมีฐานเงินเดือน <b>{base_salary}</b>
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        รายได้ที่กล่าวมาข้างต้นไม่รวมรายได้อื่นที่พนักงานได้รับต่อเดือน
+    </div>
+    <br>
+    <p style="text-indent: 50px; text-align: justify;">
+        ขอรับรองว่า ข้อความข้างต้นเป็นความจริงทุกประการ
+    </p>
+</div>'
+            ],
+            [
+                'type_name_th' => 'หนังสือรับรองการผ่านงาน',
+                'type_name_en' => 'Work Experience Certificate',
+                'type_name_my' => 'အလုပ်အတွေ့အကြုံ လက်မှတ်',
+                'template_content' => '<div style="text-align: center; line-height: 1.8;">
+    <h2 style="margin-bottom: 0;">หนังสือรับรองการผ่านงาน</h2>
+    <p style="margin-top: 0;">เลขที่ {certificate_no}</p><br>
+    <p style="text-indent: 50px; text-align: justify;">
+        หนังสือรับรองฉบับนี้ ขอรับรองว่าบุคคลผู้มีนามข้างล่างนี้ ปัจจุบันเป็นพนักงานของ<br>
+        <b>{company_name}</b>
+    </p>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        ชื่อ-สกุล: {employee_name}<br>
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        รหัสพนักงาน: {employee_id}<br>
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        ตำแหน่ง: {position}<br>
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        สังกัด: {division}<br>
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        ประเภทพนักงาน: {hiring_type}
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        ได้เข้าทำงานกับบริษัทฯ ตั้งแต่วันที่ {date_of_hire} จนถึงปัจจุบัน
+    </div>
+    <br>
+    <p style="text-indent: 50px; text-align: justify;">
+        ขอรับรองว่า ข้อความข้างต้นเป็นความจริงทุกประการ
+    </p>
+</div>'
+            ],
+            [
+                'type_name_th' => 'หนังสือแสดงสลิปเงินเดือนย้อนหลัง',
+                'type_name_en' => 'Historical Salary Slip',
+                'type_name_my' => 'အတိတ်လစာဇယား',
+                'template_content' => '<div style="text-align: center; line-height: 1.8;">
+    <h2 style="margin-bottom: 0;">หนังสือแสดงสลิปเงินเดือนย้อนหลัง</h2>
+    <p style="margin-top: 0;">เลขที่ {certificate_no}</p><br>
+    <p style="text-indent: 50px; text-align: justify;">
+        หนังสือรับรองฉบับนี้ ขอรับรองว่าบุคคลผู้มีนามข้างล่างนี้ ปัจจุบันเป็นพนักงานของ<br>
+        <b>{company_name}</b>
+    </p>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        ชื่อ-สกุล: {employee_name}<br>
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        รหัสพนักงาน: {employee_id}<br>
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        ตำแหน่ง: {position}<br>
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        สังกัด: {division}<br>
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        ประเภทพนักงาน: {hiring_type}
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        ได้เข้าทำงานกับบริษัทฯ ตั้งแต่วันที่ {date_of_hire} จนถึงปัจจุบัน
+    </div>
+    <br>
+    <p style="text-indent: 50px; text-align: justify;">
+        ขอรับรองว่า ข้อความข้างต้นเป็นความจริงทุกประการ
+    </p>
+</div>'
+            ],
+            [
+                'type_name_th' => 'หนังสือรับรองสำหรับสถานทูต',
+                'type_name_en' => 'Certificate for Embassy',
+                'type_name_my' => 'သံရုံးအတွက် လက်မှတ်',
+                'template_content' => '<div style="text-align: center; line-height: 1.8;">
+    <h2 style="margin-bottom: 0;">หนังสือรับรองสำหรับสถานทูต</h2>
+    <p style="margin-top: 0;">เลขที่ {certificate_no}</p><br>
+    <p style="text-indent: 50px; text-align: justify;">
+        หนังสือรับรองฉบับนี้ ขอรับรองว่าบุคคลผู้มีนามข้างล่างนี้ ปัจจุบันเป็นพนักงานของ<br>
+        <b>{company_name}</b>
+    </p>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        ชื่อ-สกุล: {employee_name}<br>
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        รหัสพนักงาน: {employee_id}<br>
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        ตำแหน่ง: {position}<br>
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        สังกัด: {division}<br>
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        ประเภทพนักงาน: {hiring_type}
+    </div>
+    <div style="text-indent: 80px; text-align: justify; margin-top: 10px;">
+        ได้เข้าทำงานกับบริษัทฯ ตั้งแต่วันที่ {date_of_hire} จนถึงปัจจุบัน
+    </div>
+    <br>
+    <p style="text-indent: 50px; text-align: justify;">
+        ขอรับรองว่า ข้อความข้างต้นเป็นความจริงทุกประการ
+    </p>
+</div>'
+            ]
+        ];
+
+        // Insert certificate types
+        $inserted = 0;
+        $stmt = $conn->prepare("INSERT INTO certificate_types 
+            (type_name_th, type_name_en, type_name_my, template_content, is_active, created_at, updated_at) 
+            VALUES (?, ?, ?, ?, 1, NOW(), NOW())");
+
+        foreach ($certificates as $cert) {
+            $stmt->bind_param(
+                "ssss",
+                $cert['type_name_th'],
+                $cert['type_name_en'],
+                $cert['type_name_my'],
+                $cert['template_content']
+            );
+
+            if ($stmt->execute()) {
+                $inserted++;
+            }
+        }
+
+        $stmt->close();
+        $conn->close();
+
+        return [
+            'success' => true,
+            'message' => "Successfully inserted {$inserted} certificate types"
+        ];
+    }
+
+    /**
+     * Insert initial complaint categories (TH/EN/MY)
+     * @return array Result with success status and message
+     */
+    public static function seedComplaintCategories()
+    {
+        $conn = getDbConnection();
+        if (!$conn) {
+            return ['success' => false, 'message' => 'Database connection failed'];
+        }
+
+        // Check if data already exists
+        $check = $conn->query("SELECT COUNT(*) as count FROM complaint_category_master");
+        $row = $check->fetch_assoc();
+        if ($row['count'] > 0) {
+            $conn->close();
+            return ['success' => false, 'message' => 'Complaint categories already exist. Skipping seed.'];
+        }
+
+        // Define complaint categories
+        $categories = [
+            [
+                'category_name_th' => 'การล่วงละเมิดทางเพศ',
+                'category_name_en' => 'Sexual Harassment',
+                'category_name_my' => 'လိင်ပိုင်းဆိုင်ရာ နှောင့်ယှက်ခြင်း',
+                'description_th' => 'การกระทำที่ไม่เหมาะสมทางเพศในที่ทำงาน',
+                'description_en' => 'Inappropriate sexual behavior in workplace',
+                'description_my' => 'အလုပ်ခွင်တွင် မသင့်လျော်သော လိင်ပိုင်းဆိုင်ရာ အပြုအမူ'
+            ],
+            [
+                'category_name_th' => 'การใช้อำนาจในทางที่ผิด',
+                'category_name_en' => 'Abuse of Power',
+                'category_name_my' => 'အာဏာ အလွဲသုံးစား',
+                'description_th' => 'การใช้ตำแหน่งหน้าที่ในทางที่ไม่เหมาะสม',
+                'description_en' => 'Misuse of authority or position',
+                'description_my' => 'ရာထူး သို့မဟုတ် အာဏာကို မသင့်လျော်စွာ အသုံးပြုခြင်း'
+            ],
+            [
+                'category_name_th' => 'การเลือกปฏิบัติ',
+                'category_name_en' => 'Discrimination',
+                'category_name_my' => 'ခွဲခြားဆက်ဆံမှု',
+                'description_th' => 'การปฏิบัติที่ไม่เป็นธรรมต่อบุคคลหรือกลุ่มบุคคล',
+                'description_en' => 'Unfair treatment based on personal characteristics',
+                'description_my' => 'ကိုယ်ရေးကိုယ်တာ လက္ခဏာများကို အခြေခံ၍ မတရားသော ဆက်ဆံမှု'
+            ],
+            [
+                'category_name_th' => 'สภาพแวดล้อมการทำงาน',
+                'category_name_en' => 'Work Environment',
+                'category_name_my' => 'အလုပ်ပတ်ဝန်းကျင်',
+                'description_th' => 'ปัญหาเกี่ยวกับความปลอดภัย สุขอนามัย หรือสภาพแวดล้อมในการทำงาน',
+                'description_en' => 'Safety, health, or environmental concerns',
+                'description_my' => 'ဘေးကင်းရေး၊ ကျန်းမာရေး သို့မဟုတ် ပတ်ဝန်းကျင် စိုးရိမ်ပူပန်မှုများ'
+            ],
+            [
+                'category_name_th' => 'ความขัดแย้งระหว่างเพื่อนร่วมงาน',
+                'category_name_en' => 'Workplace Conflict',
+                'category_name_my' => 'လုပ်ဖော်ကိုင်ဖက်များကြား ပဋိပက္ခ',
+                'description_th' => 'ความขัดแย้งหรือปัญหาระหว่างพนักงานด้วยกัน',
+                'description_en' => 'Conflicts or disputes between employees',
+                'description_my' => 'ဝန်ထမ်းများကြား ပဋိပက္ခများ သို့မဟုတ် အငြင်းပွားမှုများ'
+            ],
+            [
+                'category_name_th' => 'ค่าตอบแทนและสวัสดิการ',
+                'category_name_en' => 'Compensation & Benefits',
+                'category_name_my' => 'လစာနှင့် အကျိုးခံစားခွင့်များ',
+                'description_th' => 'ปัญหาเกี่ยวกับเงินเดือน โบนัส หรือสวัสดิการ',
+                'description_en' => 'Issues regarding salary, bonus, or benefits',
+                'description_my' => 'လစာ၊ ဆုကြေး သို့မဟုတ် အကျိုးခံစားခွင့်များနှင့် ပတ်သက်သော ပြဿနာများ'
+            ],
+            [
+                'category_name_th' => 'การทุจริตและความไม่ซื่อสัตย์',
+                'category_name_en' => 'Fraud & Dishonesty',
+                'category_name_my' => 'လိမ်လည်မှုနှင့် ရိုးသားမှုမရှိခြင်း',
+                'description_th' => 'การกระทำทุจริต การโกงหรือการให้ข้อมูลเท็จ',
+                'description_en' => 'Fraudulent activities or dishonest behavior',
+                'description_my' => 'လိမ်လည်လှည့်ဖြားမှု လုပ်ရပ်များ သို့မဟုတ် ရိုးသားမှုမရှိသော အပြုအမူ'
+            ],
+            [
+                'category_name_th' => 'การละเมิดนโยบายบริษัท',
+                'category_name_en' => 'Policy Violation',
+                'category_name_my' => 'ကုမ္ပဏီမူဝါဒ ချိုးဖောက်မှု',
+                'description_th' => 'การฝ่าฝืนกฎระเบียบหรือนโยบายของบริษัท',
+                'description_en' => 'Violation of company policies or regulations',
+                'description_my' => 'ကုမ္ပဏီမူဝါဒများ သို့မဟုတ် စည်းမျဉ်းများကို ချိုးဖောက်ခြင်း'
+            ],
+            [
+                'category_name_th' => 'อื่นๆ',
+                'category_name_en' => 'Other',
+                'category_name_my' => 'အခြား',
+                'description_th' => 'เรื่องร้องเรียนอื่นๆ ที่ไม่อยู่ในหมวดหมู่ข้างต้น',
+                'description_en' => 'Other complaints not listed above',
+                'description_my' => 'အထက်ဖော်ပြပါ စာရင်းတွင် မပါဝင်သော အခြားတိုင်ကြားချက်များ'
+            ]
+        ];
+
+        // Insert complaint categories
+        $inserted = 0;
+        $stmt = $conn->prepare("INSERT INTO complaint_category_master 
+            (category_name_th, category_name_en, category_name_my, 
+             description_th, description_en, description_my, 
+             is_active, created_at, updated_at) 
+            VALUES (?, ?, ?, ?, ?, ?, 1, NOW(), NOW())");
+
+        foreach ($categories as $cat) {
+            $stmt->bind_param(
+                "ssssss",
+                $cat['category_name_th'],
+                $cat['category_name_en'],
+                $cat['category_name_my'],
+                $cat['description_th'],
+                $cat['description_en'],
+                $cat['description_my']
+            );
+
+            if ($stmt->execute()) {
+                $inserted++;
+            }
+        }
+
+        $stmt->close();
+        $conn->close();
+
+        return [
+            'success' => true,
+            'message' => "Successfully inserted {$inserted} complaint categories"
+        ];
+    }
+
+    /**
+     * Seed all master data at once
+     * @return array Combined results
+     */
+    public static function seedAllMasterData()
+    {
+        $results = [];
+
+        // Seed certificate types
+        $results['certificate_types'] = self::seedCertificateTypes();
+
+        // Seed complaint categories
+        $results['complaint_categories'] = self::seedComplaintCategories();
+
+        return $results;
+    }
+}

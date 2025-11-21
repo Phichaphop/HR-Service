@@ -154,7 +154,6 @@ $leave_types = [
     'Sick Leave Unpaid' => ['th' => 'ลาป่วยไม่รับค่าจ้าง', 'en' => 'Unpaid Sick Leave', 'my' => 'ကျန်းမာရေးအငြိုးပြုစု (ခမဲ့)'],
 
     'Annual Leave' => ['th' => 'ลาพักร้อน', 'en' => 'Annual Leave', 'my' => 'နှစ်စဉ်အငြိုးပြုစု'],
-    'Annual Leave Unpaid' => ['th' => 'ลาพักร้อนไม่รับค่าจ้าง', 'en' => 'Unpaid Annual Leave', 'my' => 'နှစ်စဉ်အငြိုးပြုစု (ခမဲ့)'],
 
     'Personal Leave' => ['th' => 'ลากิจ', 'en' => 'Personal Leave', 'my' => 'ကိုယ်ရေးအငြိုးပြုစု'],
     'Personal Leave Unpaid' => ['th' => 'ลากิจไม่รับค่าจ้าง', 'en' => 'Unpaid Personal Leave', 'my' => 'ကိုယ်ရေးအငြိုးပြုစု (ခမဲ့)'],

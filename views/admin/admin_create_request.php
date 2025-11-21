@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Admin Create Request - WITH EMPLOYEE ID CARD SUPPORT
  * File: /views/admin/admin_create_request.php
@@ -20,18 +21,18 @@ require_once __DIR__ . '/../../controllers/AuthController.php';
 // ============================================
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['action'] === 'get_employee_info') {
     header('Content-Type: application/json');
-    
+
     try {
         AuthController::requireRole(['admin', 'officer']);
-        
+
         $employee_id = trim($_GET['id'] ?? '');
-        
+
         if (empty($employee_id)) {
             throw new Exception('Employee ID required');
         }
-        
+
         $conn = getDbConnection();
-        
+
         // Get employee data WITHOUT base_salary (it's only in certificate_requests)
         $sql = "SELECT 
             e.employee_id,
@@ -50,20 +51,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['act
         LEFT JOIN section_master sm ON e.section_id = sm.section_id
         LEFT JOIN hiring_type_master ht ON e.hiring_type_id = ht.hiring_type_id
         WHERE e.employee_id = ? LIMIT 1";
-        
+
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("s", $employee_id);
         $stmt->execute();
         $result = $stmt->get_result();
-        
+
         if ($result->num_rows === 0) {
             throw new Exception('Employee not found');
         }
-        
+
         $emp = $result->fetch_assoc();
         $stmt->close();
         $conn->close();
-        
+
         echo json_encode([
             'success' => true,
             'data' => [
@@ -97,6 +98,7 @@ $border_class = $is_dark ? 'border-gray-700' : 'border-gray-200';
 $input_class = $is_dark ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500';
 $label_class = $is_dark ? 'text-gray-300' : 'text-gray-700';
 // Translations
+// Translations
 $t = [
     'th' => [
         'page_title' => 'สร้างคำขอเพื่อพนักงาน',
@@ -117,12 +119,14 @@ $t = [
         'leave_request' => 'คำขอใบลา',
         'leave_type' => 'ประเภทใบลา',
         'sick_leave' => 'ลาป่วย',
+        'sick_leave_unpaid' => 'ลาป่วยไม่รับค่าจ้าง',
         'annual_leave' => 'ลาพักร้อน',
         'personal_leave' => 'ลากิจ',
+        'personal_leave_unpaid' => 'ลากิจไม่รับค่าจ้าง',
         'maternity_leave' => 'ลาคลอด',
+        'maternity_leave_unpaid' => 'ลาคลอดไม่รับค่าจ้าง',
         'paternity_leave' => 'ลาบวช',
-        'unpaid_leave' => 'ลาไม่รับค่าจ้าง',
-        'other_leave' => 'อื่นๆ',
+        'paternity_leave_unpaid' => 'ลาบวชไม่รับค่าจ้าง',
         'start_date' => 'วันที่เริ่มต้น',
         'end_date' => 'วันที่สิ้นสุด',
         'total_days' => 'จำนวนวัน',
@@ -172,12 +176,14 @@ $t = [
         'leave_request' => 'Leave Request',
         'leave_type' => 'Leave Type',
         'sick_leave' => 'Sick Leave',
+        'sick_leave_unpaid' => 'Sick Leave Unpaid',
         'annual_leave' => 'Annual Leave',
         'personal_leave' => 'Personal Leave',
+        'personal_leave_unpaid' => 'Personal Leave Unpaid',
         'maternity_leave' => 'Maternity Leave',
+        'maternity_leave_unpaid' => 'Maternity Leave Unpaid',
         'paternity_leave' => 'Paternity Leave',
-        'unpaid_leave' => 'Unpaid Leave',
-        'other_leave' => 'Other',
+        'paternity_leave_unpaid' => 'Paternity Leave Unpaid',
         'start_date' => 'Start Date',
         'end_date' => 'End Date',
         'total_days' => 'Total Days',
@@ -207,6 +213,63 @@ $t = [
         'success' => 'Request created successfully!',
         'error' => 'An error occurred',
         'no_types_available' => 'No certificate types available in the system',
+    ],
+    'my' => [
+        'page_title' => 'ဝန်ထမ်းအတွက် တောင်းဆိုချက်ဖန်တီးရန်',
+        'page_subtitle' => 'ဝန်ထမ်းများအတွက် တောင်းဆိုချက်များ (ခွင့်ရက် / လက်မှတ် / မှတ်ပုံတင်) ဖန်တီးပါ',
+        'select_employee' => 'ဝန်ထမ်းရွေးချယ်ပါ',
+        'search_employee' => 'ID သို့မဟုတ် ဝန်ထမ်းအမည်ရိုက်ထည့်ပါ...',
+        'select_request_type' => 'တောင်းဆိုချက်အမျိုးအစားရွေးချယ်ပါ',
+        'employee_information' => 'ဝန်ထမ်းအချက်အလက်',
+        'employee_id' => 'ဝန်ထမ်း ID',
+        'employee_name' => 'ဝန်ထမ်းအမည်',
+        'position' => 'ရာထူး',
+        'department' => 'ဌာနခွဲ',
+        'division' => 'ဌာန',
+        'section' => 'ကဏ္ဍ',
+        'date_of_hire' => 'ဝင်ရောက်လုပ်ကိုင်သည့်ရက်',
+        'hiring_type' => 'ခန့်အပ်မှုအမျိုးအစား',
+        'base_salary' => 'အခြေခံလစာ',
+        'leave_request' => 'ခွင့်တောင်းခံခြင်း',
+        'leave_type' => 'ခွင့်အမျိုးအစား',
+        'sick_leave' => 'နာမကျန်းခွင့်',
+        'sick_leave_unpaid' => 'လစာမရှိ နာမကျန်းခွင့်',
+        'annual_leave' => 'နှစ်ပတ်လည်ခွင့်',
+        'personal_leave' => 'ကိုယ်ရေးကိုယ်တာခွင့်',
+        'personal_leave_unpaid' => 'လစာမရှိ ကိုယ်ရေးကိုယ်တာခွင့်',
+        'maternity_leave' => 'မီးဖွားခွင့်',
+        'maternity_leave_unpaid' => 'လစာမရှိ မီးဖွားခွင့်',
+        'paternity_leave' => 'ရဟန်းထွက်ခွင့်',
+        'paternity_leave_unpaid' => 'လစာမရှိ ရဟန်းထွက်ခွင့်',
+        'start_date' => 'စတင်သည့်ရက်',
+        'end_date' => 'ပြီးဆုံးသည့်ရက်',
+        'total_days' => 'စုစုပေါင်းရက်',
+        'reason' => 'အကြောင်းရင်း',
+        'certificate_request' => 'လက်မှတ်တောင်းခံခြင်း',
+        'certificate_type' => 'လက်မှတ်အမျိုးအစား',
+        'purpose' => 'ရည်ရွယ်ချက်',
+        'id_card_request' => 'မှတ်ပုံတင်တောင်းခံခြင်း',
+        'id_card_reason' => 'တောင်းခံသည့်အကြောင်းရင်း',
+        'information_update' => 'အချက်အလက်အသစ်',
+        'information_update_desc' => 'အချက်အလက်ပြောင်းလဲခြင်း (ရာထူး၊ ဓာတ်ပုံ)',
+        'lost_id_card' => 'မှတ်ပုံတင်ပျောက်ဆုံးခြင်း',
+        'lost_id_card_desc' => 'မှတ်ပုံတင်ပျောက်ဆုံးသွားခြင်း',
+        'damaged_id_card' => 'မှတ်ပုံတင်ပျက်စီးခြင်း',
+        'damaged_id_card_desc' => 'မှတ်ပုံတင်ပျက်စီး၍ အစားထိုးရန်',
+        'first_time_issue' => 'ပထမဆုံးအကြိမ်',
+        'first_time_issue_desc' => 'ပထမဆုံးမှတ်ပုံတင်တောင်းခံခြင်း',
+        'important_notice' => 'အရေးကြီးသောအသိပေးချက်',
+        'notice_1' => '✓ ဝန်ထမ်းနှင့် တောင်းဆိုချက်အမျိုးအစားရွေးချယ်ပါ',
+        'notice_2' => '✓ ဝန်ထမ်းအချက်အလက်များ အလိုအလျောက်ပေါ်လာပါမည်',
+        'notice_3' => '✓ တင်သွင်းခြင်းမပြုမီ လိုအပ်သောနေရာများပြည့်စုံစွာဖြည့်ပါ',
+        'create_request' => 'တောင်းဆိုချက်ဖန်တီးရန်',
+        'cancel' => 'ပယ်ဖျက်ရန်',
+        'days' => 'ရက်',
+        'required' => 'လိုအပ်သည်',
+        'please_fill' => 'ကျေးဇူးပြု၍ လိုအပ်သောနေရာများပြည့်စုံစွာဖြည့်ပါ',
+        'success' => 'တောင်းဆိုချက်အောင်မြင်စွာဖန်တီးပြီးပါပြီ!',
+        'error' => 'အမှားအယွင်းတစ်ခုဖြစ်ပေါ်ခဲ့သည်',
+        'no_types_available' => 'စနစ်တွင် လက်မှတ်အမျိုးအစားများမရှိသေးပါ',
     ]
 ][$current_lang] ?? $t['th'];
 $message = '';
@@ -215,21 +278,21 @@ $message_type = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_request'])) {
     $employee_id = trim($_POST['employee_id'] ?? '');
     $request_type = $_POST['request_type'] ?? '';
-    
+
     if (empty($employee_id) || empty($request_type)) {
         $message = $t['please_fill'];
         $message_type = 'error';
     } else {
         $conn = getDbConnection();
         $inserted = false;
-        
+
         if ($request_type === 'leave') {
             $leave_type = $_POST['leave_type'] ?? '';
             $start_date = $_POST['start_date'] ?? '';
             $end_date = $_POST['end_date'] ?? '';
             $total_days = intval($_POST['total_days'] ?? 0);
             $reason = $_POST['reason'] ?? '';
-            
+
             if (empty($leave_type) || empty($start_date) || empty($end_date) || empty($total_days)) {
                 $message = $t['please_fill'];
                 $message_type = 'error';
@@ -245,14 +308,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_request'])) {
             $cert_type_id = $_POST['cert_type_id'] ?? '';
             $base_salary = floatval($_POST['base_salary_cert'] ?? 0);
             $purpose = $_POST['purpose'] ?? '';
-            
+
             if (empty($cert_type_id) || empty($base_salary) || empty($purpose)) {
                 $message = $t['please_fill'];
                 $message_type = 'error';
             } else {
                 // Generate certificate number
                 $cert_no = 'CERT-' . date('Ymd') . '-' . str_pad(rand(1000, 9999), 4, '0', STR_PAD_LEFT);
-                
+
                 // Fetch employee data for certificate
                 $emp_sql = "SELECT e.*, 
                     COALESCE(p.position_name_th, p.position_name_en) as position_name,
@@ -271,14 +334,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_request'])) {
                 $emp_result = $emp_stmt->get_result();
                 $emp = $emp_result->fetch_assoc();
                 $emp_stmt->close();
-                
+
                 if ($emp) {
                     $employee_name = trim(($emp['full_name_th'] ?? '') . ' ' . ($emp['full_name_en'] ?? ''));
                     $position = $emp['position_name'] ?? '';
                     $division = $emp['division_name'] ?? '';
                     $date_of_hire = $emp['date_of_hire'] ?? null;
                     $hiring_type = $emp['hiring_type_name'] ?? '';
-                    
+
                     $cert_sql = "INSERT INTO certificate_requests 
                         (certificate_no, employee_id, cert_type_id, employee_name, position, division, date_of_hire, hiring_type, base_salary, purpose, status, created_at, updated_at) 
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'New', NOW(), NOW())";
@@ -290,7 +353,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_request'])) {
             }
         } elseif ($request_type === 'id_card') {
             $reason = $_POST['id_card_reason'] ?? '';
-            
+
             if (empty($reason)) {
                 $message = $t['please_fill'];
                 $message_type = 'error';
@@ -303,9 +366,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_request'])) {
                 $stmt->close();
             }
         }
-        
+
         $conn->close();
-        
+
         if ($inserted) {
             $message = $t['success'];
             $message_type = 'success';
@@ -338,13 +401,15 @@ if ($types_result) {
 $conn->close();
 // Leave type options
 $leave_types = [
-    'Sick Leave' => $t['sick_leave'],
     'Annual Leave' => $t['annual_leave'],
+    'Sick Leave' => $t['sick_leave'],
+    'Sick Leave Unpaid' => $t['sick_leave_unpaid'],
     'Personal Leave' => $t['personal_leave'],
+    'Personal Leave Unpaid' => $t['personal_leave_unpaid'],
     'Maternity Leave' => $t['maternity_leave'],
+    'Maternity Leave Unpaid' => $t['maternity_leave_unpaid'],
     'Paternity Leave' => $t['paternity_leave'],
-    'Unpaid Leave' => $t['unpaid_leave'],
-    'Other' => $t['other_leave'],
+    'Paternity Leave Unpaid' => $t['paternity_leave_unpaid'],
 ];
 
 // ID Card reason options
@@ -359,7 +424,7 @@ include __DIR__ . '/../../includes/sidebar.php';
 ?>
 <div class="lg:ml-64">
     <div class="container mx-auto px-4 py-6 max-w-4xl">
-        
+
         <!-- Error Alert Container -->
         <div id="alertContainer">
             <?php if ($message): ?>
@@ -386,7 +451,7 @@ include __DIR__ . '/../../includes/sidebar.php';
         <!-- Main Form Card -->
         <div class="<?php echo $card_bg; ?> rounded-lg shadow-md border <?php echo $border_class; ?> p-6">
             <form method="POST" id="requestForm">
-                
+
                 <!-- Employee Selection Section -->
                 <div class="mb-8 pb-8 border-b <?php echo $border_class; ?>">
                     <h2 class="text-lg font-bold <?php echo $text_class; ?> mb-6 flex items-center gap-2">
@@ -401,13 +466,13 @@ include __DIR__ . '/../../includes/sidebar.php';
                             <label class="block text-sm font-medium <?php echo $label_class; ?> mb-2">
                                 <?php echo $t['select_employee']; ?> <span class="text-red-500">*</span>
                             </label>
-                            <input 
-                                type="text" 
-                                id="employeeInput" 
-                                name="employee_id" 
-                                list="employees" 
-                                class="w-full px-4 py-3 border rounded-lg <?php echo $input_class; ?> focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                                placeholder="<?php echo $t['search_employee']; ?>" 
+                            <input
+                                type="text"
+                                id="employeeInput"
+                                name="employee_id"
+                                list="employees"
+                                class="w-full px-4 py-3 border rounded-lg <?php echo $input_class; ?> focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="<?php echo $t['search_employee']; ?>"
                                 required
                                 onchange="loadEmployeeData(this.value)">
                             <datalist id="employees">
@@ -481,7 +546,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                 </div>
                 <!-- Dynamic Form Content -->
                 <div id="formContent" class="mb-8">
-                    
+
                     <!-- LEAVE REQUEST FORM -->
                     <div id="leaveForm" class="hidden">
                         <h2 class="text-lg font-bold <?php echo $text_class; ?> mb-6 flex items-center gap-2">
@@ -490,7 +555,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                             </svg>
                             <?php echo $t['leave_request']; ?>
                         </h2>
-                        
+
                         <div class="mb-6">
                             <label class="block text-sm font-medium <?php echo $label_class; ?> mb-2">
                                 <?php echo $t['leave_type']; ?> <span class="text-red-500">*</span>
@@ -533,7 +598,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                             <textarea name="reason" class="w-full px-4 py-3 border rounded-lg <?php echo $input_class; ?> focus:outline-none focus:ring-2 focus:ring-green-500 resize-none" rows="4" placeholder="..."></textarea>
                         </div>
                     </div>
-                    
+
                     <!-- CERTIFICATE REQUEST FORM -->
                     <div id="certificateForm" class="hidden">
                         <h2 class="text-lg font-bold <?php echo $text_class; ?> mb-6 flex items-center gap-2">
@@ -542,7 +607,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                             </svg>
                             <?php echo $t['certificate_request']; ?>
                         </h2>
-                        
+
                         <!-- Certificate Type Selection -->
                         <div class="mb-6">
                             <label class="block text-sm font-medium <?php echo $label_class; ?> mb-3">
@@ -576,7 +641,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                             <textarea name="purpose" class="w-full px-4 py-3 border rounded-lg <?php echo $input_class; ?> focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" rows="4" placeholder="..."></textarea>
                         </div>
                     </div>
-                    
+
                     <!-- ID CARD REQUEST FORM (NEW) -->
                     <div id="idCardForm" class="hidden">
                         <h2 class="text-lg font-bold <?php echo $text_class; ?> mb-6 flex items-center gap-2">
@@ -585,7 +650,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                             </svg>
                             <?php echo $t['id_card_request']; ?>
                         </h2>
-                        
+
                         <!-- ID Card Request Reason -->
                         <div class="mb-6">
                             <label class="block text-sm font-medium <?php echo $label_class; ?> mb-3">
@@ -644,7 +709,7 @@ include __DIR__ . '/../../includes/sidebar.php';
             return;
         }
         const url = '<?php echo BASE_PATH; ?>/views/admin/admin_create_request.php?action=get_employee_info&id=' + encodeURIComponent(employeeId);
-        
+
         fetch(url)
             .then(r => r.text())
             .then(text => {
@@ -662,7 +727,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                     } else {
                         alert('Error: ' + (data.message || 'Unknown error'));
                     }
-                } catch(e) {
+                } catch (e) {
                     alert('Error: ' + e.message);
                 }
             })
@@ -670,6 +735,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                 alert('Fetch error: ' + e.message);
             });
     }
+
     function clearEmployeeFields() {
         document.getElementById('dispEmployeeId').value = '';
         document.getElementById('dispEmployeeName').value = '';
@@ -680,6 +746,7 @@ include __DIR__ . '/../../includes/sidebar.php';
         document.getElementById('dispDateOfHire').value = '';
         document.getElementById('dispHiringType').value = '';
     }
+
     function changeRequestType(type) {
         document.getElementById('leaveForm').classList.add('hidden');
         document.getElementById('certificateForm').classList.add('hidden');
@@ -692,22 +759,23 @@ include __DIR__ . '/../../includes/sidebar.php';
             document.getElementById('idCardForm').classList.remove('hidden');
         }
     }
+
     function calculateLeaveDays() {
         const startDateEl = document.querySelector('#leaveForm input[name="start_date"]');
         const endDateEl = document.querySelector('#leaveForm input[name="end_date"]');
         const totalDaysEl = document.querySelector('#leaveForm input[name="total_days"]');
-        
+
         if (startDateEl && endDateEl && startDateEl.value && endDateEl.value) {
             const start = new Date(startDateEl.value);
             const end = new Date(endDateEl.value);
-            
+
             if (end < start) {
                 alert('End date must be after start date');
                 endDateEl.value = '';
                 totalDaysEl.value = '';
                 return;
             }
-            
+
             const diffTime = Math.abs(end - start);
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
             totalDaysEl.value = diffDays;
@@ -717,20 +785,20 @@ include __DIR__ . '/../../includes/sidebar.php';
     document.getElementById('requestForm').addEventListener('submit', function(e) {
         const employeeId = document.getElementById('employeeInput').value.trim();
         const requestType = document.getElementById('requestTypeSelect').value;
-        
+
         if (!employeeId || !requestType) {
             e.preventDefault();
             alert('<?php echo $t["please_fill"]; ?>');
             return false;
         }
-        
+
         // Validate based on request type
         if (requestType === 'leave') {
             const leaveType = document.querySelector('#leaveForm select[name="leave_type"]')?.value || '';
             const startDate = document.querySelector('#leaveForm input[name="start_date"]')?.value || '';
             const endDate = document.querySelector('#leaveForm input[name="end_date"]')?.value || '';
             const totalDays = document.querySelector('#leaveForm input[name="total_days"]')?.value || '';
-            
+
             if (!leaveType || !startDate || !endDate || !totalDays) {
                 e.preventDefault();
                 alert('<?php echo $t["please_fill"]; ?>');
@@ -740,7 +808,7 @@ include __DIR__ . '/../../includes/sidebar.php';
             const certTypeId = document.querySelector('#certificateForm select[name="cert_type_id"]')?.value || '';
             const baseSalary = document.querySelector('#certificateForm input[name="base_salary_cert"]')?.value || '';
             const purpose = document.querySelector('#certificateForm textarea[name="purpose"]')?.value || '';
-            
+
             if (!certTypeId || !baseSalary || !purpose) {
                 e.preventDefault();
                 alert('<?php echo $t["please_fill"]; ?>');
@@ -748,7 +816,7 @@ include __DIR__ . '/../../includes/sidebar.php';
             }
         } else if (requestType === 'id_card') {
             const idCardReason = document.querySelector('#idCardForm input[name="id_card_reason"]:checked')?.value || '';
-            
+
             if (!idCardReason) {
                 e.preventDefault();
                 alert('<?php echo $t["please_fill"]; ?>');
@@ -758,4 +826,5 @@ include __DIR__ . '/../../includes/sidebar.php';
     });
 </script>
 </body>
+
 </html>
