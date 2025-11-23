@@ -1,12 +1,13 @@
 <?php
-
 /**
- * Admin Create Request - WITH EMPLOYEE ID CARD SUPPORT
+ * Admin Create Request - WITH ROLE-BASED FILTERING
  * File: /views/admin/admin_create_request.php
  * 
+ * ✅ Officer TA can only create ID Card requests
+ * ✅ Admin/Officer can create all request types (Leave, Certificate, ID Card)
  * ✅ Create Leave requests for employees
  * ✅ Create Certificate requests for employees
- * ✅ Create Employee ID Card requests for employees (NEW)
+ * ✅ Create Employee ID Card requests for employees
  * ✅ Auto-fill employee data with datalist
  * ✅ Dropdown list for Leave Types, Certificate Types, and ID Card Request Reasons
  * ✅ FIXED: Removed base_salary from employees table (only in certificate_requests)
@@ -16,23 +17,22 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require_once __DIR__ . '/../../config/db_config.php';
 require_once __DIR__ . '/../../controllers/AuthController.php';
+
 // ============================================
 // API ENDPOINT (Handle AJAX requests)
 // ============================================
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['action'] === 'get_employee_info') {
     header('Content-Type: application/json');
-
     try {
-        AuthController::requireRole(['admin', 'officer']);
-
+        AuthController::requireRole(['admin', 'officer_payroll', 'officer_ta']);
+        
         $employee_id = trim($_GET['id'] ?? '');
-
         if (empty($employee_id)) {
             throw new Exception('Employee ID required');
         }
-
+        
         $conn = getDbConnection();
-
+        
         // Get employee data WITHOUT base_salary (it's only in certificate_requests)
         $sql = "SELECT 
             e.employee_id,
@@ -51,20 +51,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['act
         LEFT JOIN section_master sm ON e.section_id = sm.section_id
         LEFT JOIN hiring_type_master ht ON e.hiring_type_id = ht.hiring_type_id
         WHERE e.employee_id = ? LIMIT 1";
-
+        
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("s", $employee_id);
         $stmt->execute();
         $result = $stmt->get_result();
-
+        
         if ($result->num_rows === 0) {
             throw new Exception('Employee not found');
         }
-
+        
         $emp = $result->fetch_assoc();
         $stmt->close();
         $conn->close();
-
+        
         echo json_encode([
             'success' => true,
             'data' => [
@@ -84,25 +84,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['act
         exit();
     }
 }
+
 // ============================================
 // PAGE RENDERING
 // ============================================
-AuthController::requireRole(['admin', 'officer']);
+AuthController::requireRole(['admin', 'officer_payroll', 'officer_ta']);
+
+// ✅ CRITICAL: Check user role for filtering
+$user_role = $_SESSION['role'] ?? '';
+$is_officer_ta = ($user_role === 'officer_ta');
+
 $current_lang = $_SESSION['language'] ?? 'th';
 $theme_mode = $_SESSION['theme_mode'] ?? 'light';
 $is_dark = ($theme_mode === 'dark');
+
 // Theme classes
 $card_bg = $is_dark ? 'bg-gray-800' : 'bg-white';
 $text_class = $is_dark ? 'text-white' : 'text-gray-900';
 $border_class = $is_dark ? 'border-gray-700' : 'border-gray-200';
 $input_class = $is_dark ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500';
 $label_class = $is_dark ? 'text-gray-300' : 'text-gray-700';
-// Translations
+
 // Translations
 $t = [
     'th' => [
         'page_title' => 'สร้างคำขอเพื่อพนักงาน',
         'page_subtitle' => 'สร้างคำขอ (ใบลา / หนังสือรับรอง / บัตรพนักงาน) ให้พนักงาน',
+        'page_subtitle_ta' => 'สร้างคำขอบัตรพนักงานให้พนักงาน',
         'select_employee' => 'เลือกพนักงาน',
         'search_employee' => 'พิมพ์รหัส หรือ ชื่อพนักงาน...',
         'select_request_type' => 'เลือกประเภทคำขอ',
@@ -146,6 +154,7 @@ $t = [
         'first_time_issue_desc' => 'ขอบัตรพนักงานฉบับแรก',
         'important_notice' => 'ประกาศสำคัญ',
         'notice_1' => '✓ เลือกพนักงานและประเภทคำขอ',
+        'notice_1_ta' => '✓ เลือกพนักงาน',
         'notice_2' => '✓ ข้อมูลพนักงานจะแสดงอัตโนมัติ',
         'notice_3' => '✓ กรอกข้อมูลให้ครบถ้วนก่อนส่งคำขอ',
         'create_request' => 'สร้างคำขอ',
@@ -160,6 +169,7 @@ $t = [
     'en' => [
         'page_title' => 'Create Request for Employee',
         'page_subtitle' => 'Create requests (Leave / Certificate / ID Card) for employees',
+        'page_subtitle_ta' => 'Create ID Card requests for employees',
         'select_employee' => 'Select Employee',
         'search_employee' => 'Type ID or employee name...',
         'select_request_type' => 'Select Request Type',
@@ -203,6 +213,7 @@ $t = [
         'first_time_issue_desc' => 'Requesting first ID card',
         'important_notice' => 'Important Notice',
         'notice_1' => '✓ Select employee and request type',
+        'notice_1_ta' => '✓ Select employee',
         'notice_2' => '✓ Employee data will appear automatically',
         'notice_3' => '✓ Fill in all required fields before submitting',
         'create_request' => 'Create Request',
@@ -217,6 +228,7 @@ $t = [
     'my' => [
         'page_title' => 'ဝန်ထမ်းအတွက် တောင်းဆိုချက်ဖန်တီးရန်',
         'page_subtitle' => 'ဝန်ထမ်းများအတွက် တောင်းဆိုချက်များ (ခွင့်ရက် / လက်မှတ် / မှတ်ပုံတင်) ဖန်တီးပါ',
+        'page_subtitle_ta' => 'ဝန်ထမ်းများအတွက် မှတ်ပုံတင်တောင်းဆိုချက်ဖန်တီးပါ',
         'select_employee' => 'ဝန်ထမ်းရွေးချယ်ပါ',
         'search_employee' => 'ID သို့မဟုတ် ဝန်ထမ်းအမည်ရိုက်ထည့်ပါ...',
         'select_request_type' => 'တောင်းဆိုချက်အမျိုးအစားရွေးချယ်ပါ',
@@ -260,6 +272,7 @@ $t = [
         'first_time_issue_desc' => 'ပထမဆုံးမှတ်ပုံတင်တောင်းခံခြင်း',
         'important_notice' => 'အရေးကြီးသောအသိပေးချက်',
         'notice_1' => '✓ ဝန်ထမ်းနှင့် တောင်းဆိုချက်အမျိုးအစားရွေးချယ်ပါ',
+        'notice_1_ta' => '✓ ဝန်ထမ်းရွေးချယ်ပါ',
         'notice_2' => '✓ ဝန်ထမ်းအချက်အလက်များ အလိုအလျောက်ပေါ်လာပါမည်',
         'notice_3' => '✓ တင်သွင်းခြင်းမပြုမီ လိုအပ်သောနေရာများပြည့်စုံစွာဖြည့်ပါ',
         'create_request' => 'တောင်းဆိုချက်ဖန်တီးရန်',
@@ -272,27 +285,33 @@ $t = [
         'no_types_available' => 'စနစ်တွင် လက်မှတ်အမျိုးအစားများမရှိသေးပါ',
     ]
 ][$current_lang] ?? $t['th'];
+
 $message = '';
 $message_type = '';
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_request'])) {
     $employee_id = trim($_POST['employee_id'] ?? '');
     $request_type = $_POST['request_type'] ?? '';
-
-    if (empty($employee_id) || empty($request_type)) {
+    
+    // ✅ Validate request type based on role
+    if ($is_officer_ta && $request_type !== 'id_card') {
+        $message = 'Unauthorized request type for your role';
+        $message_type = 'error';
+    } elseif (empty($employee_id) || empty($request_type)) {
         $message = $t['please_fill'];
         $message_type = 'error';
     } else {
         $conn = getDbConnection();
         $inserted = false;
-
-        if ($request_type === 'leave') {
+        
+        if ($request_type === 'leave' && !$is_officer_ta) {
             $leave_type = $_POST['leave_type'] ?? '';
             $start_date = $_POST['start_date'] ?? '';
             $end_date = $_POST['end_date'] ?? '';
             $total_days = intval($_POST['total_days'] ?? 0);
             $reason = $_POST['reason'] ?? '';
-
+            
             if (empty($leave_type) || empty($start_date) || empty($end_date) || empty($total_days)) {
                 $message = $t['please_fill'];
                 $message_type = 'error';
@@ -304,18 +323,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_request'])) {
                 $inserted = $stmt->execute();
                 $stmt->close();
             }
-        } elseif ($request_type === 'certificate') {
+        } elseif ($request_type === 'certificate' && !$is_officer_ta) {
             $cert_type_id = $_POST['cert_type_id'] ?? '';
             $base_salary = floatval($_POST['base_salary_cert'] ?? 0);
             $purpose = $_POST['purpose'] ?? '';
-
+            
             if (empty($cert_type_id) || empty($base_salary) || empty($purpose)) {
                 $message = $t['please_fill'];
                 $message_type = 'error';
             } else {
                 // Generate certificate number
                 $cert_no = 'CERT-' . date('Ymd') . '-' . str_pad(rand(1000, 9999), 4, '0', STR_PAD_LEFT);
-
+                
                 // Fetch employee data for certificate
                 $emp_sql = "SELECT e.*, 
                     COALESCE(p.position_name_th, p.position_name_en) as position_name,
@@ -334,14 +353,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_request'])) {
                 $emp_result = $emp_stmt->get_result();
                 $emp = $emp_result->fetch_assoc();
                 $emp_stmt->close();
-
+                
                 if ($emp) {
                     $employee_name = trim(($emp['full_name_th'] ?? '') . ' ' . ($emp['full_name_en'] ?? ''));
                     $position = $emp['position_name'] ?? '';
                     $division = $emp['division_name'] ?? '';
                     $date_of_hire = $emp['date_of_hire'] ?? null;
                     $hiring_type = $emp['hiring_type_name'] ?? '';
-
+                    
                     $cert_sql = "INSERT INTO certificate_requests 
                         (certificate_no, employee_id, cert_type_id, employee_name, position, division, date_of_hire, hiring_type, base_salary, purpose, status, created_at, updated_at) 
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'New', NOW(), NOW())";
@@ -353,7 +372,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_request'])) {
             }
         } elseif ($request_type === 'id_card') {
             $reason = $_POST['id_card_reason'] ?? '';
-
+            
             if (empty($reason)) {
                 $message = $t['please_fill'];
                 $message_type = 'error';
@@ -366,18 +385,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_request'])) {
                 $stmt->close();
             }
         }
-
+        
         $conn->close();
-
+        
         if ($inserted) {
             $message = $t['success'];
             $message_type = 'success';
-        } else {
+        } elseif (empty($message)) {
             $message = $t['error'];
             $message_type = 'error';
         }
     }
 }
+
 // Get employees for datalist
 $conn = getDbConnection();
 $employees_datalist = '';
@@ -386,31 +406,39 @@ while ($row = $result->fetch_assoc()) {
     $display = $row['employee_id'] . ' - ' . $row['full_name_th'];
     $employees_datalist .= "<option value='" . htmlspecialchars($row['employee_id']) . "'>" . htmlspecialchars($display) . "</option>";
 }
-// Get certificate types
+
+// Get certificate types (only needed if not officer_ta)
 $cert_types = [];
-$types_result = $conn->query("SELECT cert_type_id, 
-    COALESCE(type_name_th, type_name_en) as type_name
-    FROM certificate_types 
-    WHERE is_active = 1 
-    ORDER BY cert_type_id");
-if ($types_result) {
-    while ($row = $types_result->fetch_assoc()) {
-        $cert_types[] = $row;
+if (!$is_officer_ta) {
+    $types_result = $conn->query("SELECT cert_type_id, 
+        COALESCE(type_name_th, type_name_en) as type_name
+        FROM certificate_types 
+        WHERE is_active = 1 
+        ORDER BY cert_type_id");
+    if ($types_result) {
+        while ($row = $types_result->fetch_assoc()) {
+            $cert_types[] = $row;
+        }
     }
 }
+
 $conn->close();
-// Leave type options
-$leave_types = [
-    'Annual Leave' => $t['annual_leave'],
-    'Sick Leave' => $t['sick_leave'],
-    'Sick Leave Unpaid' => $t['sick_leave_unpaid'],
-    'Personal Leave' => $t['personal_leave'],
-    'Personal Leave Unpaid' => $t['personal_leave_unpaid'],
-    'Maternity Leave' => $t['maternity_leave'],
-    'Maternity Leave Unpaid' => $t['maternity_leave_unpaid'],
-    'Paternity Leave' => $t['paternity_leave'],
-    'Paternity Leave Unpaid' => $t['paternity_leave_unpaid'],
-];
+
+// Leave type options (only needed if not officer_ta)
+$leave_types = [];
+if (!$is_officer_ta) {
+    $leave_types = [
+        'Annual Leave' => $t['annual_leave'],
+        'Sick Leave' => $t['sick_leave'],
+        'Sick Leave Unpaid' => $t['sick_leave_unpaid'],
+        'Personal Leave' => $t['personal_leave'],
+        'Personal Leave Unpaid' => $t['personal_leave_unpaid'],
+        'Maternity Leave' => $t['maternity_leave'],
+        'Maternity Leave Unpaid' => $t['maternity_leave_unpaid'],
+        'Paternity Leave' => $t['paternity_leave'],
+        'Paternity Leave Unpaid' => $t['paternity_leave_unpaid'],
+    ];
+}
 
 // ID Card reason options
 $id_card_reasons = [
@@ -419,12 +447,14 @@ $id_card_reasons = [
     'Damaged ID Card' => $t['damaged_id_card_desc'],
     'First Time Issue' => $t['first_time_issue_desc'],
 ];
+
 include __DIR__ . '/../../includes/header.php';
 include __DIR__ . '/../../includes/sidebar.php';
 ?>
+
 <div class="lg:ml-64">
     <div class="container mx-auto px-4 py-6 max-w-4xl">
-
+        
         <!-- Error Alert Container -->
         <div id="alertContainer">
             <?php if ($message): ?>
@@ -436,6 +466,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                 </div>
             <?php endif; ?>
         </div>
+
         <!-- Page Header -->
         <div class="mb-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg shadow-md p-6">
             <div class="flex items-center gap-4">
@@ -444,14 +475,17 @@ include __DIR__ . '/../../includes/sidebar.php';
                 </svg>
                 <div>
                     <h1 class="text-3xl font-bold text-white"><?php echo $t['page_title']; ?></h1>
-                    <p class="text-blue-100 text-sm mt-1"><?php echo $t['page_subtitle']; ?></p>
+                    <p class="text-blue-100 text-sm mt-1">
+                        <?php echo $is_officer_ta ? $t['page_subtitle_ta'] : $t['page_subtitle']; ?>
+                    </p>
                 </div>
             </div>
         </div>
+
         <!-- Main Form Card -->
         <div class="<?php echo $card_bg; ?> rounded-lg shadow-md border <?php echo $border_class; ?> p-6">
             <form method="POST" id="requestForm">
-
+                
                 <!-- Employee Selection Section -->
                 <div class="mb-8 pb-8 border-b <?php echo $border_class; ?>">
                     <h2 class="text-lg font-bold <?php echo $text_class; ?> mb-6 flex items-center gap-2">
@@ -460,7 +494,8 @@ include __DIR__ . '/../../includes/sidebar.php';
                         </svg>
                         <?php echo $t['select_employee']; ?>
                     </h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                    
+                    <div class="grid grid-cols-1 <?php echo $is_officer_ta ? '' : 'md:grid-cols-2'; ?> gap-6 mb-4">
                         <!-- Employee Selection with Datalist -->
                         <div>
                             <label class="block text-sm font-medium <?php echo $label_class; ?> mb-2">
@@ -479,7 +514,9 @@ include __DIR__ . '/../../includes/sidebar.php';
                                 <?php echo $employees_datalist; ?>
                             </datalist>
                         </div>
-                        <!-- Request Type Selection -->
+
+                        <!-- Request Type Selection - Hidden for officer_ta -->
+                        <?php if (!$is_officer_ta): ?>
                         <div>
                             <label class="block text-sm font-medium <?php echo $label_class; ?> mb-2">
                                 <?php echo $t['select_request_type']; ?> <span class="text-red-500">*</span>
@@ -491,8 +528,13 @@ include __DIR__ . '/../../includes/sidebar.php';
                                 <option value="id_card"><?php echo $t['id_card_request']; ?></option>
                             </select>
                         </div>
+                        <?php else: ?>
+                        <!-- Hidden field for officer_ta - always id_card -->
+                        <input type="hidden" name="request_type" value="id_card">
+                        <?php endif; ?>
                     </div>
                 </div>
+
                 <!-- Employee Information Section -->
                 <div class="mb-8 pb-8 border-b <?php echo $border_class; ?>">
                     <h2 class="text-lg font-bold <?php echo $text_class; ?> mb-6 flex items-center gap-2">
@@ -501,42 +543,50 @@ include __DIR__ . '/../../includes/sidebar.php';
                         </svg>
                         <?php echo $t['employee_information']; ?>
                     </h2>
+                    
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- Employee ID -->
                         <div>
                             <label class="block text-sm font-medium <?php echo $label_class; ?> mb-2"><?php echo $t['employee_id']; ?></label>
                             <input type="text" id="dispEmployeeId" class="w-full px-4 py-3 border rounded-lg <?php echo $input_class; ?> opacity-75 cursor-not-allowed" readonly>
                         </div>
+                        
                         <!-- Employee Name -->
                         <div>
                             <label class="block text-sm font-medium <?php echo $label_class; ?> mb-2"><?php echo $t['employee_name']; ?></label>
                             <input type="text" id="dispEmployeeName" class="w-full px-4 py-3 border rounded-lg <?php echo $input_class; ?> opacity-75 cursor-not-allowed" readonly>
                         </div>
+                        
                         <!-- Position -->
                         <div>
                             <label class="block text-sm font-medium <?php echo $label_class; ?> mb-2"><?php echo $t['position']; ?></label>
                             <input type="text" id="dispPosition" class="w-full px-4 py-3 border rounded-lg <?php echo $input_class; ?> opacity-75 cursor-not-allowed" readonly>
                         </div>
+                        
                         <!-- Department -->
                         <div>
                             <label class="block text-sm font-medium <?php echo $label_class; ?> mb-2"><?php echo $t['department']; ?></label>
                             <input type="text" id="dispDepartment" class="w-full px-4 py-3 border rounded-lg <?php echo $input_class; ?> opacity-75 cursor-not-allowed" readonly>
                         </div>
+                        
                         <!-- Division -->
                         <div>
                             <label class="block text-sm font-medium <?php echo $label_class; ?> mb-2"><?php echo $t['division']; ?></label>
                             <input type="text" id="dispDivision" class="w-full px-4 py-3 border rounded-lg <?php echo $input_class; ?> opacity-75 cursor-not-allowed" readonly>
                         </div>
+                        
                         <!-- Section -->
                         <div>
                             <label class="block text-sm font-medium <?php echo $label_class; ?> mb-2"><?php echo $t['section']; ?></label>
                             <input type="text" id="dispSection" class="w-full px-4 py-3 border rounded-lg <?php echo $input_class; ?> opacity-75 cursor-not-allowed" readonly>
                         </div>
+                        
                         <!-- Date of Hire -->
                         <div>
                             <label class="block text-sm font-medium <?php echo $label_class; ?> mb-2"><?php echo $t['date_of_hire']; ?></label>
                             <input type="text" id="dispDateOfHire" class="w-full px-4 py-3 border rounded-lg <?php echo $input_class; ?> opacity-75 cursor-not-allowed" readonly>
                         </div>
+                        
                         <!-- Hiring Type -->
                         <div>
                             <label class="block text-sm font-medium <?php echo $label_class; ?> mb-2"><?php echo $t['hiring_type']; ?></label>
@@ -544,10 +594,12 @@ include __DIR__ . '/../../includes/sidebar.php';
                         </div>
                     </div>
                 </div>
+
                 <!-- Dynamic Form Content -->
                 <div id="formContent" class="mb-8">
-
-                    <!-- LEAVE REQUEST FORM -->
+                    
+                    <!-- LEAVE REQUEST FORM (Hidden for officer_ta) -->
+                    <?php if (!$is_officer_ta): ?>
                     <div id="leaveForm" class="hidden">
                         <h2 class="text-lg font-bold <?php echo $text_class; ?> mb-6 flex items-center gap-2">
                             <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -555,7 +607,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                             </svg>
                             <?php echo $t['leave_request']; ?>
                         </h2>
-
+                        
                         <div class="mb-6">
                             <label class="block text-sm font-medium <?php echo $label_class; ?> mb-2">
                                 <?php echo $t['leave_type']; ?> <span class="text-red-500">*</span>
@@ -567,6 +619,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                                 <?php endforeach; ?>
                             </select>
                         </div>
+                        
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                             <!-- Start Date -->
                             <div>
@@ -575,6 +628,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                                 </label>
                                 <input type="date" name="start_date" class="w-full px-4 py-3 border rounded-lg <?php echo $input_class; ?> focus:outline-none focus:ring-2 focus:ring-green-500" onchange="calculateLeaveDays()">
                             </div>
+                            
                             <!-- End Date -->
                             <div>
                                 <label class="block text-sm font-medium <?php echo $label_class; ?> mb-2">
@@ -583,6 +637,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                                 <input type="date" name="end_date" class="w-full px-4 py-3 border rounded-lg <?php echo $input_class; ?> focus:outline-none focus:ring-2 focus:ring-green-500" onchange="calculateLeaveDays()">
                             </div>
                         </div>
+                        
                         <!-- Total Days -->
                         <div class="mb-6">
                             <label class="block text-sm font-medium <?php echo $label_class; ?> mb-2">
@@ -590,6 +645,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                             </label>
                             <input type="number" name="total_days" class="w-full px-4 py-3 border rounded-lg <?php echo $input_class; ?> focus:outline-none focus:ring-2 focus:ring-green-500" min="1" placeholder="0" readonly>
                         </div>
+                        
                         <!-- Reason -->
                         <div class="mb-6">
                             <label class="block text-sm font-medium <?php echo $label_class; ?> mb-2">
@@ -599,7 +655,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                         </div>
                     </div>
 
-                    <!-- CERTIFICATE REQUEST FORM -->
+                    <!-- CERTIFICATE REQUEST FORM (Hidden for officer_ta) -->
                     <div id="certificateForm" class="hidden">
                         <h2 class="text-lg font-bold <?php echo $text_class; ?> mb-6 flex items-center gap-2">
                             <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -607,7 +663,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                             </svg>
                             <?php echo $t['certificate_request']; ?>
                         </h2>
-
+                        
                         <!-- Certificate Type Selection -->
                         <div class="mb-6">
                             <label class="block text-sm font-medium <?php echo $label_class; ?> mb-3">
@@ -626,6 +682,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                                 </select>
                             <?php endif; ?>
                         </div>
+                        
                         <!-- Base Salary (for certificate only) -->
                         <div class="mb-6">
                             <label class="block text-sm font-medium <?php echo $label_class; ?> mb-2">
@@ -633,6 +690,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                             </label>
                             <input type="number" name="base_salary_cert" step="0.01" min="0" class="w-full px-4 py-3 border rounded-lg <?php echo $input_class; ?> focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="0.00">
                         </div>
+                        
                         <!-- Purpose -->
                         <div class="mb-6">
                             <label class="block text-sm font-medium <?php echo $label_class; ?> mb-2">
@@ -641,16 +699,17 @@ include __DIR__ . '/../../includes/sidebar.php';
                             <textarea name="purpose" class="w-full px-4 py-3 border rounded-lg <?php echo $input_class; ?> focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" rows="4" placeholder="..."></textarea>
                         </div>
                     </div>
+                    <?php endif; ?>
 
-                    <!-- ID CARD REQUEST FORM (NEW) -->
-                    <div id="idCardForm" class="hidden">
+                    <!-- ID CARD REQUEST FORM (Always visible, auto-shown for officer_ta) -->
+                    <div id="idCardForm" class="<?php echo $is_officer_ta ? '' : 'hidden'; ?>">
                         <h2 class="text-lg font-bold <?php echo $text_class; ?> mb-6 flex items-center gap-2">
                             <svg class="w-5 h-5 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v10a2 2 0 002 2h5m0 0h5a2 2 0 002-2v-10a2 2 0 00-2-2h-5m0 0V5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.153m-13.5 0H21m-7 10v2m0-2v-2m0 2h2m-2 0h-2"></path>
                             </svg>
                             <?php echo $t['id_card_request']; ?>
                         </h2>
-
+                        
                         <!-- ID Card Request Reason -->
                         <div class="mb-6">
                             <label class="block text-sm font-medium <?php echo $label_class; ?> mb-3">
@@ -659,7 +718,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                             <div class="space-y-3">
                                 <?php foreach ($id_card_reasons as $key => $label): ?>
                                     <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:<?php echo $is_dark ? 'bg-gray-700' : 'bg-gray-50'; ?> transition <?php echo $border_class; ?>">
-                                        <input type="radio" name="id_card_reason" value="<?php echo htmlspecialchars($key); ?>" class="w-4 h-4 text-pink-600">
+                                        <input type="radio" name="id_card_reason" value="<?php echo htmlspecialchars($key); ?>" class="w-4 h-4 text-pink-600" <?php echo $is_officer_ta ? 'required' : ''; ?>>
                                         <div class="ml-3">
                                             <p class="font-medium <?php echo $text_class; ?>"><?php echo htmlspecialchars($label); ?></p>
                                         </div>
@@ -668,7 +727,9 @@ include __DIR__ . '/../../includes/sidebar.php';
                             </div>
                         </div>
                     </div>
+
                 </div>
+
                 <!-- Important Notice -->
                 <div class="mb-8 p-4 bg-yellow-50 dark:bg-yellow-900 border-l-4 border-yellow-400 rounded">
                     <div class="flex gap-3">
@@ -678,13 +739,14 @@ include __DIR__ . '/../../includes/sidebar.php';
                         <div>
                             <p class="text-sm font-bold text-yellow-800 dark:text-yellow-300"><?php echo $t['important_notice']; ?></p>
                             <ul class="text-sm text-yellow-700 dark:text-yellow-400 mt-2 space-y-1">
-                                <li><?php echo $t['notice_1']; ?></li>
+                                <li><?php echo $is_officer_ta ? $t['notice_1_ta'] : $t['notice_1']; ?></li>
                                 <li><?php echo $t['notice_2']; ?></li>
                                 <li><?php echo $t['notice_3']; ?></li>
                             </ul>
                         </div>
                     </div>
                 </div>
+
                 <!-- Form Buttons -->
                 <div class="flex flex-col md:flex-row gap-4 pt-6 border-t <?php echo $border_class; ?>">
                     <a href="<?php echo BASE_PATH; ?>/views/admin/request_management.php" class="flex-1 px-6 py-3 border rounded-lg <?php echo $border_class; ?> <?php echo $text_class; ?> hover:<?php echo $is_dark ? 'bg-gray-700' : 'bg-gray-50'; ?> transition font-medium text-center">
@@ -701,15 +763,20 @@ include __DIR__ . '/../../includes/sidebar.php';
         </div>
     </div>
 </div>
+
 <?php include BASE_PATH . '/includes/footer.php'; ?>
+
 <script>
+    const isOfficerTA = <?php echo $is_officer_ta ? 'true' : 'false'; ?>;
+    
     function loadEmployeeData(employeeId) {
         if (!employeeId) {
             clearEmployeeFields();
             return;
         }
+        
         const url = '<?php echo BASE_PATH; ?>/views/admin/admin_create_request.php?action=get_employee_info&id=' + encodeURIComponent(employeeId);
-
+        
         fetch(url)
             .then(r => r.text())
             .then(text => {
@@ -735,7 +802,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                 alert('Fetch error: ' + e.message);
             });
     }
-
+    
     function clearEmployeeFields() {
         document.getElementById('dispEmployeeId').value = '';
         document.getElementById('dispEmployeeName').value = '';
@@ -746,11 +813,14 @@ include __DIR__ . '/../../includes/sidebar.php';
         document.getElementById('dispDateOfHire').value = '';
         document.getElementById('dispHiringType').value = '';
     }
-
+    
     function changeRequestType(type) {
+        if (isOfficerTA) return; // Officer TA can't change type
+        
         document.getElementById('leaveForm').classList.add('hidden');
         document.getElementById('certificateForm').classList.add('hidden');
         document.getElementById('idCardForm').classList.add('hidden');
+        
         if (type === 'leave') {
             document.getElementById('leaveForm').classList.remove('hidden');
         } else if (type === 'certificate') {
@@ -759,72 +829,91 @@ include __DIR__ . '/../../includes/sidebar.php';
             document.getElementById('idCardForm').classList.remove('hidden');
         }
     }
-
+    
     function calculateLeaveDays() {
         const startDateEl = document.querySelector('#leaveForm input[name="start_date"]');
         const endDateEl = document.querySelector('#leaveForm input[name="end_date"]');
         const totalDaysEl = document.querySelector('#leaveForm input[name="total_days"]');
-
+        
         if (startDateEl && endDateEl && startDateEl.value && endDateEl.value) {
             const start = new Date(startDateEl.value);
             const end = new Date(endDateEl.value);
-
+            
             if (end < start) {
                 alert('End date must be after start date');
                 endDateEl.value = '';
                 totalDaysEl.value = '';
                 return;
             }
-
+            
             const diffTime = Math.abs(end - start);
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
             totalDaysEl.value = diffDays;
         }
     }
+    
     // Custom form validation
     document.getElementById('requestForm').addEventListener('submit', function(e) {
         const employeeId = document.getElementById('employeeInput').value.trim();
-        const requestType = document.getElementById('requestTypeSelect').value;
-
-        if (!employeeId || !requestType) {
+        
+        if (!employeeId) {
             e.preventDefault();
             alert('<?php echo $t["please_fill"]; ?>');
             return false;
         }
-
-        // Validate based on request type
-        if (requestType === 'leave') {
-            const leaveType = document.querySelector('#leaveForm select[name="leave_type"]')?.value || '';
-            const startDate = document.querySelector('#leaveForm input[name="start_date"]')?.value || '';
-            const endDate = document.querySelector('#leaveForm input[name="end_date"]')?.value || '';
-            const totalDays = document.querySelector('#leaveForm input[name="total_days"]')?.value || '';
-
-            if (!leaveType || !startDate || !endDate || !totalDays) {
-                e.preventDefault();
-                alert('<?php echo $t["please_fill"]; ?>');
-                return false;
-            }
-        } else if (requestType === 'certificate') {
-            const certTypeId = document.querySelector('#certificateForm select[name="cert_type_id"]')?.value || '';
-            const baseSalary = document.querySelector('#certificateForm input[name="base_salary_cert"]')?.value || '';
-            const purpose = document.querySelector('#certificateForm textarea[name="purpose"]')?.value || '';
-
-            if (!certTypeId || !baseSalary || !purpose) {
-                e.preventDefault();
-                alert('<?php echo $t["please_fill"]; ?>');
-                return false;
-            }
-        } else if (requestType === 'id_card') {
+        
+        if (isOfficerTA) {
+            // Officer TA validation - only ID card
             const idCardReason = document.querySelector('#idCardForm input[name="id_card_reason"]:checked')?.value || '';
-
             if (!idCardReason) {
                 e.preventDefault();
                 alert('<?php echo $t["please_fill"]; ?>');
                 return false;
             }
+        } else {
+            // Regular admin/officer validation
+            const requestType = document.getElementById('requestTypeSelect').value;
+            
+            if (!requestType) {
+                e.preventDefault();
+                alert('<?php echo $t["please_fill"]; ?>');
+                return false;
+            }
+            
+            // Validate based on request type
+            if (requestType === 'leave') {
+                const leaveType = document.querySelector('#leaveForm select[name="leave_type"]')?.value || '';
+                const startDate = document.querySelector('#leaveForm input[name="start_date"]')?.value || '';
+                const endDate = document.querySelector('#leaveForm input[name="end_date"]')?.value || '';
+                const totalDays = document.querySelector('#leaveForm input[name="total_days"]')?.value || '';
+                
+                if (!leaveType || !startDate || !endDate || !totalDays) {
+                    e.preventDefault();
+                    alert('<?php echo $t["please_fill"]; ?>');
+                    return false;
+                }
+            } else if (requestType === 'certificate') {
+                const certTypeId = document.querySelector('#certificateForm select[name="cert_type_id"]')?.value || '';
+                const baseSalary = document.querySelector('#certificateForm input[name="base_salary_cert"]')?.value || '';
+                const purpose = document.querySelector('#certificateForm textarea[name="purpose"]')?.value || '';
+                
+                if (!certTypeId || !baseSalary || !purpose) {
+                    e.preventDefault();
+                    alert('<?php echo $t["please_fill"]; ?>');
+                    return false;
+                }
+            } else if (requestType === 'id_card') {
+                const idCardReason = document.querySelector('#idCardForm input[name="id_card_reason"]:checked')?.value || '';
+                
+                if (!idCardReason) {
+                    e.preventDefault();
+                    alert('<?php echo $t["please_fill"]; ?>');
+                    return false;
+                }
+            }
         }
     });
 </script>
-</body>
 
+</body>
 </html>

@@ -7,7 +7,7 @@
 require_once __DIR__ . '/../../config/db_config.php';
 require_once __DIR__ . '/../../controllers/AuthController.php';
 
-AuthController::requireRole(['admin', 'officer']);
+AuthController::requireRole(['admin', 'officer_payroll']);
 
 $page_title = 'รายการลงชื่อส่งเอกสาร';
 extract(get_theme_vars());

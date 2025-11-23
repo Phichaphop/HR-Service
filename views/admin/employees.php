@@ -16,7 +16,7 @@ require_once __DIR__ . '/../../controllers/AuthController.php';
 require_once __DIR__ . '/../../db/Localization.php';
 
 // Require admin or officer role
-AuthController::requireRole(['admin', 'officer']);
+AuthController::requireRole(['admin', 'officer_payroll']);
 
 // Get current settings from session
 $current_lang = $_SESSION['language'] ?? 'th';

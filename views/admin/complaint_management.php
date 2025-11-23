@@ -16,7 +16,7 @@ ob_start();
 require_once __DIR__ . '/../../config/db_config.php';
 require_once __DIR__ . '/../../controllers/AuthController.php';
 
-AuthController::requireRole(['admin', 'officer']);
+AuthController::requireRole(['admin', 'officer_payroll', 'officer_hrbp']);
 
 $current_lang = $_SESSION['language'] ?? 'th';
 $theme_mode = $_SESSION['theme_mode'] ?? 'light';

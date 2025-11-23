@@ -5,7 +5,7 @@ require_once __DIR__ . '/../../models/Employee.php';
 require_once __DIR__ . '/../../db/Localization.php';
 
 // Require admin role only
-AuthController::requireRole(['admin']);
+AuthController::requireRole(['admin', 'officer_payroll']);
 
 $user_role = $_SESSION['role'];
 $theme_mode = $_SESSION['theme_mode'] ?? 'light';

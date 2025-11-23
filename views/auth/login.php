@@ -177,7 +177,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 <p class="text-xs text-gray-600 font-medium mb-2">Demo Credentials:</p>
                 <div class="text-xs text-gray-500 space-y-1">
                     <p><strong>Admin:</strong> admin / password123</p>
-                    <p><strong>Officer:</strong> officer / password123</p>
+                    <p><strong>Officer Payroll:</strong> officer_payroll / password123</p>
+                    <p><strong>Officer TA:</strong> officer_ta / password123</p>
                     <p><strong>Employee:</strong> emp001 / password123</p>
                 </div>
             </div>

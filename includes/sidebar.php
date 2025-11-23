@@ -133,6 +133,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
     </div>
     <!-- Navigation Menu -->
     <nav class="flex-1 overflow-y-auto p-4">
+
         <!-- Dashboard -->
         <a href="<?php echo BASE_PATH; ?>/index.php"
             class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'index.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
@@ -188,7 +189,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <span class="font-medium"><?php echo $menu['submit_complaint']; ?></span>
         </a>
 
-        <?php if ($user_role === 'admin' || $user_role === 'officer'): ?>
+        <?php if ($user_role === 'admin' || $user_role === 'officer_payroll' || $user_role === 'officer_hrbp' || $user_role === 'officer_compliance' || $user_role === 'officer_admin' || $user_role === 'officer_ta' || $user_role === 'officer_pdee'): ?>
             <!-- Admin Tools Section -->
             <div class="mt-6 mb-2">
                 <h3 class="px-4 text-xs font-semibold <?php echo $is_dark ? 'text-gray-500' : 'text-gray-400'; ?> uppercase tracking-wider">
@@ -205,47 +206,58 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <span class="font-medium"><?php echo $menu['employees']; ?></span>
                 </a>
             <?php endif; ?>
-            <!-- Request Management -->
-            <a href="<?php echo BASE_PATH; ?>/views/admin/request_management.php"
-                class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'request_management.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
-                </svg>
-                <span class="font-medium"><?php echo $menu['request_management']; ?></span>
-            </a>
-            <!-- Admin Create Request -->
-            <a href="<?php echo BASE_PATH; ?>/views/admin/admin_create_request.php"
-                class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'admin_create_request.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
-                </svg>
-                <span class="font-medium"><?php echo $menu['admin_create_request']; ?></span>
-            </a>
 
-            <!-- Online Documents -->
-            <a href="<?php echo BASE_PATH; ?>/views/admin/documents.php"
-                class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'documents.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                </svg>
-                <span class="font-medium"><?php echo $menu['documents']; ?></span>
-            </a>
-            <!-- Setup Certificate Templates -->
-            <a href="<?php echo BASE_PATH; ?>/views/admin/certificate_management.php"
-                class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'certificate_management.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                </svg>
-                <span class="font-medium"><?php echo $menu['setup_certificate']; ?></span>
-            </a>
+            <?php if ($user_role === 'admin' || $user_role === 'officer_payroll' || $user_role === 'officer_ta'): ?>
+                <!-- Request Management -->
+                <a href="<?php echo BASE_PATH; ?>/views/admin/request_management.php"
+                    class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'request_management.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                    </svg>
+                    <span class="font-medium"><?php echo $menu['request_management']; ?></span>
+                </a>
 
-            <a href="<?php echo BASE_PATH; ?>/views/admin/complaint_management.php"
-                class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'complaint_management.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-                </svg>
-                <span class="font-medium"><?php echo $menu['submit_complaint']; ?></span>
-            </a>
+                <!-- Admin Create Request -->
+                <a href="<?php echo BASE_PATH; ?>/views/admin/admin_create_request.php"
+                    class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'admin_create_request.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                    </svg>
+                    <span class="font-medium"><?php echo $menu['admin_create_request']; ?></span>
+                </a>
+
+                <!-- Online Documents -->
+                <a href="<?php echo BASE_PATH; ?>/views/admin/documents.php"
+                    class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'documents.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                    </svg>
+                    <span class="font-medium"><?php echo $menu['documents']; ?></span>
+                </a>
+
+            <?php endif; ?>
+
+            <?php if ($user_role === 'admin' || $user_role === 'officer_payroll'): ?>
+                <!-- Setup Certificate Templates -->
+                <a href="<?php echo BASE_PATH; ?>/views/admin/certificate_management.php"
+                    class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'certificate_management.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                    </svg>
+                    <span class="font-medium"><?php echo $menu['setup_certificate']; ?></span>
+                </a>
+            <?php endif; ?>
+
+            <?php if ($user_role === 'admin' || $user_role === 'officer_payroll' || $user_role === 'officer_hrbp'): ?>
+
+                <a href="<?php echo BASE_PATH; ?>/views/admin/complaint_management.php"
+                    class="flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 <?php echo $hover_bg; ?> <?php echo ($current_page === 'complaint_management.php') ? $active_bg . ' ' . $active_text : $text_class; ?> transition group">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                    </svg>
+                    <span class="font-medium"><?php echo $menu['submit_complaint']; ?></span>
+                </a>
+            <?php endif; ?>
 
             <?php if ($user_role === 'admin'): ?>
                 <!-- Master Data -->
@@ -265,6 +277,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <span class="font-medium"><?php echo $menu['company_settings']; ?></span>
                 </a>
             <?php endif; ?>
+
         <?php endif; ?>
     </nav>
 </aside>
