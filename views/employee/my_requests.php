@@ -500,18 +500,18 @@ function generateDetailsHTML(req) {
             </div>
             <div>
                 <div class="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">${t['status_label']}</div>
-                <div class="font-semibold">${req.status || '-'}</div>
+                <div class="font-semibold <?php echo $text_class; ?>">${req.status || '-'}</div>
             </div>
         </div>
         
         <div class="grid grid-cols-2 gap-4">
             <div class="p-4 border rounded-lg">
                 <div class="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase mb-2">${t['employee_id']}</div>
-                <div class="text-lg font-mono font-bold">${req.employee_id || '-'}</div>
+                <div class="text-lg font-mono font-bold <?php echo $text_class; ?>">${req.employee_id || '-'}</div>
             </div>
             <div class="p-4 border rounded-lg">
                 <div class="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase mb-2">${t['employee_name']}</div>
-                <div class="text-lg font-bold">${req.employee_name || '-'}</div>
+                <div class="text-lg font-bold <?php echo $text_class; ?>">${req.employee_name || '-'}</div>
             </div>
         </div>
     `;

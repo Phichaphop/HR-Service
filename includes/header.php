@@ -160,7 +160,7 @@ $h = $header_lang[$_SESSION['language']] ?? $header_lang['th'];
     <div id="mobileMenuOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden" onclick="toggleMobileMenu()"></div>
     <!-- Top Bar (Mobile & Desktop) -->
     <header class="<?php echo $header_bg; ?> shadow-sm sticky top-0 z-30 theme-transition lg:ml-64 border-b <?php echo $border_class; ?>">
-        <div class="flex items-center justify-between px-4 py-3">
+        <div class="flex items-center justify-between px-4 py-4">
             <!-- Left Side: Mobile Menu + Page Title -->
             <div class="flex items-center space-x-3">
                 <!-- Mobile Menu Button -->

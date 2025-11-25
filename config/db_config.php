@@ -23,11 +23,11 @@ define('SMTP_FROM_NAME', 'HR Service System');
 define('APP_NAME', 'HR Service');
 define('APP_VERSION', '1.0.0');
 define('DEFAULT_LANGUAGE', 'th');
-define('DEFAULT_THEME_MODE', 'light'); // light or dark
+define('DEFAULT_THEME_MODE', 'dark'); // light or dark
 
 // Base Path Configuration (Change this if your folder name is different)
 define('BASE_PATH', '/HR-Service'); // Change to your folder name or '' for root
-define('BASE_URL', 'http://localhost' . BASE_PATH);
+define('BASE_URL', 'http://localhost' . BASE_PATH); // https://traxintertrade.infinityfreeapp.com/HR-Service
 
 // File Upload Settings
 define('UPLOAD_MAX_SIZE', 5242880); // 5MB
