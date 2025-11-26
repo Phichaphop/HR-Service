@@ -1,13 +1,15 @@
 <?php
-
 /**
- * Request Certificate Form - FIXED VERSION
+ * Request Certificate Form - WITH RATING CHECK
  * ✅ Fixed: undefined $success variable
  * ✅ Fixed: duplicate connection close
+ * ✅ Added Rating Check before showing form
+ * ✅ Blocks form if user has unrated completed requests
  * ✅ Using cert_request_id for certificate number generation
  */
 require_once __DIR__ . '/../../config/db_config.php';
 require_once __DIR__ . '/../../controllers/AuthController.php';
+require_once __DIR__ . '/../../controllers/RatingController.php'; // ✅ เพิ่มบรรทัดนี้
 require_once __DIR__ . '/../../db/Localization.php';
 
 AuthController::requireAuth();
@@ -16,6 +18,12 @@ $current_lang = $_SESSION['language'] ?? 'th';
 $theme_mode = $_SESSION['theme_mode'] ?? 'light';
 $is_dark = ($theme_mode === 'dark');
 $user_id = $_SESSION['user_id'];
+
+// ========== ✅ CHECK PENDING RATINGS ==========
+$conn = getDbConnection();
+$rating_check = RatingController::checkPendingRatings($user_id, $conn);
+$has_pending = $rating_check['has_pending'];
+// ============================================
 
 $card_bg = $is_dark ? 'bg-gray-800' : 'bg-white';
 $text_class = $is_dark ? 'text-white' : 'text-gray-900';
@@ -85,7 +93,6 @@ $translations = [
 $t = $translations[$current_lang] ?? $translations['th'];
 
 ensure_session_started();
-$conn = getDbConnection();
 
 $emp_sql = "SELECT e.*, 
             COALESCE(p.position_name_" . ($current_lang === 'en' ? 'en' : 'th') . ", p.position_name_th) as position_name,
@@ -96,6 +103,7 @@ $emp_sql = "SELECT e.*,
             LEFT JOIN division_master d ON e.division_id = d.division_id
             LEFT JOIN hiring_type_master ht ON e.hiring_type_id = ht.hiring_type_id
             WHERE e.employee_id = ?";
+
 $emp_stmt = $conn->prepare($emp_sql);
 $emp_stmt->bind_param("s", $user_id);
 $emp_stmt->execute();
@@ -115,12 +123,12 @@ while ($row = $types_result->fetch_assoc()) {
 
 // ✅ Initialize variables (IMPORTANT!)
 $error = '';
-$success = ''; // ✅ FIXED: Added missing variable declaration
+$success = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$has_pending) { // ✅ เพิ่มเงื่อนไข !$has_pending
     $cert_type_id = $_POST['cert_type_id'] ?? '';
     $purpose = $_POST['purpose'] ?? '';
-
+    
     if (empty($cert_type_id)) {
         $error = $t['please_select_type'];
     } else {
@@ -130,26 +138,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $date_of_hire = $employee['date_of_hire'] ?? null;
         $hiring_type = $employee['hiring_type_name'] ?? '';
         $base_salary = (float)($employee['base_salary'] ?? 0);
-
+        
         // ✅ Get next ID for certificate number
         $current_year = date('Y');
-
         $max_id_sql = "SELECT COALESCE(MAX(request_id), 0) as max_id FROM certificate_requests";
         $max_id_result = $conn->query($max_id_sql);
         $max_id_row = $max_id_result->fetch_assoc();
         $next_id = $max_id_row['max_id'] + 1;
-
         $cert_no = $current_year . '/' . str_pad($next_id, 3, '0', STR_PAD_LEFT);
-
+        
         // ✅ INSERT with certificate_no
         $insert_sql = "INSERT INTO certificate_requests 
                       (certificate_no, employee_id, cert_type_id, employee_name, 
                        position, division, date_of_hire, hiring_type, base_salary,
                        purpose, status, created_at, updated_at)
                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'New', NOW(), NOW())";
-
+        
         $insert_stmt = $conn->prepare($insert_sql);
-
         if (!$insert_stmt) {
             $error = $t['error_occurred'] . ' ' . $conn->error;
         } else if (!$insert_stmt->bind_param(
@@ -172,11 +177,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // ✅ Success - close and redirect
             $insert_stmt->close();
             $conn->close();
-
             header("Location: " . BASE_PATH . "/views/employee/my_requests.php?request_type=certificate&success=1");
             exit();
         }
-
+        
         // ✅ Only close stmt if it exists and we didn't redirect
         if (isset($insert_stmt) && $insert_stmt) {
             $insert_stmt->close();
@@ -197,7 +201,7 @@ include __DIR__ . '/../../includes/sidebar.php';
 
 <div class="lg:ml-64">
     <div class="container mx-auto px-4 py-6 max-w-4xl">
-
+        
         <!-- Success/Error Messages -->
         <div id="alertContainer">
             <?php if ($success): ?>
@@ -208,7 +212,6 @@ include __DIR__ . '/../../includes/sidebar.php';
                     <div class="flex-1"><?php echo htmlspecialchars($success); ?></div>
                 </div>
             <?php endif; ?>
-
             <?php if ($error): ?>
                 <div class="mb-6 p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg flex items-start">
                     <svg class="w-6 h-6 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -234,121 +237,120 @@ include __DIR__ . '/../../includes/sidebar.php';
             </div>
         </div>
 
-        <!-- Form Card -->
-        <div class="<?php echo $card_bg; ?> rounded-lg shadow-lg p-6 border <?php echo $border_class; ?>">
-            <form method="POST" action="">
-
-                <!-- Employee Information Section (Read-Only) -->
-                <div class="mb-8 pb-8 border-b <?php echo $border_class; ?>">
-                    <h3 class="text-xl font-bold <?php echo $text_class; ?> mb-6 flex items-center">
-                        <svg class="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                        </svg>
-                        <?php echo $t['employee_information']; ?>
-                    </h3>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <!-- Employee ID -->
-                        <div>
-                            <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1"><?php echo $t['employee_id']; ?></label>
-                            <input type="text" readonly value="<?php echo htmlspecialchars($employee['employee_id'] ?? ''); ?>" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75">
-                        </div>
-
-                        <!-- Full Name -->
-                        <div>
-                            <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1"><?php echo $t['full_name']; ?></label>
-                            <input type="text" readonly value="<?php echo htmlspecialchars($display_name ?? ''); ?>" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75">
-                        </div>
-
-                        <!-- Position -->
-                        <div>
-                            <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1"><?php echo $t['position']; ?></label>
-                            <input type="text" readonly value="<?php echo htmlspecialchars($employee['position_name'] ?? ''); ?>" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75">
-                        </div>
-
-                        <!-- Division -->
-                        <div>
-                            <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1"><?php echo $t['division']; ?></label>
-                            <input type="text" readonly value="<?php echo htmlspecialchars($employee['division_name'] ?? ''); ?>" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75">
-                        </div>
-
-                        <!-- Date of Hire -->
-                        <div>
-                            <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1"><?php echo $t['date_of_hire']; ?></label>
-                            <input type="text" readonly value="<?php echo isset($employee['date_of_hire']) ? date('d-m-Y', strtotime($employee['date_of_hire'])) : ''; ?>" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75">
-                        </div>
-
-                        <!-- Hiring Type -->
-                        <div>
-                            <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1"><?php echo $t['hiring_type']; ?></label>
-                            <input type="text" readonly value="<?php echo htmlspecialchars($employee['hiring_type_name'] ?? ''); ?>" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75">
+        <?php if ($has_pending): ?>
+            <!-- ✅ Show Rating Required Warning -->
+            <?php echo RatingController::getPendingRatingsMessage($rating_check, $current_lang); ?>
+        <?php else: ?>
+            <!-- Form Card -->
+            <div class="<?php echo $card_bg; ?> rounded-lg shadow-lg p-6 border <?php echo $border_class; ?>">
+                <form method="POST" action="">
+                    
+                    <!-- Employee Information Section (Read-Only) -->
+                    <div class="mb-8 pb-8 border-b <?php echo $border_class; ?>">
+                        <h3 class="text-xl font-bold <?php echo $text_class; ?> mb-6 flex items-center">
+                            <svg class="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                            <?php echo $t['employee_information']; ?>
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <!-- Employee ID -->
+                            <div>
+                                <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1"><?php echo $t['employee_id']; ?></label>
+                                <input type="text" readonly value="<?php echo htmlspecialchars($employee['employee_id'] ?? ''); ?>" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75">
+                            </div>
+                            <!-- Full Name -->
+                            <div>
+                                <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1"><?php echo $t['full_name']; ?></label>
+                                <input type="text" readonly value="<?php echo htmlspecialchars($display_name ?? ''); ?>" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75">
+                            </div>
+                            <!-- Position -->
+                            <div>
+                                <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1"><?php echo $t['position']; ?></label>
+                                <input type="text" readonly value="<?php echo htmlspecialchars($employee['position_name'] ?? ''); ?>" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75">
+                            </div>
+                            <!-- Division -->
+                            <div>
+                                <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1"><?php echo $t['division']; ?></label>
+                                <input type="text" readonly value="<?php echo htmlspecialchars($employee['division_name'] ?? ''); ?>" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75">
+                            </div>
+                            <!-- Date of Hire -->
+                            <div>
+                                <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1"><?php echo $t['date_of_hire']; ?></label>
+                                <input type="text" readonly value="<?php echo isset($employee['date_of_hire']) ? date('d-m-Y', strtotime($employee['date_of_hire'])) : ''; ?>" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75">
+                            </div>
+                            <!-- Hiring Type -->
+                            <div>
+                                <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-1"><?php echo $t['hiring_type']; ?></label>
+                                <input type="text" readonly value="<?php echo htmlspecialchars($employee['hiring_type_name'] ?? ''); ?>" class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75">
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Certificate Type Selection -->
-                <div class="mb-8">
-                    <label class="block text-sm font-semibold <?php echo $text_class; ?> mb-4 flex items-center">
-                        <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        <?php echo $t['certificate_type']; ?> <span class="text-red-500 ml-1">*</span>
-                    </label>
-
-                    <?php if (empty($cert_types)): ?>
-                        <div class="text-center py-8 <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?>">
-                            <p><?php echo $t['no_types_available']; ?></p>
-                        </div>
-                    <?php else: ?>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <?php foreach ($cert_types as $type): ?>
-                                <label class="relative flex items-start p-4 border-2 rounded-lg cursor-pointer transition hover:border-blue-500 hover:<?php echo $is_dark ? 'bg-gray-700' : 'bg-blue-50'; ?> <?php echo $is_dark ? 'border-gray-600' : 'border-gray-300'; ?>">
-                                    <input type="radio" name="cert_type_id" value="<?php echo $type['cert_type_id']; ?>" required class="mt-1 sr-only peer">
-                                    <div class="flex-1 peer-checked:font-semibold">
-                                        <div class="<?php echo $text_class; ?> font-medium mb-1">
-                                            <?php echo htmlspecialchars($type['type_name']); ?>
+                    <!-- Certificate Type Selection -->
+                    <div class="mb-8">
+                        <label class="block text-sm font-semibold <?php echo $text_class; ?> mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <?php echo $t['certificate_type']; ?> <span class="text-red-500 ml-1">*</span>
+                        </label>
+                        <?php if (empty($cert_types)): ?>
+                            <div class="text-center py-8 <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?>">
+                                <p><?php echo $t['no_types_available']; ?></p>
+                            </div>
+                        <?php else: ?>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <?php foreach ($cert_types as $type): ?>
+                                    <label class="relative flex items-start p-4 border-2 rounded-lg cursor-pointer transition hover:border-blue-500 hover:<?php echo $is_dark ? 'bg-gray-700' : 'bg-blue-50'; ?> <?php echo $is_dark ? 'border-gray-600' : 'border-gray-300'; ?>">
+                                        <input type="radio" name="cert_type_id" value="<?php echo $type['cert_type_id']; ?>" required class="mt-1 sr-only peer">
+                                        <div class="flex-1 peer-checked:font-semibold">
+                                            <div class="<?php echo $text_class; ?> font-medium mb-1">
+                                                <?php echo htmlspecialchars($type['type_name']); ?>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <svg class="w-5 h-5 text-blue-600 hidden peer-checked:block absolute right-3 top-3" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                    </svg>
-                                </label>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php endif; ?>
-                </div>
+                                        <svg class="w-5 h-5 text-blue-600 hidden peer-checked:block absolute right-3 top-3" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                        </svg>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
 
-                <!-- Purpose Field -->
-                <div class="mb-8">
-                    <label class="block text-sm font-semibold <?php echo $text_class; ?> mb-2 flex items-center">
-                        <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                        </svg>
-                        <?php echo $t['purpose']; ?> <span class="text-red-500 ml-1">*</span>
-                    </label>
-                    <textarea name="purpose"
-                        placeholder="<?php echo $t['purpose_placeholder']; ?>"
-                        rows="4"
-                        required
-                        minlength="5"
-                        class="w-full px-4 py-3 border rounded-lg <?php echo $input_class; ?> focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-                    <p class="text-xs <?php echo $is_dark ? 'text-gray-400' : 'text-gray-500'; ?> mt-1"><?php echo $t['purpose_placeholder']; ?></p>
-                </div>
+                    <!-- Purpose Field -->
+                    <div class="mb-8">
+                        <label class="block text-sm font-semibold <?php echo $text_class; ?> mb-2 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                            </svg>
+                            <?php echo $t['purpose']; ?> <span class="text-red-500 ml-1">*</span>
+                        </label>
+                        <textarea name="purpose"
+                            placeholder="<?php echo $t['purpose_placeholder']; ?>"
+                            rows="4"
+                            required
+                            minlength="5"
+                            class="w-full px-4 py-3 border rounded-lg <?php echo $input_class; ?> focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                        <p class="text-xs <?php echo $is_dark ? 'text-gray-400' : 'text-gray-500'; ?> mt-1"><?php echo $t['purpose_placeholder']; ?></p>
+                    </div>
 
-                <!-- Form Actions -->
-                <div class="flex gap-4 justify-end pt-6 border-t <?php echo $border_class; ?>">
-                    <a href="<?php echo BASE_PATH; ?>/index.php" class="px-6 py-3 border rounded-lg <?php echo $border_class; ?> <?php echo $text_class; ?> hover:<?php echo $is_dark ? 'bg-gray-700' : 'bg-gray-50'; ?> transition font-medium">
-                        <?php echo $t['cancel']; ?>
-                    </a>
-                    <button type="submit" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-medium shadow-lg hover:shadow-xl">
-                        <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8m0 8l-6-2m6 2l6-2"></path>
-                        </svg>
-                        <?php echo $t['submit_request']; ?>
-                    </button>
-                </div>
-            </form>
-        </div>
+                    <!-- Form Actions -->
+                    <div class="flex gap-4 justify-end pt-6 border-t <?php echo $border_class; ?>">
+                        <a href="<?php echo BASE_PATH; ?>/index.php" class="px-6 py-3 border rounded-lg <?php echo $border_class; ?> <?php echo $text_class; ?> hover:<?php echo $is_dark ? 'bg-gray-700' : 'bg-gray-50'; ?> transition font-medium">
+                            <?php echo $t['cancel']; ?>
+                        </a>
+                        <button type="submit" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-medium shadow-lg hover:shadow-xl">
+                            <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8m0 8l-6-2m6 2l6-2"></path>
+                            </svg>
+                            <?php echo $t['submit_request']; ?>
+                        </button>
+                    </div>
+                    
+                </form>
+            </div>
+        <?php endif; ?>
 
     </div>
 </div>

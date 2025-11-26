@@ -152,6 +152,8 @@ $lang_content = [
         'quick_actions' => 'การดำเนินการด่วน',
         'request_leave' => 'ขอลา',
         'submit_leave' => 'ยื่นคำขอลา',
+        'complaint' => 'ร้องเรียน',
+        'submit_complaint' => 'ส่งคำร้องเรียน',
         'certificate' => 'หนังสือรับรอง',
         'request_certificate' => 'ขอหนังสือรับรอง',
         'id_card' => 'บัตรพนักงาน',
@@ -182,6 +184,8 @@ $lang_content = [
         'quick_actions' => 'Quick Actions',
         'request_leave' => 'Request Leave',
         'submit_leave' => 'Submit leave request',
+        'complaint' => 'Complaint',
+        'submit_complaint' => 'Submit complaint',
         'certificate' => 'Certificate',
         'request_certificate' => 'Request certificate',
         'id_card' => 'ID Card',
@@ -212,6 +216,8 @@ $lang_content = [
         'quick_actions' => 'လျင်မြန်သော လုပ်ဆောင်ချက်များ',
         'request_leave' => 'ခွင့်တောင်းရန်',
         'submit_leave' => 'ခွင့်လျှောက်လွှာတင်ရန်',
+        'complaint' => 'တိုင်ကြားချက်',
+        'submit_complaint' => 'တိုင်ကြားချက်တင်သွင်းပါ',
         'certificate' => 'လက်မှတ်',
         'request_certificate' => 'လက်မှတ်တောင်းရန်',
         'id_card' => 'မှတ်ပုံတင်',
@@ -233,10 +239,8 @@ $t = $lang_content[$_SESSION['language']] ?? $lang_content['th'];
 include __DIR__ . '/includes/header.php';
 include __DIR__ . '/includes/sidebar.php';
 ?>
-<!-- Main Content -->
-<div class="lg:ml-64">
-    <!-- Dashboard Content -->
-    <main class="p-4 md:p-6">
+<div class="lg:ml-64 min-h-screen">
+    <div class="container mx-auto px-4 py-6">
         <!-- Welcome Section -->
         <div class="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-lg p-6 mb-6 text-white animate-fade-in">
             <h1 class="text-2xl md:text-3xl font-bold mb-2">
@@ -392,6 +396,18 @@ include __DIR__ . '/includes/sidebar.php';
                     <span class="text-xs <?php echo $is_dark ? 'text-gray-500' : 'text-gray-400'; ?> mt-1"><?php echo $t['request_idcard']; ?></span>
                 </button>
 
+                <!-- Complaint -->
+                <button onclick="window.location.href='<?php echo BASE_PATH; ?>/views/employee/request_complaint.php'"
+                    class="flex flex-col items-center p-4 border-2 <?php echo $is_dark ? 'border-gray-700 hover:border-purple-500 hover:bg-gray-700' : 'border-gray-200 hover:border-purple-500 hover:bg-purple-50'; ?> rounded-lg transition group">
+                    <svg class="w-8 h-8 text-purple-600 mb-2 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z">
+                        </path>
+                    </svg>
+                    <span class="text-sm font-medium <?php echo $text_class; ?> text-center"><?php echo $t['complaint']; ?></span>
+                    <span class="text-xs <?php echo $is_dark ? 'text-gray-500' : 'text-gray-400'; ?> mt-1"><?php echo $t['submit_complaint']; ?></span>
+                </button>
+
                 <!-- View Requests -->
                 <button onclick="window.location.href='<?php echo BASE_PATH; ?>/views/employee/my_requests.php'"
                     class="flex flex-col items-center p-4 border-2 <?php echo $is_dark ? 'border-gray-700 hover:border-orange-500 hover:bg-gray-700' : 'border-gray-200 hover:border-orange-500 hover:bg-orange-50'; ?> rounded-lg transition group">
@@ -446,29 +462,29 @@ include __DIR__ . '/includes/sidebar.php';
             </div>
         <?php endif; ?>
 
-    </main>
-</div>
+        </main>
+    </div>
 
-<!-- Add fade-in animation -->
-<style>
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
+    <!-- Add fade-in animation -->
+    <style>
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
-        to {
-            opacity: 1;
-            transform: translateY(0);
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out;
         }
-    }
+    </style>
+    </body>
 
-    .animate-fade-in {
-        animation: fadeIn 0.5s ease-out;
-    }
-</style>
-</body>
+    <?php include __DIR__ . '/includes/footer.php'; ?>
 
-<?php include __DIR__ . '/includes/footer.php'; ?>
-
-</html>
+    </html>

@@ -1,12 +1,13 @@
 <?php
-
 /**
- * Request ID Card Form - UPDATED UI VERSION
+ * Request ID Card Form - WITH RATING CHECK
  * ✅ Standardized Layout Structure (Matches all request forms)
- * ✅ Improved Spacing and Typography
+ * ✅ Added Rating Check before showing form
+ * ✅ Blocks form if user has unrated completed requests
  */
 require_once __DIR__ . '/../../config/db_config.php';
 require_once __DIR__ . '/../../controllers/AuthController.php';
+require_once __DIR__ . '/../../controllers/RatingController.php'; // ✅ เพิ่มบรรทัดนี้
 require_once __DIR__ . '/../../models/Employee.php';
 require_once __DIR__ . '/../../db/Localization.php';
 
@@ -21,6 +22,14 @@ if (session_status() === PHP_SESSION_NONE) {
 $current_lang = $_SESSION['language'] ?? 'th';
 $theme_mode = $_SESSION['theme_mode'] ?? 'light';
 $is_dark = ($theme_mode === 'dark');
+$user_id = $_SESSION['user_id'];
+
+// ========== ✅ CHECK PENDING RATINGS ==========
+$conn = getDbConnection();
+$rating_check = RatingController::checkPendingRatings($user_id, $conn);
+$has_pending = $rating_check['has_pending'];
+// ============================================
+
 $text_class = $is_dark ? 'text-white' : 'text-gray-900';
 $card_bg = $is_dark ? 'bg-gray-800' : 'bg-white';
 $border_class = $is_dark ? 'border-gray-700' : 'border-gray-200';
@@ -136,9 +145,7 @@ ensure_session_started();
 $user_id = $_SESSION['user_id'];
 
 // Fetch employee data with JOIN to master tables
-$conn = getDbConnection();
 $lang_suffix = ($current_lang === 'en') ? '_en' : (($current_lang === 'my') ? '_my' : '_th');
-
 $sql = "SELECT 
     e.employee_id,
     CASE 
@@ -162,7 +169,6 @@ $stmt->execute();
 $result = $stmt->get_result();
 $employee = $result->fetch_assoc();
 $stmt->close();
-$conn->close();
 
 // Check if employee data exists
 if (!$employee) {
@@ -174,13 +180,12 @@ $message = '';
 $message_type = '';
 
 // Handle form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $conn = getDbConnection();
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$has_pending) { // ✅ เพิ่มเงื่อนไข !$has_pending
     $reason = $_POST['reason'] ?? '';
-
+    
     $stmt = $conn->prepare("INSERT INTO id_card_requests (employee_id, reason, status, created_at, updated_at) VALUES (?, ?, 'New', NOW(), NOW())");
     $stmt->bind_param("ss", $user_id, $reason);
-
+    
     if ($stmt->execute()) {
         $stmt->close();
         $conn->close();
@@ -190,10 +195,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = $t['error_message'];
         $message_type = 'error';
     }
-
+    
     $stmt->close();
-    $conn->close();
 }
+
+$conn->close();
 
 include __DIR__ . '/../../includes/header.php';
 include __DIR__ . '/../../includes/sidebar.php';
@@ -201,7 +207,7 @@ include __DIR__ . '/../../includes/sidebar.php';
 
 <div class="lg:ml-64">
     <div class="container mx-auto px-4 py-6 max-w-4xl">
-
+        
         <!-- Error Alert Container -->
         <div id="alertContainer">
             <?php if ($message): ?>
@@ -227,169 +233,166 @@ include __DIR__ . '/../../includes/sidebar.php';
             </div>
         </div>
 
-        <!-- Main Form Card -->
-        <div class="<?php echo $card_bg; ?> rounded-lg shadow-md border <?php echo $border_class; ?> p-6">
-            <form method="POST" action="" id="idcardForm">
-
-                <!-- Employee Info Section -->
-                <div class="mb-8 pb-8 border-b <?php echo $border_class; ?>">
-                    <h2 class="text-lg font-bold <?php echo $text_class; ?> mb-6 flex items-center gap-2">
-                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                        </svg>
-                        <?php echo $t['employee_information']; ?>
-                    </h2>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Employee ID -->
-                        <div>
-                            <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-2">
-                                <?php echo $t['employee_id']; ?>
-                            </label>
-                            <input type="text" readonly value="<?php echo htmlspecialchars($employee['employee_id'] ?? 'N/A'); ?>"
-                                class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75 cursor-not-allowed">
-                        </div>
-
-                        <!-- Employee Name -->
-                        <div>
-                            <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-2">
-                                <?php echo $t['employee_name']; ?>
-                            </label>
-                            <input type="text" readonly value="<?php echo htmlspecialchars($employee['full_name'] ?? 'N/A'); ?>"
-                                class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75 cursor-not-allowed">
-                        </div>
-
-                        <!-- Position -->
-                        <div>
-                            <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-2">
-                                <?php echo $t['position']; ?>
-                            </label>
-                            <input type="text" readonly value="<?php echo htmlspecialchars($employee['position_name'] ?? 'N/A'); ?>"
-                                class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75 cursor-not-allowed">
-                        </div>
-
-                        <!-- Department -->
-                        <div>
-                            <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-2">
-                                <?php echo $t['department']; ?>
-                            </label>
-                            <input type="text" readonly value="<?php echo htmlspecialchars($employee['department_name'] ?? 'N/A'); ?>"
-                                class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75 cursor-not-allowed">
+        <?php if ($has_pending): ?>
+            <!-- ✅ Show Rating Required Warning -->
+            <?php echo RatingController::getPendingRatingsMessage($rating_check, $current_lang); ?>
+        <?php else: ?>
+            <!-- Main Form Card -->
+            <div class="<?php echo $card_bg; ?> rounded-lg shadow-md border <?php echo $border_class; ?> p-6">
+                <form method="POST" action="" id="idcardForm">
+                    
+                    <!-- Employee Info Section -->
+                    <div class="mb-8 pb-8 border-b <?php echo $border_class; ?>">
+                        <h2 class="text-lg font-bold <?php echo $text_class; ?> mb-6 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                            <?php echo $t['employee_information']; ?>
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Employee ID -->
+                            <div>
+                                <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-2">
+                                    <?php echo $t['employee_id']; ?>
+                                </label>
+                                <input type="text" readonly value="<?php echo htmlspecialchars($employee['employee_id'] ?? 'N/A'); ?>"
+                                    class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75 cursor-not-allowed">
+                            </div>
+                            <!-- Employee Name -->
+                            <div>
+                                <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-2">
+                                    <?php echo $t['employee_name']; ?>
+                                </label>
+                                <input type="text" readonly value="<?php echo htmlspecialchars($employee['full_name'] ?? 'N/A'); ?>"
+                                    class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75 cursor-not-allowed">
+                            </div>
+                            <!-- Position -->
+                            <div>
+                                <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-2">
+                                    <?php echo $t['position']; ?>
+                                </label>
+                                <input type="text" readonly value="<?php echo htmlspecialchars($employee['position_name'] ?? 'N/A'); ?>"
+                                    class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75 cursor-not-allowed">
+                            </div>
+                            <!-- Department -->
+                            <div>
+                                <label class="block text-sm font-medium <?php echo $is_dark ? 'text-gray-300' : 'text-gray-700'; ?> mb-2">
+                                    <?php echo $t['department']; ?>
+                                </label>
+                                <input type="text" readonly value="<?php echo htmlspecialchars($employee['department_name'] ?? 'N/A'); ?>"
+                                    class="w-full px-4 py-2 border rounded-lg <?php echo $input_class; ?> opacity-75 cursor-not-allowed">
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Request Reason Section -->
-                <div class="mb-8">
-                    <label class="block text-sm font-bold <?php echo $text_class; ?> mb-4 flex items-center gap-2">
-                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        <?php echo $t['request_reason']; ?> <span class="text-red-500">*</span>
-                    </label>
-
-                    <div class="space-y-3">
-                        <!-- First Time Issue -->
-                        <label class="flex items-start p-4 border-2 <?php echo $is_dark ? 'border-gray-600 hover:border-purple-500 hover:bg-gray-700' : 'border-gray-200 hover:border-purple-500 hover:bg-purple-50'; ?> rounded-lg cursor-pointer transition">
-                            <input type="radio" name="reason" value="First Time Issue" required class="mt-1 w-4 h-4 text-purple-600">
-                            <div class="ml-4 flex-1">
-                                <span class="font-medium <?php echo $text_class; ?>">
-                                    <?php echo $t['first_time_issue']; ?>
-                                </span>
-                                <p class="text-sm <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?> mt-1">
-                                    <?php echo $t['first_time_issue_desc']; ?>
-                                </p>
-                            </div>
+                    <!-- Request Reason Section -->
+                    <div class="mb-8">
+                        <label class="block text-sm font-bold <?php echo $text_class; ?> mb-4 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <?php echo $t['request_reason']; ?> <span class="text-red-500">*</span>
                         </label>
-
-                        <!-- Information Update -->
-                        <label class="flex items-start p-4 border-2 <?php echo $is_dark ? 'border-gray-600 hover:border-purple-500 hover:bg-gray-700' : 'border-gray-200 hover:border-purple-500 hover:bg-purple-50'; ?> rounded-lg cursor-pointer transition">
-                            <input type="radio" name="reason" value="Information Update" required class="mt-1 w-4 h-4 text-purple-600">
-                            <div class="ml-4 flex-1">
-                                <span class="font-medium <?php echo $text_class; ?>">
-                                    <?php echo $t['information_update']; ?>
-                                </span>
-                                <p class="text-sm <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?> mt-1">
-                                    <?php echo $t['information_update_desc']; ?>
-                                </p>
-                            </div>
-                        </label>
-
-                        <!-- Lost ID Card -->
-                        <label class="flex items-start p-4 border-2 <?php echo $is_dark ? 'border-gray-600 hover:border-purple-500 hover:bg-gray-700' : 'border-gray-200 hover:border-purple-500 hover:bg-purple-50'; ?> rounded-lg cursor-pointer transition">
-                            <input type="radio" name="reason" value="Lost ID Card" required class="mt-1 w-4 h-4 text-purple-600">
-                            <div class="ml-4 flex-1">
-                                <span class="font-medium <?php echo $text_class; ?>">
-                                    <?php echo $t['lost_id_card']; ?>
-                                </span>
-                                <p class="text-sm <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?> mt-1">
-                                    <?php echo $t['lost_id_card_desc']; ?>
-                                </p>
-                            </div>
-                        </label>
-
-                        <!-- Damaged ID Card -->
-                        <label class="flex items-start p-4 border-2 <?php echo $is_dark ? 'border-gray-600 hover:border-purple-500 hover:bg-gray-700' : 'border-gray-200 hover:border-purple-500 hover:bg-purple-50'; ?> rounded-lg cursor-pointer transition">
-                            <input type="radio" name="reason" value="Damaged ID Card" required class="mt-1 w-4 h-4 text-purple-600">
-                            <div class="ml-4 flex-1">
-                                <span class="font-medium <?php echo $text_class; ?>">
-                                    <?php echo $t['damaged_id_card']; ?>
-                                </span>
-                                <p class="text-sm <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?> mt-1">
-                                    <?php echo $t['damaged_id_card_desc']; ?>
-                                </p>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Important Notice -->
-                <div class="mb-8 p-4 bg-yellow-50 dark:bg-yellow-900 border-l-4 border-yellow-400 rounded">
-                    <div class="flex gap-3">
-                        <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                        </svg>
-                        <div>
-                            <p class="text-sm font-bold text-yellow-800 dark:text-yellow-300"><?php echo $t['important_notice']; ?></p>
-                            <ul class="text-sm text-yellow-700 dark:text-yellow-400 mt-2 space-y-1">
-                                <li><?php echo $t['processing_time']; ?></li>
-                                <li><?php echo $t['photo_required']; ?></li>
-                                <li><?php echo $t['replacement_fee']; ?></li>
-                                <li><?php echo $t['return_old_card']; ?></li>
-                            </ul>
+                        <div class="space-y-3">
+                            <!-- First Time Issue -->
+                            <label class="flex items-start p-4 border-2 <?php echo $is_dark ? 'border-gray-600 hover:border-purple-500 hover:bg-gray-700' : 'border-gray-200 hover:border-purple-500 hover:bg-purple-50'; ?> rounded-lg cursor-pointer transition">
+                                <input type="radio" name="reason" value="First Time Issue" required class="mt-1 w-4 h-4 text-purple-600">
+                                <div class="ml-4 flex-1">
+                                    <span class="font-medium <?php echo $text_class; ?>">
+                                        <?php echo $t['first_time_issue']; ?>
+                                    </span>
+                                    <p class="text-sm <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?> mt-1">
+                                        <?php echo $t['first_time_issue_desc']; ?>
+                                    </p>
+                                </div>
+                            </label>
+                            <!-- Information Update -->
+                            <label class="flex items-start p-4 border-2 <?php echo $is_dark ? 'border-gray-600 hover:border-purple-500 hover:bg-gray-700' : 'border-gray-200 hover:border-purple-500 hover:bg-purple-50'; ?> rounded-lg cursor-pointer transition">
+                                <input type="radio" name="reason" value="Information Update" required class="mt-1 w-4 h-4 text-purple-600">
+                                <div class="ml-4 flex-1">
+                                    <span class="font-medium <?php echo $text_class; ?>">
+                                        <?php echo $t['information_update']; ?>
+                                    </span>
+                                    <p class="text-sm <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?> mt-1">
+                                        <?php echo $t['information_update_desc']; ?>
+                                    </p>
+                                </div>
+                            </label>
+                            <!-- Lost ID Card -->
+                            <label class="flex items-start p-4 border-2 <?php echo $is_dark ? 'border-gray-600 hover:border-purple-500 hover:bg-gray-700' : 'border-gray-200 hover:border-purple-500 hover:bg-purple-50'; ?> rounded-lg cursor-pointer transition">
+                                <input type="radio" name="reason" value="Lost ID Card" required class="mt-1 w-4 h-4 text-purple-600">
+                                <div class="ml-4 flex-1">
+                                    <span class="font-medium <?php echo $text_class; ?>">
+                                        <?php echo $t['lost_id_card']; ?>
+                                    </span>
+                                    <p class="text-sm <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?> mt-1">
+                                        <?php echo $t['lost_id_card_desc']; ?>
+                                    </p>
+                                </div>
+                            </label>
+                            <!-- Damaged ID Card -->
+                            <label class="flex items-start p-4 border-2 <?php echo $is_dark ? 'border-gray-600 hover:border-purple-500 hover:bg-gray-700' : 'border-gray-200 hover:border-purple-500 hover:bg-purple-50'; ?> rounded-lg cursor-pointer transition">
+                                <input type="radio" name="reason" value="Damaged ID Card" required class="mt-1 w-4 h-4 text-purple-600">
+                                <div class="ml-4 flex-1">
+                                    <span class="font-medium <?php echo $text_class; ?>">
+                                        <?php echo $t['damaged_id_card']; ?>
+                                    </span>
+                                    <p class="text-sm <?php echo $is_dark ? 'text-gray-400' : 'text-gray-600'; ?> mt-1">
+                                        <?php echo $t['damaged_id_card_desc']; ?>
+                                    </p>
+                                </div>
+                            </label>
                         </div>
                     </div>
-                </div>
 
-                <!-- Form Actions -->
-                <div class="flex flex-col md:flex-row gap-4 pt-6 border-t <?php echo $border_class; ?>">
-                    <a href="<?php echo BASE_PATH; ?>/index.php" class="flex-1 px-6 py-3 border rounded-lg <?php echo $border_class; ?> <?php echo $text_class; ?> hover:<?php echo $is_dark ? 'bg-gray-700' : 'bg-gray-50'; ?> transition font-medium text-center">
-                        <?php echo $t['cancel']; ?>
-                    </a>
-                    <button type="submit" class="flex-1 px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition font-medium shadow-md hover:shadow-lg">
-                        <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"></path>
-                        </svg>
-                        <?php echo $t['submit_request']; ?>
-                    </button>
-                </div>
-            </form>
-        </div>
+                    <!-- Important Notice -->
+                    <div class="mb-8 p-4 bg-yellow-50 dark:bg-yellow-900 border-l-4 border-yellow-400 rounded">
+                        <div class="flex gap-3">
+                            <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                            <div>
+                                <p class="text-sm font-bold text-yellow-800 dark:text-yellow-300"><?php echo $t['important_notice']; ?></p>
+                                <ul class="text-sm text-yellow-700 dark:text-yellow-400 mt-2 space-y-1">
+                                    <li><?php echo $t['processing_time']; ?></li>
+                                    <li><?php echo $t['photo_required']; ?></li>
+                                    <li><?php echo $t['replacement_fee']; ?></li>
+                                    <li><?php echo $t['return_old_card']; ?></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="flex flex-col md:flex-row gap-4 pt-6 border-t <?php echo $border_class; ?>">
+                        <a href="<?php echo BASE_PATH; ?>/index.php" class="flex-1 px-6 py-3 border rounded-lg <?php echo $border_class; ?> <?php echo $text_class; ?> hover:<?php echo $is_dark ? 'bg-gray-700' : 'bg-gray-50'; ?> transition font-medium text-center">
+                            <?php echo $t['cancel']; ?>
+                        </a>
+                        <button type="submit" class="flex-1 px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition font-medium shadow-md hover:shadow-lg">
+                            <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"></path>
+                            </svg>
+                            <?php echo $t['submit_request']; ?>
+                        </button>
+                    </div>
+                    
+                </form>
+            </div>
+        <?php endif; ?>
+
     </div>
 </div>
 
 <?php include __DIR__ . '/../../includes/footer.php'; ?>
 
 <script>
-    document.getElementById('idcardForm').addEventListener('submit', function(e) {
+    document.getElementById('idcardForm')?.addEventListener('submit', function(e) {
         const reason = document.querySelector('input[name="reason"]:checked');
-
         if (!reason) {
             e.preventDefault();
             alert('<?php echo addslashes($t['select_reason_alert']); ?>');
             return;
         }
-
         if (!confirm('<?php echo addslashes($t['confirmation']); ?>')) {
             e.preventDefault();
         }

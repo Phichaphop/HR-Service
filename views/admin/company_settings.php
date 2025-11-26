@@ -265,8 +265,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 include __DIR__ . '/../../includes/header.php';
 include __DIR__ . '/../../includes/sidebar.php';
 ?>
-<div class="lg:ml-64 min-h-screen">
-    <div class="container mx-auto px-4 py-6 max-w-4xl">
+    <div class="lg:ml-64 min-h-screen">
+        <div class="container mx-auto px-4 py-6">
 
         <!-- Success/Error Message -->
         <?php if ($message): ?>

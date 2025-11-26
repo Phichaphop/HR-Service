@@ -595,8 +595,8 @@ include __DIR__ . '/../../includes/header.php';
 include __DIR__ . '/../../includes/sidebar.php';
 ?>
 
-<div class="lg:ml-64">
-    <div class="container mx-auto px-4 py-6 max-w-7xl">
+    <div class="lg:ml-64 min-h-screen">
+        <div class="container mx-auto px-4 py-6">
         
         <!-- Page Header -->
         <div class="mb-6 bg-gradient-to-r from-red-600 to-pink-600 rounded-lg shadow-lg p-6">

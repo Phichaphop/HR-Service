@@ -244,7 +244,7 @@ $conn->close();
 include __DIR__ . '/../../includes/header.php';
 include __DIR__ . '/../../includes/sidebar.php';
 ?>
-<div class="lg:ml-64 min-h-screen">
+<div class="lg:ml-64">
     <div class="container mx-auto px-4 py-6 max-w-4xl">
         
         <!-- Page Header -->
